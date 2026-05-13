@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 29
+  overall_progress_percent: 35
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -57,7 +57,7 @@ roadmap:
     - id: map-ui
       title: MapLibre map UI and route display
       status: active
-      progress_percent: 40
+      progress_percent: 60
       target_outcome: route planning map with self-hosted tile wiring and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
@@ -83,9 +83,10 @@ roadmap:
     - shared route-generation contracts and a mocked GraphHopper adapter boundary are in place for future api route work
     - the web app and docs now expose an explicit self-hosted tile-style contract through `PUBLIC_TILE_STYLE_URL`
     - the web planning shell now renders route-request controls, shared request previews, and a separate navigation handoff without mixing execution state into planning
+    - the planning screen now mounts a live self-hosted MapLibre surface and reports explicit loading or fetch-failure states instead of a static map placeholder
   remaining_summary:
-    - current map-ui focus is ITEM-0007 live MapLibre mount, followed by ITEM-0008 map-selected point sync
-    - map-ui groundwork exists, but the route preview is still a static placeholder with no live MapLibre surface or geometry overlay
+    - current map-ui focus is ITEM-0008 map-selected point sync so the live planning map can drive start-point and pass-through state
+    - map-ui groundwork now includes a live MapLibre surface, but map clicks still do not update planning coordinates and no route geometry overlay exists yet
     - routing-core groundwork exists, but live route-generation orchestration and legal request handling remain future work
     - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
     - route generation, active navigation behavior, and later hardening loops remain unimplemented
