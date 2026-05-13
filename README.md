@@ -29,8 +29,9 @@ This repository is initialized for an agent-driven workflow with four recurring 
 1. Run `npm install`.
 2. Run `npm run verify`.
 3. Run `npm run compose:test`.
-4. Use `make run-app` to start the local app stack when you want to open it in the browser.
-5. Read the active epic and backlog in `.agent/`.
+4. Run `npm run test:browser-smoke` to exercise the browser smoke fixture suite.
+5. Use `make run-app` to start the local app stack when you want to open it in the browser.
+6. Read the active epic and backlog in `.agent/`.
 
 ## Docker notes
 
@@ -39,7 +40,9 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - `npm run compose:test` now builds and starts the scaffolded `api` and `web` services, checks the api `/health` endpoint, and tears the stack down again.
 - The compose smoke covers only the default `api` and `web` services; the `maps` profile remains excluded until real regional data is prepared.
 - `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default compose workflow for local app startup, shutdown, and forced rebuilds.
-- `PUBLIC_TILE_STYLE_URL` is the frontend map-style contract. The default local boot uses the bundled `/styles/local-fallback.json` grid, and the variable can be overridden later with a self-hosted style JSON endpoint such as `http://localhost:8080/styles/basic/style.json`.
+- `PUBLIC_TILE_STYLE_URL` is the frontend map-style contract. It must point at a self-hosted style JSON endpoint such as `http://localhost:8080/styles/basic/style.json`, and the app should fail honestly when that style is unreachable instead of drawing a fake fallback map.
+- `npm run test:browser-smoke -- --app-url http://localhost:5173` is the browser-level gate for map work. It passes only when the planning map uses a real self-hosted style contract and the page can reach tile-backed map assets without silently falling back.
+- While `ITEM-0025` remains open, `npm run test:browser-smoke -- --app-url http://localhost:5173 --expect-cause unreachable_style_json` is the expected supported-app result after `make run-app`, because the default stack still excludes the map profile and should fail honestly.
 
 ## Agent workflow
 

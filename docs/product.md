@@ -497,7 +497,22 @@ Use self-hosted tiles. Acceptable approaches:
 
 The frontend must be configured to point at the self-hosted tile endpoint.
 
-If full vector tile generation is too heavy for the first implementation, the agent must still keep the architecture self-hosted and document the data preparation step. It may include a placeholder tile artifact path and a clear error message, but it must not silently fall back to a third-party registered service.
+If full vector tile generation is too heavy for the first implementation, the agent must still keep the architecture self-hosted and document the data preparation step. It may include a placeholder tile artifact path and a clear error message, but it must not silently fall back to a third-party registered service, and the placeholder must have an explicit tracked removal item.
+
+### 7.4 Temporary placeholders and fallbacks
+
+Temporary placeholders are allowed only when all of the following are true:
+
+- the placeholder is explicitly called out in the roadmap, epic, or backlog item
+- the user-visible state is labeled as temporary, unavailable, or incomplete
+- an open backlog item already exists to remove or replace the placeholder
+- roadmap progress and any done state exclude the capability that still depends on the placeholder
+
+Forbidden:
+
+- fallbacks that make a missing capability look finished
+- user-visible placeholders without a linked removal item
+- closing an epic or phase while a core user journey still depends on a temporary placeholder
 
 ## 8. Routing behavior
 
@@ -968,7 +983,7 @@ When first given this document in an empty directory, the agent must:
 6. Create project README and docs.
 7. Create base package/workspace files.
 8. Create Docker Compose skeleton.
-9. Create placeholder services if necessary.
+9. Create placeholder services if necessary, but keep them clearly inert and track their removal explicitly.
 10. Create scripts for verification.
 11. Do not commit.
 12. Clearly tell the user that the initial setup is complete and that they can connect the remote repository.
@@ -992,6 +1007,8 @@ Purpose: update planning state only.
 11. Ensure each backlog item has clear acceptance criteria and verification steps.
 12. Avoid changing source code unless strictly necessary to keep agent specs valid.
 13. Commit and push planning/spec changes.
+
+`refine` must also inventory user-visible temporary placeholders, ensure each one has a linked exit item, and keep the related epic or phase incomplete until that exit item is done.
 
 `refine` may modify:
 
@@ -1020,6 +1037,8 @@ Purpose: implement exactly one actionable item.
 8. Stop Docker Compose after verification.
 9. Update the item status and implementation notes.
 10. Commit and push.
+
+If `implement` discovers that a new user-visible placeholder is necessary but not already tracked, it must block the current item and hand control back to `refine` rather than shipping an unplanned placeholder.
 
 `implement` must not:
 
@@ -1050,6 +1069,8 @@ Purpose: audit the whole workspace and produce findings.
 11. Commit and push review findings.
 
 `review` is the correction mechanism when implementation quality is poor or when the agent previously marked something complete incorrectly.
+
+`review` must also scan for user-visible placeholders, stubs, demo data, and fallback behavior; verify that each one has a tracked exit item; and raise at least a high-severity finding when a placeholder is orphaned or survives inside a done state.
 
 ### 11.4A `show`
 
@@ -1547,6 +1568,17 @@ updated_at: ISO-8601 timestamp
 closed_at: null
 ```
 
+Optional when a backlog item intentionally introduces or preserves a temporary placeholder:
+
+```yaml
+temporary_placeholder:
+  user_visible: true | false
+  label: short_description_of_the_placeholder_state
+  exit_item: ITEM-0002
+  exit_criteria:
+    - criterion
+```
+
 ### 12.7 Epic format
 
 Epics are YAML files under `.agent/epics/`.
@@ -1948,6 +1980,10 @@ MAX_TARGET_DISTANCE_KM
 DEFAULT_DISTANCE_TOLERANCE_METERS
 ```
 
+`PUBLIC_TILE_STYLE_URL` must point at a real self-hosted style document. If it
+is unreachable, the planning map must fail with an explicit error state instead
+of substituting bundled or synthetic cartography.
+
 ## 18. Suggested roadmap phases
 
 ### Phase 1: Foundation
@@ -2094,7 +2130,7 @@ minimum_route_quality:
   - has_total_distance_reported
   - has_distance_delta_reported
   - has_geometry_renderable_on_map
-  - has_instructions_or_fallback_navigation_markers
+  - has_instructions_or_honest_instruction_gap
   - has_surface_summary_or_unknown_surface_warning
 ```
 

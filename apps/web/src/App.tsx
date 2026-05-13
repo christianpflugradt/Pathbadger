@@ -20,10 +20,7 @@ import {
   useBrowserGeolocation,
 } from "./browser-geolocation";
 import { webRuntimeConfig } from "./config";
-import {
-  createNavigationSnapshot,
-  DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS,
-} from "./navigation-session";
+import { createNavigationSnapshot } from "./navigation-session";
 import { PlanningMap } from "./PlanningMap";
 import { requestRoutePreview } from "./route-preview-client";
 import {
@@ -49,8 +46,6 @@ type NavigationSession = {
   routeGeometry: RouteGeometry;
   routeId: string;
   routeStatus: "partial" | "success";
-  simulatedLateralOffsetMeters: number;
-  simulatedProgressFraction: number;
 };
 type NavigableRoutePreview = RouteGenerateResponse & {
   geometry: RouteGeometry;
@@ -82,7 +77,7 @@ const startPointCatalog: Record<
   },
   last_used: {
     label: "Last used start",
-    detail: "Fallback when no explicit start is chosen.",
+    detail: "Reuse the previous origin without clicking the map again.",
     coordinate: { lat: 54.3448, lon: 10.1021 },
   },
 };
@@ -134,8 +129,11 @@ export function App() {
     string | null
   >(null);
   const latestRoutePreviewRequestIdRef = useRef(0);
+  const isNavigationActive = navigationSession !== null;
+  const isBrowserGeolocationEnabled =
+    startPointMode === "current_position" || isNavigationActive;
   const browserGeolocation = useBrowserGeolocation({
-    enabled: startPointMode === "current_position",
+    enabled: isBrowserGeolocationEnabled,
     positionOptions: DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
   });
   const startPointOptions = {
@@ -200,14 +198,47 @@ export function App() {
     routePreview?.summary ?? null,
   );
   const navigableRoutePreview = getNavigableRoutePreview(routePreview);
-  const isNavigationActive = navigationSession !== null;
-  const navigationSnapshot = navigationSession
-    ? createNavigationSnapshot(navigationSession.routeGeometry, {
-        instructions: navigationSession.instructions,
-        lateralOffsetMeters: navigationSession.simulatedLateralOffsetMeters,
-        requestedProgressFraction: navigationSession.simulatedProgressFraction,
-      })
+  const navigationTrackedPosition = isNavigationActive
+    ? browserGeolocation.position
     : null;
+  const navigationHasFreshPosition =
+    browserGeolocation.status === "ready" && navigationTrackedPosition !== null;
+  const navigationSnapshot =
+    navigationSession && navigationTrackedPosition
+      ? createNavigationSnapshot(navigationSession.routeGeometry, {
+          currentPosition: navigationTrackedPosition.coordinate,
+          instructions: navigationSession.instructions,
+          requestedProgressFraction: 0,
+        })
+      : null;
+  const navigationHasTrackedPosition = navigationSnapshot !== null;
+  const navigationTrackingStatusPillClassName =
+    getNavigationTrackingStatusPillClassName({
+      browserGeolocation,
+      hasFreshPosition: navigationHasFreshPosition,
+      hasTrackedPosition: navigationHasTrackedPosition,
+    });
+  const navigationTrackingStatusLabel = getNavigationTrackingStatusLabel({
+    browserGeolocation,
+    hasFreshPosition: navigationHasFreshPosition,
+    hasTrackedPosition: navigationHasTrackedPosition,
+  });
+  const navigationTrackingBannerClassName =
+    getNavigationTrackingBannerClassName({
+      browserGeolocation,
+      hasFreshPosition: navigationHasFreshPosition,
+      hasTrackedPosition: navigationHasTrackedPosition,
+    });
+  const navigationTrackingBannerTitle = getNavigationTrackingBannerTitle({
+    browserGeolocation,
+    hasFreshPosition: navigationHasFreshPosition,
+    hasTrackedPosition: navigationHasTrackedPosition,
+  });
+  const navigationTrackingBannerCopy = getNavigationTrackingBannerCopy({
+    browserGeolocation,
+    hasFreshPosition: navigationHasFreshPosition,
+    hasTrackedPosition: navigationHasTrackedPosition,
+  });
   const canStartNavigation =
     navigableRoutePreview !== null &&
     !isRequestingRoutePreview &&
@@ -216,7 +247,9 @@ export function App() {
   const mapCenter =
     navigationSnapshot?.currentPosition ?? startPoint.coordinate;
   const mapCenterLabel = navigationSnapshot
-    ? "Current position"
+    ? navigationHasFreshPosition
+      ? "Live GPS position"
+      : "Last known GPS position"
     : startPoint.label;
   const mapRouteGeometry =
     navigationSession?.routeGeometry ?? routePreview?.geometry ?? null;
@@ -339,47 +372,11 @@ export function App() {
       routeGeometry: navigableRoutePreview.geometry,
       routeId: navigableRoutePreview.routeId,
       routeStatus: navigableRoutePreview.status,
-      simulatedLateralOffsetMeters: 0,
-      simulatedProgressFraction: 0,
     });
   }
 
   function stopNavigation() {
     setNavigationSession(null);
-  }
-
-  function resetNavigationProgress() {
-    setNavigationSession((current) =>
-      current
-        ? {
-            ...current,
-            simulatedLateralOffsetMeters: 0,
-            simulatedProgressFraction: 0,
-          }
-        : current,
-    );
-  }
-
-  function updateNavigationLateralOffset(nextOffsetMeters: number) {
-    setNavigationSession((current) =>
-      current
-        ? {
-            ...current,
-            simulatedLateralOffsetMeters: nextOffsetMeters,
-          }
-        : current,
-    );
-  }
-
-  function updateNavigationProgress(nextProgressPercent: number) {
-    setNavigationSession((current) =>
-      current
-        ? {
-            ...current,
-            simulatedProgressFraction: nextProgressPercent / 100,
-          }
-        : current,
-    );
   }
 
   return (
@@ -733,11 +730,10 @@ export function App() {
               currentPosition={navigationSnapshot?.currentPosition ?? null}
               currentPositionLabel={
                 navigationSnapshot
-                  ? navigationSnapshot.isOffRoute
-                    ? `Off route ${Math.round(
-                        navigationSnapshot.offRouteDistanceMeters,
-                      )} m`
-                    : `Progress ${navigationSnapshot.progressPercent}%`
+                  ? getNavigationMapMarkerLabel({
+                      hasFreshPosition: navigationHasFreshPosition,
+                      navigationSnapshot,
+                    })
                   : null
               }
               isMapStartActive={
@@ -895,7 +891,7 @@ export function App() {
                     Candidate {previewCandidateIndex}{" "}
                     {lastSubmittedSeed
                       ? `used random seed ${lastSubmittedSeed}.`
-                      : "used the backend's derived fallback seed."}{" "}
+                      : "used the backend's default deterministic seed."}{" "}
                     {routePreview.geometry
                       ? `The live map is rendering ${routePreview.geometry.coordinates.length} route coordinates.`
                       : "No route geometry is available for the map yet."}
@@ -976,181 +972,215 @@ export function App() {
             {navigationSnapshot && navigationSession ? (
               <>
                 <p className="panel-copy">
-                  This first execution shell keeps route-following separate from
-                  planning by driving a local current-position marker and
-                  progress metrics from the loaded route geometry.
+                  {getNavigationTrackingPanelCopy({
+                    browserGeolocation,
+                    hasFreshPosition: navigationHasFreshPosition,
+                    hasTrackedPosition: navigationHasTrackedPosition,
+                  })}
                 </p>
-                {navigationSnapshot.isOffRoute ? (
-                  <div className="response-banner response-banner--error">
-                    <strong>Off-route warning</strong>
-                    <span>
-                      Current position is about{" "}
+                <div className="status-row">
+                  <span
+                    className={`status-pill${
+                      navigationTrackingStatusPillClassName
+                        ? ` ${navigationTrackingStatusPillClassName}`
+                        : ""
+                    }`}
+                  >
+                    {navigationTrackingStatusLabel}
+                  </span>
+                  <span className="status-pill">
+                    {navigationSession.routeStatus === "partial"
+                      ? "Partial preview route"
+                      : "Full preview route"}
+                  </span>
+                  {navigationTrackedPosition?.accuracyMeters !== null &&
+                  navigationTrackedPosition?.accuracyMeters !== undefined ? (
+                    <span className="status-pill">
+                      Accuracy{" "}
                       {formatWholeMeters(
-                        navigationSnapshot.offRouteDistanceMeters,
-                      )}{" "}
-                      from the route line, which exceeds the{" "}
-                      {formatWholeMeters(
-                        navigationSnapshot.offRouteWarningThresholdMeters,
-                      )}{" "}
-                      warning threshold. MVP navigation does not reroute yet.
+                        navigationTrackedPosition.accuracyMeters,
+                      )}
                     </span>
-                  </div>
-                ) : (
-                  <div className="response-banner response-banner--pending">
-                    <strong>On-route state</strong>
-                    <span>
-                      Current position is staying within the{" "}
-                      {formatWholeMeters(
-                        navigationSnapshot.offRouteWarningThresholdMeters,
-                      )}{" "}
-                      off-route threshold.
-                    </span>
-                  </div>
-                )}
-                {navigationSnapshot.nextInstruction ? (
-                  <div className="response-banner">
-                    <strong>
-                      Next instruction:{" "}
-                      {navigationSnapshot.nextInstruction.instruction.text}
-                    </strong>
-                    <span>
-                      In{" "}
-                      {formatNavigationDistance(
-                        navigationSnapshot.nextInstruction.distanceMeters,
-                      )}
-                      {navigationSnapshot.nextInstruction.instruction.streetName
-                        ? ` on ${navigationSnapshot.nextInstruction.instruction.streetName}.`
-                        : "."}
-                    </span>
-                  </div>
-                ) : (
-                  <p className="helper-copy">
-                    This routed preview does not include turn instructions yet,
-                    so navigation is falling back to route progress only.
-                  </p>
-                )}
-                <div className="preview-grid preview-grid--navigation">
-                  <div className="preview-stat">
-                    <span>Current position</span>
-                    <strong>
-                      {formatCoordinate(navigationSnapshot.currentPosition)}
-                    </strong>
-                  </div>
-                  <div className="preview-stat">
-                    <span>Completed</span>
-                    <strong>
-                      {formatDistanceKilometers(
-                        navigationSnapshot.completedDistanceMeters,
-                      )}
-                    </strong>
-                  </div>
-                  <div className="preview-stat">
-                    <span>Remaining</span>
-                    <strong>
-                      {formatDistanceKilometers(
-                        navigationSnapshot.remainingDistanceMeters,
-                      )}
-                    </strong>
-                  </div>
-                  <div className="preview-stat">
-                    <span>Total</span>
-                    <strong>
-                      {formatDistanceKilometers(
-                        navigationSnapshot.totalDistanceMeters,
-                      )}
-                    </strong>
-                  </div>
-                  <div className="preview-stat">
-                    <span>Progress</span>
-                    <strong>{navigationSnapshot.progressPercent}%</strong>
-                  </div>
-                  <div className="preview-stat">
-                    <span>Route id</span>
-                    <strong>{navigationSession.routeId}</strong>
-                  </div>
-                  <div className="preview-stat">
-                    <span>Route deviation</span>
-                    <strong>
-                      {formatWholeMeters(
-                        navigationSnapshot.offRouteDistanceMeters,
-                      )}
-                    </strong>
-                  </div>
+                  ) : null}
                 </div>
-                <div className="navigation-slider">
-                  <div className="section-heading">
-                    <h3>Simulated current position</h3>
-                    <p>
-                      Until live GPS handling lands, this slider moves the
-                      current position along the routed line using the geo
-                      progress primitive. A deviation above{" "}
-                      {DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS} m triggers
-                      the conservative off-route warning.
-                    </p>
-                  </div>
-                  <label className="navigation-range">
-                    <span>
-                      Along route: {navigationSnapshot.progressPercent}%
-                    </span>
-                    <input
-                      className="distance-slider"
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={Math.round(
-                        navigationSession.simulatedProgressFraction * 100,
-                      )}
-                      onChange={(event) =>
-                        updateNavigationProgress(Number(event.target.value))
-                      }
-                    />
-                  </label>
-                  <label className="navigation-range">
-                    <span>
-                      Route deviation:{" "}
-                      {formatWholeMeters(
-                        navigationSession.simulatedLateralOffsetMeters,
-                      )}
-                    </span>
-                    <input
-                      className="distance-slider"
-                      type="range"
-                      min="0"
-                      max="80"
-                      step="5"
-                      value={navigationSession.simulatedLateralOffsetMeters}
-                      onChange={(event) =>
-                        updateNavigationLateralOffset(
-                          Number(event.target.value),
-                        )
-                      }
-                    />
-                  </label>
-                  <div className="status-row">
-                    <span className="status-pill">
-                      {navigationSession.routeStatus === "partial"
-                        ? "Partial preview route"
-                        : "Full preview route"}
-                    </span>
-                    <span className="status-pill">
-                      Marker centered on {navigationSnapshot.progressPercent}%
-                    </span>
-                    <span
-                      className={`status-pill${
-                        navigationSnapshot.isOffRoute
-                          ? " status-pill--error"
-                          : ""
-                      }`}
-                    >
-                      {navigationSnapshot.isOffRoute
-                        ? `Off route by ${formatWholeMeters(
+                <div
+                  className={`response-banner${navigationTrackingBannerClassName}`}
+                >
+                  <strong>{navigationTrackingBannerTitle}</strong>
+                  <span>{navigationTrackingBannerCopy}</span>
+                </div>
+                {navigationSnapshot ? (
+                  <>
+                    {navigationSnapshot.isOffRoute ? (
+                      <div className="response-banner response-banner--error">
+                        <strong>Off-route warning</strong>
+                        <span>
+                          Current position is about{" "}
+                          {formatWholeMeters(
                             navigationSnapshot.offRouteDistanceMeters,
-                          )}`
-                        : "On route"}
-                    </span>
-                  </div>
-                </div>
+                          )}{" "}
+                          from the route line, which exceeds the{" "}
+                          {formatWholeMeters(
+                            navigationSnapshot.offRouteWarningThresholdMeters,
+                          )}{" "}
+                          warning threshold. MVP navigation does not reroute
+                          yet.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="response-banner response-banner--pending">
+                        <strong>On-route state</strong>
+                        <span>
+                          Current position is staying within the{" "}
+                          {formatWholeMeters(
+                            navigationSnapshot.offRouteWarningThresholdMeters,
+                          )}{" "}
+                          off-route threshold.
+                        </span>
+                      </div>
+                    )}
+                    {navigationSnapshot.nextInstruction ? (
+                      <div className="response-banner">
+                        <strong>
+                          Next instruction:{" "}
+                          {navigationSnapshot.nextInstruction.instruction.text}
+                        </strong>
+                        <span>
+                          In{" "}
+                          {formatNavigationDistance(
+                            navigationSnapshot.nextInstruction.distanceMeters,
+                          )}
+                          {navigationSnapshot.nextInstruction.instruction
+                            .streetName
+                            ? ` on ${navigationSnapshot.nextInstruction.instruction.streetName}.`
+                            : "."}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="helper-copy">
+                        This routed preview does not include turn instructions
+                        yet, so navigation can currently show route progress
+                        only.
+                      </p>
+                    )}
+                    <div className="preview-grid preview-grid--navigation">
+                      <div className="preview-stat">
+                        <span>Current position</span>
+                        <strong>
+                          {formatCoordinate(navigationSnapshot.currentPosition)}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Position source</span>
+                        <strong>
+                          {navigationHasFreshPosition
+                            ? "Live browser GPS"
+                            : "Last known GPS fix"}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Completed</span>
+                        <strong>
+                          {formatDistanceKilometers(
+                            navigationSnapshot.completedDistanceMeters,
+                          )}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Remaining</span>
+                        <strong>
+                          {formatDistanceKilometers(
+                            navigationSnapshot.remainingDistanceMeters,
+                          )}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Total</span>
+                        <strong>
+                          {formatDistanceKilometers(
+                            navigationSnapshot.totalDistanceMeters,
+                          )}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Progress</span>
+                        <strong>{navigationSnapshot.progressPercent}%</strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Route id</span>
+                        <strong>{navigationSession.routeId}</strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Route deviation</span>
+                        <strong>
+                          {formatWholeMeters(
+                            navigationSnapshot.offRouteDistanceMeters,
+                          )}
+                        </strong>
+                      </div>
+                      {navigationTrackedPosition ? (
+                        <div className="preview-stat">
+                          <span>GPS timestamp</span>
+                          <strong>
+                            {formatTimeOfDay(
+                              navigationTrackedPosition.timestampMs,
+                            )}
+                          </strong>
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="preview-grid preview-grid--navigation">
+                      <div className="preview-stat">
+                        <span>Route id</span>
+                        <strong>{navigationSession.routeId}</strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Route status</span>
+                        <strong>
+                          {navigationSession.routeStatus === "partial"
+                            ? "Partial preview route"
+                            : "Full preview route"}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Route line</span>
+                        <strong>
+                          {navigationSession.routeGeometry.coordinates.length}{" "}
+                          points
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Instructions</span>
+                        <strong>{navigationSession.instructions.length}</strong>
+                      </div>
+                    </div>
+                    <ul className="handoff-list">
+                      <li>
+                        Browser geolocation must produce a usable current
+                        position before progress, remaining distance, and
+                        off-route metrics can render.
+                      </li>
+                      <li>
+                        Navigation no longer invents a synthetic fallback marker
+                        when GPS is missing or denied.
+                      </li>
+                      <li>
+                        Restore browser location access or stop navigation if
+                        this state persists.
+                      </li>
+                    </ul>
+                  </>
+                )}
+                {navigationSnapshot ? (
+                  <p className="helper-copy helper-copy--active">
+                    {navigationHasFreshPosition
+                      ? "Live browser geolocation is driving the marker now."
+                      : "The current marker reflects the last known browser GPS fix while Pathbadger waits for a fresh update."}
+                  </p>
+                ) : null}
                 <div className="button-row">
                   <button
                     type="button"
@@ -1158,13 +1188,6 @@ export function App() {
                     onClick={stopNavigation}
                   >
                     Stop navigation
-                  </button>
-                  <button
-                    type="button"
-                    className="button button--ghost"
-                    onClick={resetNavigationProgress}
-                  >
-                    Restart at route start
                   </button>
                 </div>
               </>
@@ -1209,11 +1232,9 @@ export function App() {
                   </div>
                 </div>
                 <p className="helper-copy">
-                  Live browser geolocation now sits behind its own reusable
-                  boundary, but this first navigation pass still uses a local
-                  simulated current position so the execution UI can surface
-                  route progress, next instruction cues, and off-route warnings
-                  before the live position feed lands.
+                  {browserGeolocation.status === "ready"
+                    ? "Browser geolocation is already available, so starting navigation will follow the live GPS marker immediately."
+                    : "Starting navigation now will request browser geolocation for live position updates. If the browser cannot provide a usable fix, the session will pause with an explicit GPS error instead of inventing a fallback marker."}
                 </p>
                 <button
                   type="button"
@@ -1286,6 +1307,14 @@ function formatNavigationDistance(distanceMeters: number) {
 
 function formatWholeMeters(distanceMeters: number) {
   return `${Math.round(distanceMeters)} m`;
+}
+
+function formatTimeOfDay(timestampMs: number) {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(timestampMs);
 }
 
 function getErrorMessage(error: unknown) {
@@ -1428,6 +1457,183 @@ function getCurrentPositionRouteBlockingMessage(
     default:
       return "Route generation waits for the current browser location.";
   }
+}
+
+function getNavigationTrackingPanelCopy(options: {
+  browserGeolocation: BrowserGeolocationState;
+  hasFreshPosition: boolean;
+  hasTrackedPosition: boolean;
+}) {
+  if (options.hasFreshPosition) {
+    return "This execution shell is now following the route from live browser geolocation while keeping progress, remaining distance, and off-route checks fully local in the frontend.";
+  }
+
+  if (options.hasTrackedPosition) {
+    return "This execution shell is holding the last known browser GPS fix while it waits for a fresh browser geolocation update.";
+  }
+
+  return "This navigation session is active, but it is waiting for a usable browser GPS fix before current-position metrics can begin.";
+}
+
+function getNavigationTrackingStatusLabel(options: {
+  browserGeolocation: BrowserGeolocationState;
+  hasFreshPosition: boolean;
+  hasTrackedPosition: boolean;
+}) {
+  if (options.hasFreshPosition) {
+    return "Live GPS feed";
+  }
+
+  if (options.hasTrackedPosition) {
+    return "Last GPS fix held";
+  }
+
+  switch (options.browserGeolocation.status) {
+    case "requesting":
+      return "Waiting for GPS";
+    case "denied":
+      return "Permission denied";
+    case "unsupported":
+      return "Geolocation unsupported";
+    case "unavailable":
+      return "GPS unavailable";
+    case "idle":
+    case "ready":
+    default:
+      return "GPS pending";
+  }
+}
+
+function getNavigationTrackingStatusPillClassName(options: {
+  browserGeolocation: BrowserGeolocationState;
+  hasFreshPosition: boolean;
+  hasTrackedPosition: boolean;
+}) {
+  if (options.hasFreshPosition) {
+    return "status-pill--active";
+  }
+
+  if (
+    options.hasTrackedPosition ||
+    options.browserGeolocation.status === "requesting"
+  ) {
+    return "status-pill--warning";
+  }
+
+  if (
+    options.browserGeolocation.status === "denied" ||
+    options.browserGeolocation.status === "unsupported" ||
+    options.browserGeolocation.status === "unavailable"
+  ) {
+    return "status-pill--error";
+  }
+
+  return "status-pill--warning";
+}
+
+function getNavigationTrackingBannerClassName(options: {
+  browserGeolocation: BrowserGeolocationState;
+  hasFreshPosition: boolean;
+  hasTrackedPosition: boolean;
+}) {
+  if (options.hasFreshPosition) {
+    return "";
+  }
+
+  if (
+    options.hasTrackedPosition ||
+    options.browserGeolocation.status === "requesting"
+  ) {
+    return " response-banner--pending";
+  }
+
+  if (
+    options.browserGeolocation.status === "denied" ||
+    options.browserGeolocation.status === "unsupported" ||
+    options.browserGeolocation.status === "unavailable"
+  ) {
+    return " response-banner--error";
+  }
+
+  return " response-banner--pending";
+}
+
+function getNavigationTrackingBannerTitle(options: {
+  browserGeolocation: BrowserGeolocationState;
+  hasFreshPosition: boolean;
+  hasTrackedPosition: boolean;
+}) {
+  if (options.hasFreshPosition) {
+    return "Live browser geolocation active";
+  }
+
+  if (options.hasTrackedPosition) {
+    return "Holding the last known GPS fix";
+  }
+
+  switch (options.browserGeolocation.status) {
+    case "denied":
+      return "Browser location permission denied";
+    case "unsupported":
+      return "Browser geolocation unavailable";
+    case "unavailable":
+      return "No usable GPS fix yet";
+    case "requesting":
+      return "Waiting for browser GPS";
+    case "idle":
+    case "ready":
+    default:
+      return "Preparing browser geolocation";
+  }
+}
+
+function getNavigationTrackingBannerCopy(options: {
+  browserGeolocation: BrowserGeolocationState;
+  hasFreshPosition: boolean;
+  hasTrackedPosition: boolean;
+}) {
+  if (options.hasFreshPosition) {
+    return "The current-position marker and navigation metrics are updating from the browser GPS feed without backend polling.";
+  }
+
+  if (options.hasTrackedPosition) {
+    return options.browserGeolocation.message
+      ? `Pathbadger is retaining the last real GPS fix while it waits for a fresh update. ${options.browserGeolocation.message}`
+      : "Pathbadger is retaining the last real GPS fix while it waits for a fresh update.";
+  }
+
+  switch (options.browserGeolocation.status) {
+    case "requesting":
+      return "Navigation is waiting for browser permission and a usable GPS fix before it can render a current-position marker.";
+    case "denied":
+      return "Navigation is paused because browser location permission is denied. Re-enable permission or stop the session.";
+    case "unsupported":
+      return "Navigation is blocked because this browser does not expose geolocation.";
+    case "unavailable":
+      return (
+        options.browserGeolocation.message ??
+        "Navigation is waiting for a usable browser GPS fix."
+      );
+    case "idle":
+    case "ready":
+    default:
+      return "Navigation is preparing to request browser geolocation.";
+  }
+}
+
+function getNavigationMapMarkerLabel(options: {
+  hasFreshPosition: boolean;
+  navigationSnapshot: NonNullable<ReturnType<typeof createNavigationSnapshot>>;
+}) {
+  const prefix = options.hasFreshPosition ? "GPS" : "Last GPS fix";
+
+  if (options.navigationSnapshot.isOffRoute) {
+    return `${prefix} off route ${Math.round(
+      options.navigationSnapshot.offRouteDistanceMeters,
+    )} m`;
+  }
+
+  return `${prefix} ${options.navigationSnapshot.progressPercent}%`;
 }
 
 function serializeComparablePlanningRequest(request: RouteGenerateRequest) {

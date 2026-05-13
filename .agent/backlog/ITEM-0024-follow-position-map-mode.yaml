@@ -1,7 +1,7 @@
 id: ITEM-0024
 type: feature
 priority: P1
-status: open
+status: blocked
 scope: web
 origin: refine
 parent_epic: EPIC-0010
@@ -17,6 +17,7 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: the map already shows a current-position marker during active navigation, but follow-position behavior and a manual-pan escape model are still absent."
+  - "2026-05-13 refine: blocked behind the real-map usability correction, because follow-position behavior is secondary until the supported local boot delivers real cartography and the workflow can prove it."
 created_at: 2026-05-13T21:06:33+02:00
-updated_at: 2026-05-13T21:06:33+02:00
+updated_at: 2026-05-13T22:01:03+02:00
 closed_at: null

@@ -17,7 +17,7 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-http://localhost:3001}
-      PUBLIC_TILE_STYLE_URL: ${PUBLIC_TILE_STYLE_URL:-/styles/local-fallback.json}
+      PUBLIC_TILE_STYLE_URL: ${PUBLIC_TILE_STYLE_URL:-http://localhost:8080/styles/basic/style.json}
       REGION_NAME: ${REGION_NAME:-Schleswig-Holstein}
     depends_on:
       - api

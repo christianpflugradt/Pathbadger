@@ -1,0 +1,22 @@
+id: ITEM-0025
+type: feature
+priority: P0
+status: open
+scope: tileserver
+origin: refine
+parent_epic: EPIC-0011
+title: Make the supported local app boot show real self-hosted cartography
+summary: Replace the current hard-failing missing-map state in the supported local browser flow with a documented self-hosted tile setup that shows real roads and trails for planning.
+acceptance_criteria:
+  - one documented supported local workflow boots the required map services and data so the planning map shows real self-hosted roads and trails in the browser
+  - the supported map-complete flow no longer hard-fails with `Self-hosted map unavailable` during normal product use
+  - setup docs explain prerequisites, data preparation, and any remaining operational limits honestly
+verification:
+  - make run-app
+  - browser check that the planning map no longer reports `Self-hosted map unavailable`
+implementation_notes:
+  - "2026-05-13 refine: the current supported local boot now fails the planning map honestly when the self-hosted style endpoint is missing or unreachable, which is preferable to fake fallback cartography but still does not deliver the map-centered value promised by the product brief."
+  - "2026-05-13 refine: this item intentionally restores real self-hosted cartography before more navigation polish, because route planning and route following are low-value when users cannot see meaningful roads or trails."
+created_at: 2026-05-13T22:01:03+02:00
+updated_at: 2026-05-13T22:01:03+02:00
+closed_at: null

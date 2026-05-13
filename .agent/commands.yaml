@@ -48,6 +48,12 @@ commands:
       - .agent/backlog/*
       - .agent/findings/*_only_when_closing_fixed_findings
     code_changes_allowed: trivial_spec_consistency_only
+    must:
+      - reopen_done_phase_if_supported_local_boot_lacks_core_map_user_value
+      - treat_fallback_only_map_states_as_incomplete_not_done
+      - inventory_user_visible_placeholders_and_linked_exit_items
+      - create_or_refresh_exit_items_for_temporary_placeholders
+      - keep_epic_and_phase_incomplete_while_placeholder_exit_items_remain_open
   implement:
     purpose: implement_exactly_one_actionable_item
     selection_order:
@@ -58,6 +64,11 @@ commands:
     must:
       - update_tests
       - run_quality_checks
+      - do_not_mark_core_map_work_done_without_browser_evidence_from_supported_local_boot
+      - do_not_introduce_undeclared_user_visible_fallbacks
+      - only_introduce_user_visible_placeholder_when_current_plan_explicitly_tracks_it
+      - if_unplanned_placeholder_is_needed_block_the_item_and_send_control_back_to_refine
+      - never_mark_placeholder_backed_capability_done_while_its_exit_item_is_open
       - update_item_status
       - commit_and_push_when_remote_available
   review:
@@ -65,6 +76,12 @@ commands:
     compares_against:
       - .agent/*.yaml
       - docs/product.md
+    must:
+      - collect_browser_or_runtime_evidence_for_core_map_journeys
+      - create_high_or_critical_findings_when_supported_local_boot_uses_only_placeholder_or_fallback_cartography
+      - create_findings_for_undeclared_user_visible_fallbacks
+      - scan_for_user_visible_placeholders_and_verify_linked_exit_items
+      - create_high_findings_for_orphaned_placeholders_or_done_state_placeholders
     must_not:
       - update_roadmap_progress
       - create_scope_expansion_without_evidence

@@ -10,6 +10,7 @@ roadmap:
   final_product:
     route_planning_state:
       required_capabilities:
+        - see_real_self_hosted_roads_and_trails_on_map_during_supported_planning_boot
         - choose_start_from_map_current_position_or_local_default
         - choose_activity_running_walking_or_cycling
         - enter_target_distance_in_km
@@ -33,6 +34,7 @@ roadmap:
         - npm_only_monorepo_workflow
         - self_hosted_graphhopper_service
         - self_hosted_tile_service
+        - supported_local_boot_for_real_self_hosted_map_journeys
         - docker_compose_orchestrated_stack
         - automated_lint_typecheck_test_and_compose_validation
         - durable_agent_roadmap_backlog_and_review_state
@@ -42,7 +44,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 70
+  overall_progress_percent: 63
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -56,9 +58,9 @@ roadmap:
       target_outcome: GraphHopper-backed routing adapter with legal request handling and mocked tests
     - id: map-ui
       title: MapLibre map UI and route display
-      status: done
-      progress_percent: 100
-      target_outcome: route planning map with self-hosted tile wiring and route preview
+      status: active
+      progress_percent: 60
+      target_outcome: browser-verified planning map with real self-hosted cartography and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: done
@@ -74,7 +76,7 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0010
+  current_epic: EPIC-0011
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -93,13 +95,14 @@ roadmap:
     - routed preview scoring now accounts for trail, mixed, asphalt, and indifferent surface preferences while filling honest surface percentage summaries and incomplete-data warnings
     - the planner now renders routed surface composition cards and unknown-coverage messaging, so surface-aware route previews are visible end to end in the web UI
     - the default local app workflow now includes `make run-app`, `make stopp-app`, and `make rebuild-app`, with docs aligned to the compose-based browser startup flow
-    - the default planning map now shows a visible bundled fallback grid instead of an effectively blank canvas when the optional self-hosted tile stack is not running
+    - the planning map now fails honestly when the configured self-hosted style is missing or unreachable instead of drawing bundled fallback cartography
     - "`packages/geo` now exports `calculateRouteProgress`, giving later navigation UI a tested local primitive for snapped route position, completed distance, remaining distance, progress fraction, and off-route distance"
     - route previews now carry normalized instruction arrays end to end from GraphHopper through the shared response contract and into the web app
     - the web app can now start a first local navigation session from a routed preview, compute progress locally, show next-instruction cues, and surface conservative off-route warnings without backend polling
   remaining_summary:
-    - current focus is ITEM-0021 in EPIC-0010, which should add a reusable browser geolocation boundary so active navigation can stop depending on simulated position sliders
-    - the default local boot is now usable for planner interaction, but real Schleswig-Holstein graph data and self-hosted cartography are still gated behind the optional `maps` profile and unprepared local data directories
+    - current focus is ITEM-0025 in EPIC-0011, which must make the supported local app boot show real self-hosted roads and trails instead of the current hard-failure map state before adjacent navigation polish counts as meaningful product progress
+    - the current supported local boot now hard-fails the planning map honestly when real cartography is unavailable, so the app no longer fakes success but still does not yet deliver its core map-centered value
+    - a dedicated browser smoke and review gate is still missing for core map journeys and undeclared fallbacks, so the agent workflow can currently over-credit map work unless that gap is fixed explicitly
     - routing-core and route-generation now reach an honest preview loop with surface-aware summaries and instruction data, but live GraphHopper route quality against a prepared Schleswig-Holstein graph is still proven mostly through mocked coverage
-    - active navigation still relies on simulated local movement instead of live browser geolocation, so current-position following on real devices is not yet proven
-    - current speed and average speed are still absent from the execution UI, and follow-position map behavior with manual pan escape remains unimplemented
+    - active navigation still relies partly on simulated local movement instead of live browser geolocation, so current-position following on real devices is not yet proven end to end
+    - current speed and average speed are still absent from the execution UI, and follow-position map behavior with manual pan escape remains intentionally paused behind the real-map blocker

@@ -29,6 +29,7 @@ product:
     - voice_navigation
   feature_groups:
     route_planning:
+      - real_self_hosted_cartography_visible_during_planning
       - start_point_from_map_click
       - optional_current_position_start
       - locally_remembered_default_start
@@ -60,6 +61,9 @@ product:
       - local_storage_for_navigation_mode
       - battery_mode_later
     diagnostics:
+      - hard_failure_when_required_map_style_unavailable
+      - explicit_temporary_placeholder_labeling_when_capability_unfinished
+      - no_user_visible_fallbacks_without_explicit_product_design
       - honest_surface_unknown_reporting
       - out_of_region_warning_or_rejection
       - routing_engine_unavailable_error

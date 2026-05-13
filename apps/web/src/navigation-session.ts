@@ -34,6 +34,7 @@ export type NavigationSnapshot = {
 export function createNavigationSnapshot(
   routeGeometry: RouteGeometry,
   options: {
+    currentPosition?: Coordinate | null;
     instructions?: ReadonlyArray<RouteInstruction> | null;
     lateralOffsetMeters?: number;
     offRouteWarningThresholdMeters?: number;
@@ -44,8 +45,9 @@ export function createNavigationSnapshot(
     routeGeometry,
     options.requestedProgressFraction,
   );
-  const currentPosition =
-    options.lateralOffsetMeters && options.lateralOffsetMeters !== 0
+  const currentPosition = options.currentPosition
+    ? options.currentPosition
+    : options.lateralOffsetMeters && options.lateralOffsetMeters !== 0
       ? offsetCoordinatePerpendicular(
           targetRoutePosition.coordinate,
           targetRoutePosition.segmentEnd,
@@ -53,15 +55,20 @@ export function createNavigationSnapshot(
           options.lateralOffsetMeters,
         )
       : targetRoutePosition.coordinate;
-  const preferredDistanceFromStartMeters =
-    getTotalRouteDistanceMeters(routeGeometry) *
-    clamp(options.requestedProgressFraction, 0, 1);
+  const preferredDistanceFromStartMeters = options.currentPosition
+    ? undefined
+    : getTotalRouteDistanceMeters(routeGeometry) *
+      clamp(options.requestedProgressFraction, 0, 1);
+  const progressOptions =
+    preferredDistanceFromStartMeters === undefined
+      ? {}
+      : {
+          preferredDistanceFromStartMeters,
+        };
   const progress = calculateRouteProgress(
     routeGeometry.coordinates,
     currentPosition,
-    {
-      preferredDistanceFromStartMeters,
-    },
+    progressOptions,
   );
   const offRouteWarningThresholdMeters =
     options.offRouteWarningThresholdMeters ??

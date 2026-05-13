@@ -175,6 +175,24 @@ describe("createNavigationSnapshot", () => {
     expect(snapshot.nextInstruction?.distanceMeters).toBeGreaterThan(300);
   });
 
+  it("uses a live current position instead of the simulated progress fraction", () => {
+    const snapshot = createNavigationSnapshot(straightRoute, {
+      currentPosition: {
+        lat: 54.0,
+        lon: 10.015,
+      },
+      requestedProgressFraction: 0,
+    });
+
+    expect(snapshot.currentPosition).toEqual({
+      lat: 54.0,
+      lon: 10.015,
+    });
+    expect(snapshot.progressFraction).toBeGreaterThan(0.7);
+    expect(snapshot.progressFraction).toBeLessThan(0.8);
+    expect(snapshot.offRouteDistanceMeters).toBeCloseTo(0, 6);
+  });
+
   it("warns when the current position exceeds the conservative off-route threshold", () => {
     const snapshot = createNavigationSnapshot(straightRoute, {
       lateralOffsetMeters: DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS + 15,

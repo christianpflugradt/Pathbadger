@@ -15,9 +15,16 @@ review_rubric:
     - mobile_usability
   severity_rules:
     critical: breaks_build_or_security_or_core_route_safety
-    high: blocks_mvp_or_creates_likely_wrong_routes
+    high: blocks_mvp_or_leaves_a_core_journey_on_placeholder_only_without_a_tracked_exit_or_creates_likely_wrong_routes
     medium: degrades_maintainability_or_user_experience
     low: minor_quality_gap
+  core_user_value_rules:
+    - fallback_or_placeholder_only_cartography_in_a_supported_local_boot_is_at_least_a_high_severity_product_gap
+    - a_core_map_capability_is_not_done_until_real_self_hosted_cartography_is_visible_in_browser_evidence
+    - mocked_fixture_checks_do_not_clear_real_map_readiness_on_their_own
+    - user_visible_fallbacks_that_are_not_explicitly_designed_or_specified_are_defects
+    - temporary_placeholders_are_allowed_only_when_they_are_explicitly_tracked_and_have_linked_exit_items
+    - orphaned_user_visible_placeholders_or_placeholders_in_done_states_are_at_least_high_severity
   finding_requirements:
     - evidence
     - impact

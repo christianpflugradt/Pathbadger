@@ -17,9 +17,18 @@ testing:
       - planning_form_renders
       - route_preview_from_fixture
       - navigation_view_from_fixture
+      - supported_local_map_boot_uses_real_cartography_when_map_work_is_claimed_complete
     avoid:
       - brittle_map_pixel_assertions
       - full_real_gps_tests
+  browser_manual_checks_required_for:
+    - planning_map_value_claims
+    - navigation_map_behavior_changes
+    - tile_stack_readiness_claims
+    - hard_failure_paths_for_missing_required_map_dependencies
+    - user_visible_temporary_placeholders_and_their_removal_paths
+    - absence_of_disguised_fallbacks_in_supported_flows
   verification_commands:
     - npm run verify
     - npm run compose:test
+    - npm run test:browser-smoke

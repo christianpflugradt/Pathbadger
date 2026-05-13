@@ -111,7 +111,7 @@ describe("subscribeToBrowserGeolocation", () => {
     expect(geolocation.clearWatch).toHaveBeenCalledWith(41);
   });
 
-  it("surfaces denied fallback behavior from browser permission errors", () => {
+  it("surfaces a denied state from browser permission errors", () => {
     let errorCallback: WatchErrorCallback | null = null;
     const geolocation: BrowserGeolocationApi = {
       clearWatch: vi.fn(),

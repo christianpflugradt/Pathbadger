@@ -494,10 +494,6 @@ body {
   background: rgba(35, 58, 38, 0.78);
 }
 
-.planning-map--fallback.planning-map--ready .planning-map__status {
-  background: rgba(54, 73, 41, 0.82);
-}
-
 .planning-map--error .planning-map__status {
   background: rgba(92, 38, 34, 0.86);
 }

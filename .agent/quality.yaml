@@ -10,6 +10,37 @@ quality:
   command_entrypoints:
     verify: npm run verify
     compose_test: npm run compose:test
+    browser_smoke: npm run test:browser-smoke
+  browser_critical_path_policy:
+    required_for:
+      - planning_map_ui_changes
+      - navigation_map_ui_changes
+      - tile_style_or_maps_profile_changes
+      - any_claim_that_map_centered_user_value_is_done
+    rules:
+      - fallback_grid_only_does_not_satisfy_the_real_map_capability
+      - browser_evidence_must_come_from_a_supported_local_boot_not_only_from_mocked_fixtures
+      - if_required_map_services_or_data_are_missing_review_must_record_a_blocking_defect_instead_of_counting_the_map_done
+      - missing_required_map_dependencies_must_fail_openly_instead_of_showing_placeholder_success
+  placeholder_lifecycle_policy:
+    definitions:
+      temporary_placeholder: honest_incomplete_behavior_or_asset_that_remains_visible_only_while_a_tracked_exit_plan_exists
+      disguised_fallback: substitute_behavior_that_makes_a_missing_capability_look_finished
+    allowed_only_when:
+      - current_backlog_item_or_parent_epic_explicitly_calls_out_the_placeholder
+      - user_visible_copy_or_state_labels_it_as_temporary_or_unavailable
+      - linked_exit_item_exists_before_the_current_item_can_close
+      - roadmap_progress_and_done_states_exclude_the_placeholder_backed_capability
+      - verification_covers_the_placeholder_state_and_its_expected_exit_path_when_practical
+    forbidden:
+      - disguised_fallback_in_supported_user_flows
+      - placeholder_without_linked_exit_item
+      - placeholder_surviving_into_done_epic_or_done_phase
+  release_blockers:
+    - supported_local_boot_only_shows_placeholder_or_fallback_cartography_for_core_map_journeys
+    - supported_flow_uses_undeclared_user_visible_development_fallbacks
+    - user_visible_placeholder_without_linked_exit_item_in_supported_flow
+    - done_claim_depends_on_open_placeholder_exit_item
   commit_policy:
     conventional_commits: true
     require_scope: true

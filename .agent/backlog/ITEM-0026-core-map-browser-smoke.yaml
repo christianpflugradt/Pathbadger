@@ -1,0 +1,25 @@
+id: ITEM-0026
+type: test
+priority: P0
+status: done
+scope: qa
+origin: refine
+parent_epic: EPIC-0011
+title: Add a browser smoke gate for the core planning map
+summary: Give implement and review a reproducible browser-level check that fails when the supported local map experience either hard-fails or silently substitutes undeclared cartography behavior.
+acceptance_criteria:
+  - the repo provides a stable browser smoke or scripted check that distinguishes a real self-hosted planning map from a missing-map hard failure or any undeclared fallback state
+  - map-centered implement and review work reference that smoke as required evidence instead of relying only on mocked fixture checks
+  - smoke output makes it obvious whether the map failure came from missing tile data, unreachable style JSON, or an unintended fallback path
+verification:
+  - npm run verify
+  - npm run test:browser-smoke
+implementation_notes:
+  - "2026-05-13 refine: the current workflow has lint, typecheck, unit tests, and a compose smoke, but no browser-level guard that can tell whether the app is showing a real self-hosted map or failing honestly because the required style endpoint is unavailable."
+  - "2026-05-13 refine: this item exists specifically to stop future `refine`, `implement`, and `review` runs from over-crediting map work when the core user journey still lacks visible cartography."
+  - "2026-05-13 implement: Added `scripts/browser-smoke.mjs` plus `npm run test:browser-smoke` as the reusable browser gate for the planning map. The command now runs a fixture-backed Playwright suite by default and can target the live app URL with an optional expected failure cause when the supported boot is intentionally still blocked."
+  - "2026-05-13 implement: Exposed stable `data-testid` and `data-map-*` diagnostics from `apps/web/src/PlanningMap.tsx` so the smoke can classify healthy self-hosted cartography versus unreachable style JSON, missing tile-stack assets, or the deprecated local fallback path without brittle pixel assertions."
+  - "2026-05-13 implement: Documented the smoke workflow in `README.md`, `docs/operations.md`, and `scripts/README.md`, and recorded `npm run test:browser-smoke` as the browser smoke entrypoint in `.agent/testing.yaml` and `.agent/quality.yaml`."
+created_at: 2026-05-13T22:01:03+02:00
+updated_at: 2026-05-13T22:40:52+02:00
+closed_at: 2026-05-13T22:40:52+02:00

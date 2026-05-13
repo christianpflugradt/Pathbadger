@@ -1,7 +1,7 @@
 id: ITEM-0023
 type: feature
 priority: P1
-status: open
+status: blocked
 scope: web
 origin: refine
 parent_epic: EPIC-0010
@@ -17,6 +17,7 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: the execution UI now covers progress, next instruction, and off-route warning, but current speed and average speed are still missing from the MVP navigation contract."
+  - "2026-05-13 refine: blocked behind the real-map usability correction, because speed polish should not outrank restoring a usable self-hosted map and browser-verifiable core planning flow."
 created_at: 2026-05-13T21:06:33+02:00
-updated_at: 2026-05-13T21:06:33+02:00
+updated_at: 2026-05-13T22:01:03+02:00
 closed_at: null
