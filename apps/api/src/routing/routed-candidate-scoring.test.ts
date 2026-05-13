@@ -19,6 +19,27 @@ function createGeometry(coordinates: Array<[number, number]>) {
   };
 }
 
+function createInstructions() {
+  return [
+    {
+      distanceFromStartMeters: 0,
+      distanceToNextMeters: 500,
+      type: "depart",
+      text: "Start route",
+      streetName: null,
+      coordinate: [10.1228, 54.3233] as [number, number],
+    },
+    {
+      distanceFromStartMeters: 500,
+      distanceToNextMeters: null,
+      type: "arrive",
+      text: "Arrive at destination",
+      streetName: null,
+      coordinate: [10.1452, 54.3321] as [number, number],
+    },
+  ];
+}
+
 function createUnknownSurfaceDetails(distanceMeters: number) {
   return [
     {
@@ -51,6 +72,7 @@ describe("scoreRoutedCandidate", () => {
           [10.1452, 54.3321],
           [10.1228, 54.3233],
         ]),
+        instructions: createInstructions(),
         surfaceDetails: createSurfaceDetails([
           {
             distanceMeters: 6_020,
@@ -99,6 +121,7 @@ describe("scoreRoutedCandidate", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: createInstructions(),
     });
   });
 
@@ -123,6 +146,7 @@ describe("scoreRoutedCandidate", () => {
           [10.152, 54.3375],
           [10.1228, 54.3233],
         ]),
+        instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(12_340),
       },
     });
@@ -174,6 +198,7 @@ describe("scoreRoutedCandidate", () => {
           [10.1228, 54.3233],
           [10.141, 54.332],
         ]),
+        instructions: [],
         surfaceDetails: createSurfaceDetails([
           {
             distanceMeters: 10_030,
@@ -199,6 +224,7 @@ describe("scoreRoutedCandidate", () => {
           [10.1228, 54.3233],
           [10.152, 54.3375],
         ]),
+        instructions: [],
         surfaceDetails: createSurfaceDetails([
           {
             distanceMeters: 10_190,
@@ -229,6 +255,7 @@ describe("scoreRoutedCandidate", () => {
         [10.1228, 54.3233],
         [10.141, 54.332],
       ]),
+      instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
           distanceMeters: 7_028,
@@ -256,6 +283,7 @@ describe("scoreRoutedCandidate", () => {
         [10.1228, 54.3233],
         [10.152, 54.3375],
       ]),
+      instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
           distanceMeters: 8_032,
@@ -318,6 +346,7 @@ describe("scoreRoutedCandidate", () => {
         [10.1228, 54.3233],
         [10.141, 54.332],
       ]),
+      instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
           distanceMeters: 4_048,
@@ -345,6 +374,7 @@ describe("scoreRoutedCandidate", () => {
         [10.1228, 54.3233],
         [10.152, 54.3375],
       ]),
+      instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
           distanceMeters: 9_018,

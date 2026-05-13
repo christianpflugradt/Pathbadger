@@ -26,6 +26,29 @@ function createUnknownSurfaceDetails(distanceMeters: number) {
   ];
 }
 
+function createInstructions(points: Array<[number, number]>) {
+  const [startCoordinate, endCoordinate] = points;
+
+  return [
+    {
+      distanceFromStartMeters: 0,
+      distanceToNextMeters: 750,
+      type: "depart",
+      text: "Start route",
+      streetName: null,
+      coordinate: startCoordinate ?? [10.1228, 54.3233],
+    },
+    {
+      distanceFromStartMeters: 750,
+      distanceToNextMeters: null,
+      type: "arrive",
+      text: "Arrive at destination",
+      streetName: null,
+      coordinate: endCoordinate ?? startCoordinate ?? [10.1228, 54.3233],
+    },
+  ];
+}
+
 describe("createRouteGenerationService", () => {
   it("returns a successful routed preview when the best routed candidate fits the request", async () => {
     const service = createRouteGenerationService({
@@ -44,6 +67,10 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.1452, 54.3321],
+            ]),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 6_120,
@@ -69,6 +96,10 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.141, 54.332],
+            ]),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 6_020,
@@ -124,7 +155,10 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
-      instructions: null,
+      instructions: createInstructions([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
     });
   });
 
@@ -145,6 +179,7 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            instructions: [],
             surfaceDetails: createUnknownSurfaceDetails(12_520),
           })
           .mockResolvedValueOnce({
@@ -159,6 +194,7 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            instructions: [],
             surfaceDetails: createUnknownSurfaceDetails(12_340),
           }),
       },
@@ -209,7 +245,7 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
-      instructions: null,
+      instructions: [],
     });
   });
 
@@ -234,6 +270,10 @@ describe("createRouteGenerationService", () => {
             [10.1228, 54.3233],
           ],
         },
+        instructions: createInstructions([
+          [10.1228, 54.3233],
+          [10.141, 54.332],
+        ]),
         surfaceDetails: createSurfaceDetails([
           {
             distanceMeters: 10_020,
@@ -288,7 +328,10 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
-      instructions: null,
+      instructions: createInstructions([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
     });
   });
 
@@ -388,6 +431,10 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.152, 54.3375],
+            ]),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 9_018,
@@ -413,6 +460,10 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.141, 54.332],
+            ]),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 7_070,
@@ -468,7 +519,10 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
-      instructions: null,
+      instructions: createInstructions([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
     });
   });
 });

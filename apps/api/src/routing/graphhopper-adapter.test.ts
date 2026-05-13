@@ -24,6 +24,22 @@ describe("createGraphHopperAdapter", () => {
                   [10.141, 54.332],
                 ],
               },
+              instructions: [
+                {
+                  distance: 6_200,
+                  sign: 0,
+                  interval: [0, 1],
+                  text: "Continue onto the cycle path",
+                  street_name: "",
+                },
+                {
+                  distance: 6_250,
+                  sign: 4,
+                  interval: [2, 2],
+                  text: "Arrive at destination",
+                  street_name: "",
+                },
+              ],
               details: {
                 surface: [
                   [0, 1, "asphalt"],
@@ -74,6 +90,24 @@ describe("createGraphHopperAdapter", () => {
           [10.141, 54.332],
         ],
       },
+      instructions: [
+        {
+          distanceFromStartMeters: 0,
+          distanceToNextMeters: 6_200,
+          type: "depart",
+          text: "Continue onto the cycle path",
+          streetName: null,
+          coordinate: [10.1228, 54.3233],
+        },
+        {
+          distanceFromStartMeters: 6_200,
+          distanceToNextMeters: null,
+          type: "arrive",
+          text: "Arrive at destination",
+          streetName: null,
+          coordinate: [10.141, 54.332],
+        },
+      ],
       surfaceDetails: [
         {
           distanceMeters: 6_200,
@@ -101,7 +135,7 @@ describe("createGraphHopperAdapter", () => {
     ]);
     expect(url.searchParams.get("profile")).toBe("bike");
     expect(url.searchParams.get("points_encoded")).toBe("false");
-    expect(url.searchParams.get("instructions")).toBe("false");
+    expect(url.searchParams.get("instructions")).toBe("true");
     expect(url.searchParams.get("elevation")).toBe("true");
     expect(url.searchParams.getAll("details")).toEqual([
       "surface",
@@ -151,6 +185,7 @@ describe("createGraphHopperAdapter", () => {
       }),
     ).resolves.toMatchObject({
       distanceMeters: 8_640,
+      instructions: [],
       surfaceDetails: [
         {
           distanceMeters: 8_640,
@@ -198,6 +233,55 @@ describe("createGraphHopperAdapter", () => {
                   type: "Point",
                   coordinates: [10.1228, 54.3233],
                 },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+      ),
+    });
+
+    await expect(
+      adapter.getRoute({
+        points: [
+          { lat: 54.3233, lon: 10.1228 },
+          { lat: 54.332, lon: 10.141 },
+        ],
+        activity: "running_walking",
+      }),
+    ).rejects.toBeInstanceOf(GraphHopperInvalidResponseError);
+  });
+
+  it("throws when GraphHopper instructions point outside the returned geometry", async () => {
+    const adapter = createGraphHopperAdapter({
+      baseUrl: "http://graphhopper:8989",
+      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            paths: [
+              {
+                distance: 5_000,
+                points: {
+                  type: "LineString",
+                  coordinates: [
+                    [10.1228, 54.3233],
+                    [10.141, 54.332],
+                  ],
+                },
+                instructions: [
+                  {
+                    distance: 5_000,
+                    sign: 0,
+                    interval: [4, 4],
+                    text: "Continue",
+                    street_name: "",
+                  },
+                ],
               },
             ],
           }),

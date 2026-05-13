@@ -1,7 +1,7 @@
 id: ITEM-0018
 type: feature
 priority: P1
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0009
@@ -17,6 +17,9 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: `apps/api/src/routing/graphhopper-adapter.ts` currently disables GraphHopper instructions entirely, so no navigation cue data can reach the web app."
+  - "2026-05-13 implement: Updated `apps/api/src/routing/graphhopper-adapter.ts` to request GraphHopper instructions, validate the raw instruction payload, and normalize it into the shared route instruction contract with distance-from-start, distance-to-next, type, text, street name, and geometry-backed coordinates."
+  - "2026-05-13 implement: Threaded normalized instructions through `routed-candidate-scoring.ts` and `route-generation-service.ts` so successful and partial route previews now return instruction arrays while failed previews still return `instructions: null`."
+  - "2026-05-13 implement: Expanded mocked api coverage in `graphhopper-adapter.test.ts`, `route-generation-service.test.ts`, and `routed-candidate-scoring.test.ts` to verify successful instruction mapping, empty-instruction fallback behavior, and invalid instruction interval rejection."
 created_at: 2026-05-13T20:07:22+02:00
-updated_at: 2026-05-13T20:07:22+02:00
-closed_at: null
+updated_at: 2026-05-13T20:20:14+02:00
+closed_at: 2026-05-13T20:20:14+02:00

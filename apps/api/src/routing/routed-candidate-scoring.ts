@@ -5,6 +5,7 @@ import {
 import type {
   RouteGenerateRequest,
   RouteGeometry,
+  RouteInstruction,
   RouteSurfaceSummary,
   RouteStatus,
   RouteSummary,
@@ -68,6 +69,7 @@ export interface ScoredRoutedCandidate {
   warnings: RouteWarning[];
   summary: RouteSummary;
   geometry: RouteGeometry;
+  instructions: RouteInstruction[];
 }
 
 export interface ScoreRoutedCandidateOptions {
@@ -116,6 +118,7 @@ export function scoreRoutedCandidate(
     warnings,
     summary,
     geometry: options.candidate.geometry,
+    instructions: options.candidate.instructions,
   };
 }
 

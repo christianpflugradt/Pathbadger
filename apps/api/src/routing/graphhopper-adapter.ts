@@ -3,7 +3,12 @@ import {
   coordinateSchema,
   routeGeometrySchema,
 } from "@pathbadger/shared";
-import type { Activity, Coordinate, RouteGeometry } from "@pathbadger/shared";
+import type {
+  Activity,
+  Coordinate,
+  RouteGeometry,
+  RouteInstruction,
+} from "@pathbadger/shared";
 import { z } from "zod";
 
 const GRAPHHOPPER_ROUTE_PATH = "/api/1/route";
@@ -17,6 +22,19 @@ const graphHopperDistancePathDetailSchema = z.tuple([
   z.number().int().nonnegative(),
   z.number().nonnegative(),
 ]);
+const graphHopperInstructionIntervalSchema = z.tuple([
+  z.number().int().nonnegative(),
+  z.number().int().nonnegative(),
+]);
+const graphHopperInstructionSchema = z
+  .object({
+    distance: z.number().nonnegative(),
+    sign: z.number().int(),
+    interval: graphHopperInstructionIntervalSchema,
+    text: z.string(),
+    street_name: z.string().nullable().optional(),
+  })
+  .passthrough();
 const graphHopperPathDetailsSchema = z
   .object({
     surface: z.array(graphHopperTextPathDetailSchema).optional(),
@@ -33,6 +51,7 @@ const graphHopperPathSchema = z.object({
   time: z.number().nonnegative().optional(),
   ascend: z.number().nullable().optional(),
   points: routeGeometrySchema,
+  instructions: z.array(graphHopperInstructionSchema).optional(),
   details: graphHopperPathDetailsSchema.optional(),
 });
 const graphHopperResponseSchema = z.object({
@@ -57,6 +76,7 @@ export interface GraphHopperRouteResult {
   durationMs: number | null;
   elevationGainMeters: number | null;
   geometry: RouteGeometry;
+  instructions: RouteInstruction[];
   surfaceDetails: GraphHopperRouteSurfaceDetail[];
 }
 
@@ -139,6 +159,7 @@ export function createGraphHopperAdapter(
         durationMs: path.time ?? null,
         elevationGainMeters: path.ascend ?? null,
         geometry: path.points,
+        instructions: normalizeRouteInstructions(path),
         surfaceDetails: normalizeRouteSurfaceDetails(path),
       };
     },
@@ -171,7 +192,7 @@ function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
 
   url.searchParams.set("profile", toGraphHopperProfile(request.activity));
   url.searchParams.set("points_encoded", "false");
-  url.searchParams.set("instructions", "false");
+  url.searchParams.set("instructions", "true");
   url.searchParams.set("elevation", "true");
   url.searchParams.append("details", "surface");
   url.searchParams.append("details", "road_class");
@@ -225,6 +246,50 @@ function normalizeRouteSurfaceDetails(
   );
 }
 
+function normalizeRouteInstructions(
+  path: z.infer<typeof graphHopperPathSchema>,
+): RouteInstruction[] {
+  const rawInstructions = path.instructions;
+
+  if (!rawInstructions || rawInstructions.length === 0) {
+    return [];
+  }
+
+  let distanceFromStartMeters = 0;
+
+  return rawInstructions.map((instruction, index) => {
+    const coordinateIndex = instruction.interval[0];
+    const coordinate = path.points.coordinates[coordinateIndex];
+
+    if (!coordinate) {
+      throw new GraphHopperInvalidResponseError(
+        "GraphHopper instruction interval points outside the returned geometry.",
+      );
+    }
+
+    const normalizedInstruction: RouteInstruction = {
+      distanceFromStartMeters: roundInstructionDistance(
+        distanceFromStartMeters,
+      ),
+      distanceToNextMeters:
+        index === rawInstructions.length - 1
+          ? null
+          : roundInstructionDistance(instruction.distance),
+      type: mapInstructionType(instruction.sign, index === 0),
+      text: normalizeInstructionText(
+        instruction.text,
+        mapInstructionType(instruction.sign, index === 0),
+      ),
+      streetName: normalizePathDetailText(instruction.street_name ?? null),
+      coordinate,
+    };
+
+    distanceFromStartMeters += instruction.distance;
+
+    return normalizedInstruction;
+  });
+}
+
 function findTextPathDetailValue(
   detailEntries:
     | Array<z.infer<typeof graphHopperTextPathDetailSchema>>
@@ -267,6 +332,76 @@ function toGraphHopperProfile(activity: Activity) {
   }
 
   return "foot";
+}
+
+function mapInstructionType(sign: number, isFirstInstruction: boolean) {
+  if (isFirstInstruction) {
+    return "depart";
+  }
+
+  switch (sign) {
+    case -8:
+      return "u_turn_left";
+    case -7:
+      return "keep_left";
+    case -3:
+      return "turn_sharp_left";
+    case -2:
+      return "turn_left";
+    case -1:
+      return "turn_slight_left";
+    case 0:
+      return "continue";
+    case 1:
+      return "turn_slight_right";
+    case 2:
+      return "turn_right";
+    case 3:
+      return "turn_sharp_right";
+    case 4:
+      return "arrive";
+    case 5:
+      return "via";
+    case 6:
+      return "roundabout";
+    case 7:
+      return "keep_right";
+    case 8:
+      return "u_turn_right";
+    default:
+      return `instruction_${sign}`;
+  }
+}
+
+function normalizeInstructionText(text: string, instructionType: string) {
+  const trimmedText = text.trim();
+
+  if (trimmedText.length > 0) {
+    return trimmedText;
+  }
+
+  return fallbackInstructionText(instructionType);
+}
+
+function fallbackInstructionText(instructionType: string) {
+  switch (instructionType) {
+    case "depart":
+      return "Start route";
+    case "arrive":
+      return "Arrive at destination";
+    case "via":
+      return "Continue via waypoint";
+    case "roundabout":
+      return "Take the roundabout";
+    case "continue":
+      return "Continue";
+    default:
+      return "Continue on route";
+  }
+}
+
+function roundInstructionDistance(distanceMeters: number) {
+  return Number(distanceMeters.toFixed(1));
 }
 
 function withTrailingSlash(value: string) {

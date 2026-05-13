@@ -104,7 +104,7 @@ function buildRouteResponse(
     warnings: scoredCandidate.warnings,
     summary: scoredCandidate.summary,
     geometry: scoredCandidate.geometry,
-    instructions: null,
+    instructions: scoredCandidate.instructions,
   };
 }
 
