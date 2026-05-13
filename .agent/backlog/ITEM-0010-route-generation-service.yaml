@@ -1,7 +1,7 @@
 id: ITEM-0010
 type: feature
 priority: P0
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0006
@@ -18,6 +18,8 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: `apps/api/src/app.ts` still exposes `/health` only, so no route-generation boundary exists for the web planner to call."
   - "2026-05-13 refine: `apps/api/src/routing/candidate-waypoint-seeds.ts` now provides deterministic candidate waypoint sets, so the smallest next step is to orchestrate one routed preview candidate and map adapter failures into the shared response contract."
+  - "2026-05-13 implement: Added `apps/api/src/routing/route-generation-service.ts` to turn the first deterministic waypoint seed into a routed preview through the GraphHopper adapter, with honest `success`, `partial`, and `failed` shared responses plus distance and surface warnings where appropriate."
+  - "2026-05-13 implement: Wired `POST /routes/generate` into `apps/api/src/app.ts` with shared request validation and added mocked coverage in `apps/api/src/routing/route-generation-service.test.ts` plus `apps/api/src/app.test.ts` for routed success, incomplete-fit warnings, adapter failures, and invalid request rejection."
 created_at: 2026-05-13T17:26:57+02:00
-updated_at: 2026-05-13T17:38:14+02:00
-closed_at: null
+updated_at: 2026-05-13T17:47:17+02:00
+closed_at: 2026-05-13T17:47:17+02:00
