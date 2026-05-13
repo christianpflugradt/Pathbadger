@@ -503,6 +503,48 @@ body {
   background: rgba(255, 255, 255, 0.58);
 }
 
+.surface-summary {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.surface-summary-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.surface-summary-card {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(20, 33, 61, 0.08);
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.surface-summary-card span {
+  color: #4d5a74;
+  font-size: 0.9rem;
+}
+
+.surface-summary-card strong {
+  line-height: 1.35;
+}
+
+.surface-summary-meter {
+  overflow: hidden;
+  border-radius: 999px;
+  height: 0.5rem;
+  background: rgba(20, 33, 61, 0.1);
+}
+
+.surface-summary-meter__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6b7a34 0%, #eac435 100%);
+}
+
 .preview-stat strong {
   display: block;
   margin-top: 0.3rem;
@@ -625,6 +667,7 @@ code {
   .segmented-grid,
   .segmented-grid--surface,
   .preview-grid,
+  .surface-summary-grid,
   .planning-map__facts {
     grid-template-columns: 1fr;
   }

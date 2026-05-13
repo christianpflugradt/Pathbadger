@@ -15,6 +15,10 @@ import type {
 import { webRuntimeConfig } from "./config";
 import { PlanningMap } from "./PlanningMap";
 import { requestRoutePreview } from "./route-preview-client";
+import {
+  getRouteSurfaceSummaryCards,
+  getRouteSurfaceSummaryMessage,
+} from "./route-surface-summary";
 import "./styles.css";
 
 type StartPointMode =
@@ -136,6 +140,12 @@ export function App() {
   const responsePreviewCode = routePreview
     ? JSON.stringify(routePreview, null, 2)
     : null;
+  const routeSurfaceSummaryCards = getRouteSurfaceSummaryCards(
+    routePreview?.summary ?? null,
+  );
+  const routeSurfaceSummaryMessage = getRouteSurfaceSummaryMessage(
+    routePreview?.summary ?? null,
+  );
 
   function handleStartPointModeChange(mode: StartPointMode) {
     setStartPointMode(mode);
@@ -622,6 +632,35 @@ export function App() {
                     <div className="preview-stat">
                       <span>Warnings</span>
                       <strong>{routePreview.warnings.length}</strong>
+                    </div>
+                  </div>
+
+                  <div className="surface-summary">
+                    <div className="section-heading">
+                      <h3>Surface composition</h3>
+                      <p>{routeSurfaceSummaryMessage}</p>
+                    </div>
+                    <div className="surface-summary-grid">
+                      {routeSurfaceSummaryCards.map((card) => (
+                        <div key={card.id} className="surface-summary-card">
+                          <span>{card.label}</span>
+                          <strong>{card.valueText}</strong>
+                          <div
+                            className="surface-summary-meter"
+                            aria-hidden="true"
+                          >
+                            <div
+                              className="surface-summary-meter__fill"
+                              style={{
+                                width:
+                                  card.meterPercent === null
+                                    ? "0%"
+                                    : `${card.meterPercent}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
