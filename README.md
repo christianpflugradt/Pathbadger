@@ -2,11 +2,12 @@
 
 Pathbadger is a self-hosted trail-first route planning and navigation project for spontaneous running and cycling routes in Schleswig-Holstein.
 
-This repository is initialized for an agent-driven workflow with three recurring commands:
+This repository is initialized for an agent-driven workflow with four recurring commands:
 
 - `refine`
 - `implement`
 - `review`
+- `show`
 
 ## Source of truth
 
@@ -45,5 +46,6 @@ This repository is initialized for an agent-driven workflow with three recurring
 - `refine` updates planning state only.
 - `implement` must implement exactly one actionable backlog item or finding.
 - `review` audits the workspace and produces structured findings without changing roadmap progress.
+- `show` reports a brief workspace summary with open item count, incomplete epic count, and overall roadmap progress from `.agent/roadmap.yaml`.
 
 The initial setup intentionally focuses on durable scaffolding, not product completeness. The roadmap and metrics start at 0% product progress even though the repository framework is now in place.

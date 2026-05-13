@@ -47,5 +47,6 @@ The compose smoke does not start `graphhopper` or `tileserver` yet, so map-data 
 - `refine` updates `.agent` planning state only
 - `implement` changes exactly one backlog item or finding
 - `review` compares the current state with `.agent` specs and [docs/product.md](/Users/cpf/Workspace/personal/Pathbadger/docs/product.md)
+- `show` reports a brief workspace summary from `.agent/roadmap.yaml`, `.agent/epics/`, and `.agent/backlog/` without changing files
 
 `docs/product.md` remains the original vision reference. The live operational contract is stored in `.agent/*.yaml`.

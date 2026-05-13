@@ -12,6 +12,10 @@ commands:
       - .agent/roadmap.yaml
       - .agent/state.yaml
   transaction_model:
+    applies_to:
+      - refine
+      - implement
+      - review
     phases:
       - read_state
       - plan_minimal_change
@@ -64,3 +68,19 @@ commands:
     must_not:
       - update_roadmap_progress
       - create_scope_expansion_without_evidence
+  show:
+    purpose: brief_workspace_summary_only
+    reads:
+      - .agent/roadmap.yaml
+      - .agent/epics/*
+      - .agent/backlog/*
+    counts:
+      open_items: backlog_items_with_status_other_than_done
+      incomplete_epics: epics_with_status_other_than_done
+    reports:
+      - open_item_count
+      - incomplete_epic_count
+      - roadmap_overall_progress_percent_from_.agent/roadmap.yaml
+    writes: []
+    code_changes_allowed: false
+    commit_and_push_required: false

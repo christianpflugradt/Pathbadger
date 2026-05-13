@@ -20,7 +20,7 @@ Success means:
 - each iteration leaves the repository healthier than before
 - the architecture remains simple and consistent
 - route generation quality improves over time without breaking navigation
-- the user can usually give only one of three commands: `refine`, `implement`, or `review`
+- the user can usually give only one of four commands: `show`, `refine`, `implement`, or `review`
 - the agent does not require frequent clarification because the project rules are explicit
 
 ### 0.2 Non-negotiable priorities
@@ -942,9 +942,10 @@ For product behavior, prefer visible honest feedback over silent failure:
 
 ## 11. Agent operating model
 
-The agent must operate the repository through three primary commands:
+The agent must operate the repository through four primary commands:
 
 ```text
+show
 refine
 implement
 review
@@ -953,6 +954,7 @@ review
 The agent may also perform initial repository setup from this document. During initial setup, it must not commit.
 
 After the repository is connected to a remote Git repository by the user, every subsequent `refine`, `implement`, and `review` command must end with a successful commit and push unless explicitly instructed otherwise or technically impossible.
+The read-only `show` command must not modify files, commit, or push.
 
 ### 11.1 Initial setup command
 
@@ -1049,9 +1051,22 @@ Purpose: audit the whole workspace and produce findings.
 
 `review` is the correction mechanism when implementation quality is poor or when the agent previously marked something complete incorrectly.
 
+### 11.4A `show`
+
+Purpose: report a brief workspace summary without changing repository state.
+
+`show` must:
+
+1. Read `.agent/roadmap.yaml`, `.agent/epics/*`, and `.agent/backlog/*`.
+2. Count open items as backlog items whose status is not `done`.
+3. Count incomplete epics as epics whose status is not `done`.
+4. Read overall roadmap progress from `.agent/roadmap.yaml` `overall_progress_percent`, not from secondary metrics files.
+5. Reply briefly with the open item count, incomplete epic count, and overall roadmap progress percent.
+6. Do not modify files, commit, or push.
+
 ### 11.5 Command transaction model
 
-Each command must be treated as a transaction with phases:
+Each mutating command must be treated as a transaction with phases:
 
 ```yaml
 command_transaction:
@@ -2256,18 +2271,19 @@ When this document is given to the coding agent in an empty directory, the user 
 Initialize the Trail Router project from this briefing.
 Create the repository structure, agent workspace, YAML specifications, initial roadmap, first epic, initial backlog, tooling skeleton, Docker Compose skeleton, and documentation.
 Do not commit during this initial setup.
-After setup, report what was created and what the user should do before running refine, implement, or review.
+After setup, report what was created and what the user should do before running show, refine, implement, or review.
 ```
 
 After the user connects a Git remote, the recurring commands are:
 
 ```text
+show
 refine
 implement
 review
 ```
 
-Each recurring command must end with successful commit and push when a remote is available.
+Each mutating recurring command must end with successful commit and push when a remote is available.
 
 ---
 
@@ -2297,6 +2313,7 @@ If any answer would be false, the agent must inspect this document again and cre
 After initial setup, the user should be able to use simple commands:
 
 ```text
+show
 refine
 implement
 review

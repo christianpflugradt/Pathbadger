@@ -10,11 +10,15 @@ import type {
   RouteGeometry,
   RouteGenerateRequest,
   RouteGenerateResponse,
+  RouteInstruction,
   SurfacePreference,
 } from "@pathbadger/shared";
 
 import { webRuntimeConfig } from "./config";
-import { createNavigationSnapshot } from "./navigation-session";
+import {
+  createNavigationSnapshot,
+  DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS,
+} from "./navigation-session";
 import { PlanningMap } from "./PlanningMap";
 import { requestRoutePreview } from "./route-preview-client";
 import {
@@ -36,9 +40,11 @@ type PassThroughPoint = {
   source: "map";
 };
 type NavigationSession = {
+  instructions: RouteInstruction[];
   routeGeometry: RouteGeometry;
   routeId: string;
   routeStatus: "partial" | "success";
+  simulatedLateralOffsetMeters: number;
   simulatedProgressFraction: number;
 };
 type NavigableRoutePreview = RouteGenerateResponse & {
@@ -164,10 +170,11 @@ export function App() {
   const navigableRoutePreview = getNavigableRoutePreview(routePreview);
   const isNavigationActive = navigationSession !== null;
   const navigationSnapshot = navigationSession
-    ? createNavigationSnapshot(
-        navigationSession.routeGeometry,
-        navigationSession.simulatedProgressFraction,
-      )
+    ? createNavigationSnapshot(navigationSession.routeGeometry, {
+        instructions: navigationSession.instructions,
+        lateralOffsetMeters: navigationSession.simulatedLateralOffsetMeters,
+        requestedProgressFraction: navigationSession.simulatedProgressFraction,
+      })
     : null;
   const canStartNavigation =
     navigableRoutePreview !== null &&
@@ -292,9 +299,11 @@ export function App() {
     }
 
     setNavigationSession({
+      instructions: navigableRoutePreview.instructions ?? [],
       routeGeometry: navigableRoutePreview.geometry,
       routeId: navigableRoutePreview.routeId,
       routeStatus: navigableRoutePreview.status,
+      simulatedLateralOffsetMeters: 0,
       simulatedProgressFraction: 0,
     });
   }
@@ -308,7 +317,19 @@ export function App() {
       current
         ? {
             ...current,
+            simulatedLateralOffsetMeters: 0,
             simulatedProgressFraction: 0,
+          }
+        : current,
+    );
+  }
+
+  function updateNavigationLateralOffset(nextOffsetMeters: number) {
+    setNavigationSession((current) =>
+      current
+        ? {
+            ...current,
+            simulatedLateralOffsetMeters: nextOffsetMeters,
           }
         : current,
     );
@@ -634,7 +655,11 @@ export function App() {
               currentPosition={navigationSnapshot?.currentPosition ?? null}
               currentPositionLabel={
                 navigationSnapshot
-                  ? `Progress ${navigationSnapshot.progressPercent}%`
+                  ? navigationSnapshot.isOffRoute
+                    ? `Off route ${Math.round(
+                        navigationSnapshot.offRouteDistanceMeters,
+                      )} m`
+                    : `Progress ${navigationSnapshot.progressPercent}%`
                   : null
               }
               isMapStartActive={
@@ -877,6 +902,55 @@ export function App() {
                   planning by driving a local current-position marker and
                   progress metrics from the loaded route geometry.
                 </p>
+                {navigationSnapshot.isOffRoute ? (
+                  <div className="response-banner response-banner--error">
+                    <strong>Off-route warning</strong>
+                    <span>
+                      Current position is about{" "}
+                      {formatWholeMeters(
+                        navigationSnapshot.offRouteDistanceMeters,
+                      )}{" "}
+                      from the route line, which exceeds the{" "}
+                      {formatWholeMeters(
+                        navigationSnapshot.offRouteWarningThresholdMeters,
+                      )}{" "}
+                      warning threshold. MVP navigation does not reroute yet.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="response-banner response-banner--pending">
+                    <strong>On-route state</strong>
+                    <span>
+                      Current position is staying within the{" "}
+                      {formatWholeMeters(
+                        navigationSnapshot.offRouteWarningThresholdMeters,
+                      )}{" "}
+                      off-route threshold.
+                    </span>
+                  </div>
+                )}
+                {navigationSnapshot.nextInstruction ? (
+                  <div className="response-banner">
+                    <strong>
+                      Next instruction:{" "}
+                      {navigationSnapshot.nextInstruction.instruction.text}
+                    </strong>
+                    <span>
+                      In{" "}
+                      {formatNavigationDistance(
+                        navigationSnapshot.nextInstruction.distanceMeters,
+                      )}
+                      {navigationSnapshot.nextInstruction.instruction.streetName
+                        ? ` on ${navigationSnapshot.nextInstruction.instruction.streetName}.`
+                        : "."}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="helper-copy">
+                    This routed preview does not include turn instructions yet,
+                    so navigation is falling back to route progress only.
+                  </p>
+                )}
                 <div className="preview-grid preview-grid--navigation">
                   <div className="preview-stat">
                     <span>Current position</span>
@@ -916,6 +990,14 @@ export function App() {
                     <span>Route id</span>
                     <strong>{navigationSession.routeId}</strong>
                   </div>
+                  <div className="preview-stat">
+                    <span>Route deviation</span>
+                    <strong>
+                      {formatWholeMeters(
+                        navigationSnapshot.offRouteDistanceMeters,
+                      )}
+                    </strong>
+                  </div>
                 </div>
                 <div className="navigation-slider">
                   <div className="section-heading">
@@ -923,22 +1005,50 @@ export function App() {
                     <p>
                       Until live GPS handling lands, this slider moves the
                       current position along the routed line using the geo
-                      progress primitive.
+                      progress primitive. A deviation above{" "}
+                      {DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS} m triggers
+                      the conservative off-route warning.
                     </p>
                   </div>
-                  <input
-                    className="distance-slider"
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={Math.round(
-                      navigationSession.simulatedProgressFraction * 100,
-                    )}
-                    onChange={(event) =>
-                      updateNavigationProgress(Number(event.target.value))
-                    }
-                  />
+                  <label className="navigation-range">
+                    <span>
+                      Along route: {navigationSnapshot.progressPercent}%
+                    </span>
+                    <input
+                      className="distance-slider"
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={Math.round(
+                        navigationSession.simulatedProgressFraction * 100,
+                      )}
+                      onChange={(event) =>
+                        updateNavigationProgress(Number(event.target.value))
+                      }
+                    />
+                  </label>
+                  <label className="navigation-range">
+                    <span>
+                      Route deviation:{" "}
+                      {formatWholeMeters(
+                        navigationSession.simulatedLateralOffsetMeters,
+                      )}
+                    </span>
+                    <input
+                      className="distance-slider"
+                      type="range"
+                      min="0"
+                      max="80"
+                      step="5"
+                      value={navigationSession.simulatedLateralOffsetMeters}
+                      onChange={(event) =>
+                        updateNavigationLateralOffset(
+                          Number(event.target.value),
+                        )
+                      }
+                    />
+                  </label>
                   <div className="status-row">
                     <span className="status-pill">
                       {navigationSession.routeStatus === "partial"
@@ -947,6 +1057,19 @@ export function App() {
                     </span>
                     <span className="status-pill">
                       Marker centered on {navigationSnapshot.progressPercent}%
+                    </span>
+                    <span
+                      className={`status-pill${
+                        navigationSnapshot.isOffRoute
+                          ? " status-pill--error"
+                          : ""
+                      }`}
+                    >
+                      {navigationSnapshot.isOffRoute
+                        ? `Off route by ${formatWholeMeters(
+                            navigationSnapshot.offRouteDistanceMeters,
+                          )}`
+                        : "On route"}
                     </span>
                   </div>
                 </div>
@@ -1000,11 +1123,18 @@ export function App() {
                         : "Unavailable"}
                     </strong>
                   </div>
+                  <div className="preview-stat">
+                    <span>Instructions</span>
+                    <strong>
+                      {navigableRoutePreview.instructions?.length ?? 0}
+                    </strong>
+                  </div>
                 </div>
                 <p className="helper-copy">
                   This first navigation pass uses a local simulated current
-                  position. Turn-by-turn cues and off-route handling remain
-                  separate follow-up work.
+                  position so the execution UI can surface route progress, next
+                  instruction cues, and off-route warnings without requiring
+                  live geolocation yet.
                 </p>
                 <button
                   type="button"
@@ -1031,8 +1161,9 @@ export function App() {
                     navigation session is active.
                   </li>
                   <li>
-                    Instruction cues and off-route alerts remain later
-                    navigation work.
+                    Once a usable route exists, navigation can surface next
+                    instruction cues and conservative off-route warnings locally
+                    in the browser.
                   </li>
                 </ul>
                 <p className="helper-copy">
@@ -1064,6 +1195,18 @@ function formatDistanceDelta(distanceDeltaMeters: number) {
 
 function formatDistanceKilometers(distanceMeters: number) {
   return `${(distanceMeters / 1_000).toFixed(2)} km`;
+}
+
+function formatNavigationDistance(distanceMeters: number) {
+  if (distanceMeters >= 1_000) {
+    return `${(distanceMeters / 1_000).toFixed(2)} km`;
+  }
+
+  return formatWholeMeters(distanceMeters);
+}
+
+function formatWholeMeters(distanceMeters: number) {
+  return `${Math.round(distanceMeters)} m`;
 }
 
 function getErrorMessage(error: unknown) {
