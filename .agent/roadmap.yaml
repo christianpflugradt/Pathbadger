@@ -42,16 +42,16 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 0
+  overall_progress_percent: 10
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
-      status: active
-      progress_percent: 75
+      status: done
+      progress_percent: 100
       target_outcome: verified npm-only monorepo foundation with agent workflow and reproducible checks
     - id: routing-core
       title: Self-hosted GraphHopper routing for Schleswig-Holstein
-      status: planned
+      status: active
       progress_percent: 0
       target_outcome: GraphHopper-backed routing adapter with legal request handling and mocked tests
     - id: map-ui
@@ -74,14 +74,14 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0001
+  current_epic: EPIC-0002
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
+    - npm run compose:test now builds and boots the scaffolded api and web containers, verifies the api health endpoint, and tears the stack down again
     - api, web, shared, and geo packages all have typed starter scaffolds that compile cleanly
   remaining_summary:
-    - npm run compose:test still skips the real api/web runtime smoke and does not verify a healthy container signal yet
-    - shared route request and response contracts plus the GraphHopper adapter boundary remain unimplemented
+    - current routing-core focus is ITEM-0002 shared route request and response contracts, followed by ITEM-0005 GraphHopper adapter boundary work
     - the planning-state UI shell and explicit self-hosted tile-style contract remain unimplemented
     - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
     - route generation, active navigation behavior, and later hardening loops remain unimplemented
