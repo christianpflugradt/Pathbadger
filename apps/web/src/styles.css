@@ -378,13 +378,12 @@ body {
   position: absolute;
   right: 1rem;
   bottom: 1rem;
-  left: 1rem;
+  left: auto;
   pointer-events: none;
   z-index: 1;
   display: grid;
   gap: 0.85rem;
-  max-width: min(26rem, calc(100% - 2rem));
-  margin-left: auto;
+  width: min(26rem, calc(100% - 2rem));
   border: 1px solid rgba(247, 244, 234, 0.14);
   border-radius: 1.1rem;
   padding: 1rem 1.1rem;
@@ -471,6 +470,10 @@ body {
 
 .planning-map--ready .planning-map__status {
   background: rgba(35, 58, 38, 0.78);
+}
+
+.planning-map--fallback.planning-map--ready .planning-map__status {
+  background: rgba(54, 73, 41, 0.82);
 }
 
 .planning-map--error .planning-map__status {
@@ -687,9 +690,10 @@ code {
   }
 
   .planning-map__status {
+    left: 0.75rem;
     right: 0.75rem;
     bottom: 0.75rem;
-    left: 0.75rem;
+    width: auto;
     padding: 0.9rem 0.95rem;
   }
 

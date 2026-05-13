@@ -24,6 +24,7 @@ type PlanningMapProps = {
 type MapLoadState = "loading" | "ready" | "error";
 
 const DEFAULT_ZOOM = 11.5;
+const LOCAL_FALLBACK_STYLE_PATH = "/styles/local-fallback.json";
 const ROUTE_PREVIEW_SOURCE_ID = "route-preview";
 const ROUTE_PREVIEW_CASING_LAYER_ID = "route-preview-casing";
 const ROUTE_PREVIEW_LINE_LAYER_ID = "route-preview-line";
@@ -46,6 +47,7 @@ export function PlanningMap({
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const [loadState, setLoadState] = useState<MapLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isFallbackStyle = isLocalFallbackStyle(styleUrl);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -230,18 +232,24 @@ export function PlanningMap({
     loadState === "error"
       ? errorMessage
       : isAwaitingPassThroughPoint
-        ? `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
+        ? isFallbackStyle
+          ? `The next map click will append pass-through point ${passThroughPoints.length + 1}. This local boot is using the bundled fallback grid, so point placement works even before self-hosted tile data is installed.`
+          : `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
         : isMapStartActive
-          ? "Map-selected start mode is active. Each map click updates the route origin and request preview immediately."
+          ? isFallbackStyle
+            ? "Map-selected start mode is active. Each map click updates the route origin immediately, and the bundled fallback grid stays visible until a real self-hosted tile style is configured."
+            : "Map-selected start mode is active. Each map click updates the route origin and request preview immediately."
           : routeGeometry
             ? "The latest backend preview returned route geometry, and the live map is now drawing that line alongside the planning markers."
             : loadState === "ready"
-              ? "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
+              ? isFallbackStyle
+                ? "The live planning surface is mounted with the bundled fallback grid. You can place points and inspect route lines here, but roads and trails will not appear until self-hosted tile data is added."
+                : "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
               : "Connecting to the configured style document before route overlays and point selection are added.";
 
   return (
     <section
-      className={`planning-map planning-map--${loadState}`}
+      className={`planning-map planning-map--${loadState}${isFallbackStyle ? " planning-map--fallback" : ""}`}
       aria-label="Planning map"
     >
       <div ref={containerRef} className="planning-map__canvas" />
@@ -281,7 +289,7 @@ export function PlanningMap({
           <div>
             <dt>Style</dt>
             <dd>
-              <code>{trimStyleUrl(styleUrl)}</code>
+              <code>{getStyleLabel(styleUrl)}</code>
             </dd>
           </div>
         </dl>
@@ -435,4 +443,14 @@ function trimStyleUrl(styleUrl: string) {
   } catch {
     return styleUrl;
   }
+}
+
+function isLocalFallbackStyle(styleUrl: string) {
+  return trimStyleUrl(styleUrl) === LOCAL_FALLBACK_STYLE_PATH;
+}
+
+function getStyleLabel(styleUrl: string) {
+  return isLocalFallbackStyle(styleUrl)
+    ? "local fallback grid"
+    : trimStyleUrl(styleUrl);
 }

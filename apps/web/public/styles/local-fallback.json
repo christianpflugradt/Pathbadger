@@ -1,13 +1,218 @@
 {
   "version": 8,
   "name": "Pathbadger Local Fallback",
-  "sources": {},
+  "sources": {
+    "fallback-region": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [
+                [
+                  [8.25, 53.45],
+                  [11.25, 53.45],
+                  [11.25, 55.1],
+                  [8.25, 55.1],
+                  [8.25, 53.45]
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "fallback-grid": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.4, 53.35],
+                [8.4, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.8, 53.35],
+                [8.8, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [9.2, 53.35],
+                [9.2, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [9.6, 53.35],
+                [9.6, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [10.0, 53.35],
+                [10.0, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [10.4, 53.35],
+                [10.4, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [10.8, 53.35],
+                [10.8, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [11.2, 53.35],
+                [11.2, 55.2]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.15, 53.6],
+                [11.3, 53.6]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.15, 54.0],
+                [11.3, 54.0]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.15, 54.4],
+                [11.3, 54.4]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.15, 54.8],
+                [11.3, 54.8]
+              ]
+            }
+          },
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [8.15, 55.2],
+                [11.3, 55.2]
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
   "layers": [
     {
       "id": "background",
       "type": "background",
       "paint": {
-        "background-color": "#e9efe5"
+        "background-color": "#edf2e7"
+      }
+    },
+    {
+      "id": "fallback-region-fill",
+      "type": "fill",
+      "source": "fallback-region",
+      "paint": {
+        "fill-color": "#dbe5cf",
+        "fill-opacity": 0.85
+      }
+    },
+    {
+      "id": "fallback-grid-lines",
+      "type": "line",
+      "source": "fallback-grid",
+      "paint": {
+        "line-color": "#b8c5a5",
+        "line-opacity": 0.82,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1, 12, 2]
+      }
+    },
+    {
+      "id": "fallback-region-outline",
+      "type": "line",
+      "source": "fallback-region",
+      "paint": {
+        "line-color": "#6b7a34",
+        "line-opacity": 0.9,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2, 12, 3]
       }
     }
   ]
