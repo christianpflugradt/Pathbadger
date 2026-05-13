@@ -1,5 +1,5 @@
 id: EPIC-0009
-status: open
+status: done
 phase: navigation
 title: Turn routed previews into a first local navigation loop
 objective: carry instruction-aware route data into the web app and replace the locked navigation placeholder with real local execution state that uses geo progress calculations
@@ -13,5 +13,5 @@ items:
   - ITEM-0019
   - ITEM-0020
 created_at: 2026-05-13T20:07:22+02:00
-updated_at: 2026-05-13T20:07:22+02:00
-closed_at: null
+updated_at: 2026-05-13T21:06:33+02:00
+closed_at: 2026-05-13T21:06:33+02:00

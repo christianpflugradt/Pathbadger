@@ -1,0 +1,22 @@
+id: ITEM-0024
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0010
+title: Add follow-position map behavior with manual pan escape
+summary: Keep the navigation map centered on the live current position by default, but let users break auto-follow when they pan and explicitly re-enable it later.
+acceptance_criteria:
+  - active navigation recenters on live current position by default
+  - manual map pan pauses auto-follow until the user explicitly recenters or re-enables follow mode
+  - navigation UI reflects follow-position state clearly
+verification:
+  - npm run lint
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: the map already shows a current-position marker during active navigation, but follow-position behavior and a manual-pan escape model are still absent."
+created_at: 2026-05-13T21:06:33+02:00
+updated_at: 2026-05-13T21:06:33+02:00
+closed_at: null

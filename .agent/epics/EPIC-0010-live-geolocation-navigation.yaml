@@ -1,0 +1,17 @@
+id: EPIC-0010
+status: open
+phase: navigation
+title: Replace simulated navigation with live browser geolocation
+objective: move the first local navigation loop onto real browser location updates, then add the missing speed and follow-position behavior the execution state still lacks
+success_criteria:
+  - web owns a reusable browser geolocation boundary instead of keeping active navigation on simulated-only position sliders
+  - active navigation can consume live current-position updates and keep route progress local without backend polling
+  - execution UI surfaces current speed, average speed, and follow-position behavior honestly when browser geolocation data allows it
+items:
+  - ITEM-0021
+  - ITEM-0022
+  - ITEM-0023
+  - ITEM-0024
+created_at: 2026-05-13T21:06:33+02:00
+updated_at: 2026-05-13T21:06:33+02:00
+closed_at: null

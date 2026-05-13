@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 65
+  overall_progress_percent: 70
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -67,14 +67,14 @@ roadmap:
     - id: navigation
       title: GPS route following and navigation metrics
       status: active
-      progress_percent: 15
+      progress_percent: 45
       target_outcome: mobile-friendly outdoor navigation with local progress calculations
     - id: hardening
       title: QA, energy behavior, security, docs, operations
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0009
+  current_epic: EPIC-0010
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -95,9 +95,11 @@ roadmap:
     - the default local app workflow now includes `make run-app`, `make stopp-app`, and `make rebuild-app`, with docs aligned to the compose-based browser startup flow
     - the default planning map now shows a visible bundled fallback grid instead of an effectively blank canvas when the optional self-hosted tile stack is not running
     - "`packages/geo` now exports `calculateRouteProgress`, giving later navigation UI a tested local primitive for snapped route position, completed distance, remaining distance, progress fraction, and off-route distance"
+    - route previews now carry normalized instruction arrays end to end from GraphHopper through the shared response contract and into the web app
+    - the web app can now start a first local navigation session from a routed preview, compute progress locally, show next-instruction cues, and surface conservative off-route warnings without backend polling
   remaining_summary:
-    - current focus is ITEM-0017 in EPIC-0009, which should extend the shared route response contract with minimal navigation instructions so execution UI work can consume stable route cues instead of inventing local placeholders
+    - current focus is ITEM-0021 in EPIC-0010, which should add a reusable browser geolocation boundary so active navigation can stop depending on simulated position sliders
     - the default local boot is now usable for planner interaction, but real Schleswig-Holstein graph data and self-hosted cartography are still gated behind the optional `maps` profile and unprepared local data directories
-    - routing-core and route-generation now reach an honest preview loop with surface-aware summaries, but route responses still omit instruction data and live GraphHopper route quality remains proven only through mocked coverage
-    - the next navigation slice is now broken into route-instruction contracts, adapter normalization, a real web navigation state, and later instruction/off-route behavior instead of one large placeholder epic
-    - current-position following, next-instruction distance, off-route warning, and speed metrics remain unimplemented until the new navigation epic lands
+    - routing-core and route-generation now reach an honest preview loop with surface-aware summaries and instruction data, but live GraphHopper route quality against a prepared Schleswig-Holstein graph is still proven mostly through mocked coverage
+    - active navigation still relies on simulated local movement instead of live browser geolocation, so current-position following on real devices is not yet proven
+    - current speed and average speed are still absent from the execution UI, and follow-position map behavior with manual pan escape remains unimplemented

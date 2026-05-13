@@ -1,0 +1,22 @@
+id: ITEM-0022
+type: feature
+priority: P0
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0010
+title: Feed live browser position into active navigation
+summary: Replace simulated-only active navigation movement with live browser geolocation updates while keeping local route progress and off-route calculations in the frontend.
+acceptance_criteria:
+  - active navigation can consume live geolocation updates and recompute route progress without backend calls
+  - map marker and navigation metrics update from live current position when permission is granted
+  - simulation stays clearly scoped as a development fallback instead of the default navigation path
+verification:
+  - npm run lint
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `ITEM-0020` proved the local instruction and off-route model with simulated state, but current-position following is still unimplemented on real browser location data."
+created_at: 2026-05-13T21:06:33+02:00
+updated_at: 2026-05-13T21:06:33+02:00
+closed_at: null
