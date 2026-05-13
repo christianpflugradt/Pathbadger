@@ -27,6 +27,12 @@ This repository is npm-only by explicit user instruction.
 The `maps` profile is reserved for the real self-hosted map stack once data-preparation items are implemented.
 The compose smoke does not start `graphhopper` or `tileserver` yet, so map-data validation remains later work.
 
+## Tile style contract
+
+- `PUBLIC_TILE_STYLE_URL` is the web-facing map-style contract for future MapLibre integration.
+- It must point to a self-hosted style JSON document served by the local tile stack, not a hosted third-party style URL.
+- The current default is `http://localhost:8080/styles/basic/style.json`, matching the expected TileServer GL style document when the `maps` profile is running.
+
 ## Agent command behavior
 
 - `refine` updates `.agent` planning state only

@@ -1,5 +1,6 @@
 import { activityOptions, surfacePreferenceOptions } from "@pathbadger/shared";
 
+import { webRuntimeConfig } from "./config";
 import "./styles.css";
 
 export function App() {
@@ -10,7 +11,8 @@ export function App() {
         <h1>Agent-ready scaffold for a self-hosted trail routing app.</h1>
         <p className="lead">
           The product roadmap is initialized, the monorepo is wired, and the
-          next workflow step is `refine` to slice the active foundation epic.
+          frontend now carries an explicit self-hosted tile-style contract for
+          future MapLibre integration.
         </p>
       </section>
 
@@ -42,7 +44,11 @@ export function App() {
             <li>
               Self-hosted GraphHopper and tiles are reserved in Docker Compose.
             </li>
-            <li>Route-planning progress starts at 0% by design.</li>
+            <li>
+              Future map style source:{" "}
+              <code>{webRuntimeConfig.tileStyleUrl}</code>
+            </li>
+            <li>Target region: {webRuntimeConfig.regionName}</li>
           </ul>
         </article>
       </section>

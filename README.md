@@ -36,6 +36,7 @@ This repository is initialized for an agent-driven workflow with three recurring
 - `graphhopper` and `tileserver` are behind the `maps` profile until real regional data is prepared.
 - `npm run compose:test` now builds and starts the scaffolded `api` and `web` services, checks the api `/health` endpoint, and tears the stack down again.
 - The compose smoke covers only the default `api` and `web` services; the `maps` profile remains excluded until real regional data is prepared.
+- `PUBLIC_TILE_STYLE_URL` is the frontend contract for future MapLibre work and should point to a self-hosted style JSON endpoint such as `http://localhost:8080/styles/basic/style.json`.
 
 ## Agent workflow
 
