@@ -1,0 +1,22 @@
+id: ITEM-0011
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0006
+title: Submit planning requests and render routed preview state in the web app
+summary: Connect the planner controls to the backend route-generation boundary so the live map can later show routed geometry, warnings, and summary data instead of a request JSON preview only.
+acceptance_criteria:
+  - generate route and variation actions call the backend instead of updating shell-only counters
+  - web app renders routed preview warnings or summary state from the shared response contract
+  - map preview is ready to render routed geometry without mixing navigation-only state into the planner
+verification:
+  - npm run lint
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/web/src/App.tsx` still updates local shell state only for generate-route actions and does not consume any backend route response yet."
+created_at: 2026-05-13T17:26:57+02:00
+updated_at: 2026-05-13T17:26:57+02:00
+closed_at: null

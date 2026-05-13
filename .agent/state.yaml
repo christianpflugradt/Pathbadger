@@ -1,9 +1,9 @@
 state:
   initialized: true
   current_command: null
-  current_epic: EPIC-0005
+  current_epic: EPIC-0006
   current_item: null
-  last_refine: 2026-05-13T17:04:33+02:00
+  last_refine: 2026-05-13T17:26:57+02:00
   last_implement: 2026-05-13T17:19:07+02:00
   last_review: null
   remote_connected: true

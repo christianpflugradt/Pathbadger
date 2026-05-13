@@ -1,0 +1,22 @@
+id: ITEM-0010
+type: feature
+priority: P1
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0006
+title: Orchestrate one routed preview candidate through the GraphHopper adapter
+summary: Introduce the first route-generation service boundary that consumes candidate waypoint sets, requests a routed candidate through the existing GraphHopper adapter, and maps the result into the shared response contract with honest warnings.
+acceptance_criteria:
+  - backend exposes a route-generation service or endpoint boundary that returns a `RouteGenerateResponse`
+  - GraphHopper adapter failures map to honest response status and warnings instead of leaking raw errors
+  - mocked tests cover a successful routed candidate and representative failure handling
+verification:
+  - npm run test
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/api/src/app.ts` still exposes `/health` only, so no route-generation boundary exists for the web planner to call."
+created_at: 2026-05-13T17:26:57+02:00
+updated_at: 2026-05-13T17:26:57+02:00
+closed_at: null

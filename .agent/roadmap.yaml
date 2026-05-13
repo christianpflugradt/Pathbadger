@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 35
+  overall_progress_percent: 40
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -52,17 +52,17 @@ roadmap:
     - id: routing-core
       title: Self-hosted GraphHopper routing for Schleswig-Holstein
       status: planned
-      progress_percent: 35
+      progress_percent: 40
       target_outcome: GraphHopper-backed routing adapter with legal request handling and mocked tests
     - id: map-ui
       title: MapLibre map UI and route display
-      status: active
-      progress_percent: 60
+      status: planned
+      progress_percent: 80
       target_outcome: route planning map with self-hosted tile wiring and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
-      status: planned
-      progress_percent: 0
+      status: active
+      progress_percent: 10
       target_outcome: candidate generation and scoring that match distance and surface preferences honestly
     - id: navigation
       title: GPS route following and navigation metrics
@@ -74,7 +74,7 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0005
+  current_epic: EPIC-0006
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -84,9 +84,10 @@ roadmap:
     - the web app and docs now expose an explicit self-hosted tile-style contract through `PUBLIC_TILE_STYLE_URL`
     - the web planning shell now renders route-request controls, shared request previews, and a separate navigation handoff without mixing execution state into planning
     - the planning screen now mounts a live self-hosted MapLibre surface and reports explicit loading or fetch-failure states instead of a static map placeholder
+    - the live planning map now drives the map-selected start and pass-through list, so planner state is synced to real map clicks instead of placeholder coordinates
   remaining_summary:
-    - current map-ui focus is ITEM-0008 map-selected point sync so the live planning map can drive start-point and pass-through state
-    - map-ui groundwork now includes a live MapLibre surface, but map clicks still do not update planning coordinates and no route geometry overlay exists yet
-    - routing-core groundwork exists, but live route-generation orchestration and legal request handling remain future work
+    - current route-generation focus is ITEM-0009 deterministic candidate waypoint seeds, followed by ITEM-0010 API orchestration through the GraphHopper adapter
+    - map-ui groundwork now includes a live MapLibre surface plus map-selected planning points, but no routed geometry overlay, summary panel, or warning rendering exists yet
+    - routing-core groundwork exists, but the API still has no route-generation endpoint or route-response mapping boundary
     - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
     - route generation, active navigation behavior, and later hardening loops remain unimplemented
