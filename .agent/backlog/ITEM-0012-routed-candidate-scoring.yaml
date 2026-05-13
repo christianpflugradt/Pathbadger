@@ -1,7 +1,7 @@
 id: ITEM-0012
 type: feature
 priority: P0
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0007
@@ -18,6 +18,9 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: `apps/api/src/routing/route-generation-service.ts` currently accepts the first deterministic candidate that returns from GraphHopper and never compares candidate quality, even though two seeded options already exist."
   - "2026-05-13 refine: product phase 4 calls for a dedicated scoring module, so the smallest next step is to score routed candidates by distance fit first and leave richer surface scoring for a later follow-up."
+  - "2026-05-13 implement: Added `apps/api/src/routing/routed-candidate-scoring.ts` as the dedicated first scoring boundary. It evaluates a routed preview candidate against the shared request, exposes `score`, `distanceFitScore`, `isWithinTolerance`, `status`, warnings, and the normalized summary needed for later selection work."
+  - "2026-05-13 implement: Refactored `apps/api/src/routing/route-generation-service.ts` to consume the scoring module instead of keeping distance-fit and warning logic inline, preserving the current response contract while preparing for multi-candidate selection."
+  - "2026-05-13 implement: Added `apps/api/src/routing/routed-candidate-scoring.test.ts` to verify successful fit scoring, partial-fit warning exposure, and higher scores for closer distance matches."
 created_at: 2026-05-13T18:10:31+02:00
-updated_at: 2026-05-13T18:10:31+02:00
-closed_at: null
+updated_at: 2026-05-13T18:22:58+02:00
+closed_at: 2026-05-13T18:22:58+02:00
