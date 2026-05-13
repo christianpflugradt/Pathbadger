@@ -7,12 +7,14 @@ import {
 import type {
   Activity,
   Coordinate,
+  RouteGeometry,
   RouteGenerateRequest,
   RouteGenerateResponse,
   SurfacePreference,
 } from "@pathbadger/shared";
 
 import { webRuntimeConfig } from "./config";
+import { createNavigationSnapshot } from "./navigation-session";
 import { PlanningMap } from "./PlanningMap";
 import { requestRoutePreview } from "./route-preview-client";
 import {
@@ -32,6 +34,16 @@ type PassThroughPoint = {
   label: string;
   coordinate: Coordinate;
   source: "map";
+};
+type NavigationSession = {
+  routeGeometry: RouteGeometry;
+  routeId: string;
+  routeStatus: "partial" | "success";
+  simulatedProgressFraction: number;
+};
+type NavigableRoutePreview = RouteGenerateResponse & {
+  geometry: RouteGeometry;
+  status: "partial" | "success";
 };
 
 const startPointCatalog: Record<
@@ -78,6 +90,7 @@ const routeStatusLabels: Record<RouteGenerateResponse["status"], string> = {
   partial: "Preview needs review",
   failed: "Preview unavailable",
 };
+const ignoreMapSelection: (coordinate: Coordinate) => void = () => {};
 
 export function App() {
   const [startPointMode, setStartPointMode] =
@@ -97,6 +110,8 @@ export function App() {
   const [previewCandidateIndex, setPreviewCandidateIndex] = useState(1);
   const [routePreview, setRoutePreview] =
     useState<RouteGenerateResponse | null>(null);
+  const [navigationSession, setNavigationSession] =
+    useState<NavigationSession | null>(null);
   const [lastSubmittedRequest, setLastSubmittedRequest] =
     useState<RouteGenerateRequest | null>(null);
   const [lastSubmittedSeed, setLastSubmittedSeed] = useState<string | null>(
@@ -146,6 +161,28 @@ export function App() {
   const routeSurfaceSummaryMessage = getRouteSurfaceSummaryMessage(
     routePreview?.summary ?? null,
   );
+  const navigableRoutePreview = getNavigableRoutePreview(routePreview);
+  const isNavigationActive = navigationSession !== null;
+  const navigationSnapshot = navigationSession
+    ? createNavigationSnapshot(
+        navigationSession.routeGeometry,
+        navigationSession.simulatedProgressFraction,
+      )
+    : null;
+  const canStartNavigation =
+    navigableRoutePreview !== null &&
+    !isRequestingRoutePreview &&
+    routePreviewRequestError === null &&
+    !isRoutePreviewStale;
+  const mapCenter =
+    navigationSnapshot?.currentPosition ?? startPoint.coordinate;
+  const mapCenterLabel = navigationSnapshot
+    ? "Current position"
+    : startPoint.label;
+  const mapRouteGeometry =
+    navigationSession?.routeGeometry ?? routePreview?.geometry ?? null;
+  const mapRouteStatus =
+    navigationSession?.routeStatus ?? routePreview?.status ?? null;
 
   function handleStartPointModeChange(mode: StartPointMode) {
     setStartPointMode(mode);
@@ -249,6 +286,45 @@ export function App() {
     });
   }
 
+  function startNavigation() {
+    if (!canStartNavigation || !navigableRoutePreview) {
+      return;
+    }
+
+    setNavigationSession({
+      routeGeometry: navigableRoutePreview.geometry,
+      routeId: navigableRoutePreview.routeId,
+      routeStatus: navigableRoutePreview.status,
+      simulatedProgressFraction: 0,
+    });
+  }
+
+  function stopNavigation() {
+    setNavigationSession(null);
+  }
+
+  function resetNavigationProgress() {
+    setNavigationSession((current) =>
+      current
+        ? {
+            ...current,
+            simulatedProgressFraction: 0,
+          }
+        : current,
+    );
+  }
+
+  function updateNavigationProgress(nextProgressPercent: number) {
+    setNavigationSession((current) =>
+      current
+        ? {
+            ...current,
+            simulatedProgressFraction: nextProgressPercent / 100,
+          }
+        : current,
+    );
+  }
+
   return (
     <main className="planner-shell">
       <section className="hero">
@@ -266,7 +342,15 @@ export function App() {
             <span className="status-pill status-pill--active">
               Planning state active
             </span>
-            <span className="status-pill">Navigation later</span>
+            <span
+              className={`status-pill${
+                isNavigationActive ? " status-pill--active" : ""
+              }`}
+            >
+              {isNavigationActive
+                ? "Navigation session live"
+                : "Navigation later"}
+            </span>
           </div>
           <p>
             Region target: <strong>{webRuntimeConfig.regionName}</strong>
@@ -295,213 +379,225 @@ export function App() {
               the same live request path into the backend preview boundary.
             </p>
           </div>
+          {isNavigationActive ? (
+            <p className="helper-copy helper-copy--locked">
+              Planning edits are paused while navigation is active. Stop the
+              current navigation session to change the route request again.
+            </p>
+          ) : null}
 
-          <section className="form-section">
-            <div className="section-heading">
-              <h3>Start point</h3>
-              <p>Choose how the route origin should be defined.</p>
-            </div>
-            <div className="option-grid">
-              {(
-                Object.entries(startPointCatalog) as [
-                  StartPointMode,
-                  (typeof startPointCatalog)[StartPointMode],
-                ][]
-              ).map(([mode, option]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`option-card${
-                    startPointMode === mode ? " option-card--selected" : ""
-                  }`}
-                  onClick={() => handleStartPointModeChange(mode)}
-                >
-                  <span className="option-title">{option.label}</span>
-                  <span className="option-detail">{option.detail}</span>
-                </button>
-              ))}
-            </div>
-            {startPointMode === "map_point" ? (
-              <p className="helper-copy">
-                Map-selected start:{" "}
-                <code>{formatCoordinate(mapSelectedStart)}</code>. Click the
-                planning map to move it.
-              </p>
-            ) : null}
-          </section>
+          <fieldset className="form-fieldset" disabled={isNavigationActive}>
+            <section className="form-section">
+              <div className="section-heading">
+                <h3>Start point</h3>
+                <p>Choose how the route origin should be defined.</p>
+              </div>
+              <div className="option-grid">
+                {(
+                  Object.entries(startPointCatalog) as [
+                    StartPointMode,
+                    (typeof startPointCatalog)[StartPointMode],
+                  ][]
+                ).map(([mode, option]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`option-card${
+                      startPointMode === mode ? " option-card--selected" : ""
+                    }`}
+                    onClick={() => handleStartPointModeChange(mode)}
+                  >
+                    <span className="option-title">{option.label}</span>
+                    <span className="option-detail">{option.detail}</span>
+                  </button>
+                ))}
+              </div>
+              {startPointMode === "map_point" ? (
+                <p className="helper-copy">
+                  Map-selected start:{" "}
+                  <code>{formatCoordinate(mapSelectedStart)}</code>. Click the
+                  planning map to move it.
+                </p>
+              ) : null}
+            </section>
 
-          <section className="form-section">
-            <div className="section-heading">
-              <h3>Activity</h3>
-              <p>
-                Keep the request aligned with legal routing and trail usage.
-              </p>
-            </div>
-            <div className="segmented-grid">
-              {activityOptions.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  className={`segment${
-                    activity === option ? " segment--selected" : ""
-                  }`}
-                  onClick={() => setActivity(option)}
-                >
-                  {activityLabels[option]}
-                </button>
-              ))}
-            </div>
-          </section>
+            <section className="form-section">
+              <div className="section-heading">
+                <h3>Activity</h3>
+                <p>
+                  Keep the request aligned with legal routing and trail usage.
+                </p>
+              </div>
+              <div className="segmented-grid">
+                {activityOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`segment${
+                      activity === option ? " segment--selected" : ""
+                    }`}
+                    onClick={() => setActivity(option)}
+                  >
+                    {activityLabels[option]}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-          <section className="form-section">
-            <div className="section-heading">
-              <h3>Target distance</h3>
-              <p>Distance stays in kilometers, with tolerance handled later.</p>
-            </div>
-            <div className="distance-controls">
-              <label className="distance-input">
-                <span>Target km</span>
+            <section className="form-section">
+              <div className="section-heading">
+                <h3>Target distance</h3>
+                <p>
+                  Distance stays in kilometers, with tolerance handled later.
+                </p>
+              </div>
+              <div className="distance-controls">
+                <label className="distance-input">
+                  <span>Target km</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="80"
+                    step="0.5"
+                    value={targetDistanceKm}
+                    onChange={(event) =>
+                      setTargetDistanceKm(Number(event.target.value) || 1)
+                    }
+                  />
+                </label>
                 <input
-                  type="number"
-                  min="1"
-                  max="80"
-                  step="0.5"
+                  className="distance-slider"
+                  type="range"
+                  min="4"
+                  max="40"
+                  step="1"
                   value={targetDistanceKm}
                   onChange={(event) =>
-                    setTargetDistanceKm(Number(event.target.value) || 1)
+                    setTargetDistanceKm(Number(event.target.value))
                   }
                 />
-              </label>
-              <input
-                className="distance-slider"
-                type="range"
-                min="4"
-                max="40"
-                step="1"
-                value={targetDistanceKm}
-                onChange={(event) =>
-                  setTargetDistanceKm(Number(event.target.value))
-                }
-              />
-            </div>
-          </section>
+              </div>
+            </section>
 
-          <section className="form-section">
-            <div className="section-heading">
-              <h3>Surface preference</h3>
-              <p>
-                Scoring comes later, but the preference is already explicit.
-              </p>
-            </div>
-            <div className="segmented-grid segmented-grid--surface">
-              {surfacePreferenceOptions.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  className={`segment${
-                    surfacePreference === option ? " segment--selected" : ""
-                  }`}
-                  onClick={() => setSurfacePreference(option)}
-                >
-                  {surfaceLabels[option]}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="form-section">
-            <div className="section-heading">
-              <h3>Pass-through points</h3>
-              <p>
-                Pass-through waypoints now come from live map clicks. Local
-                place search can be layered in later.
-              </p>
-            </div>
-            <div className="button-row">
-              <button
-                type="button"
-                className={`button ${
-                  isAwaitingPassThroughPoint
-                    ? "button--secondary"
-                    : "button--primary"
-                }`}
-                onClick={togglePassThroughPointSelection}
-              >
-                {isAwaitingPassThroughPoint
-                  ? "Cancel map click"
-                  : "Add next map click"}
-              </button>
-              <button type="button" className="button button--ghost" disabled>
-                Place search later
-              </button>
-            </div>
-            <p className="helper-copy">
-              {isAwaitingPassThroughPoint
-                ? `Click the planning map to add pass-through point ${passThroughPoints.length + 1}.`
-                : "Each pass-through point is now created from a real map click and can still be removed from the list."}
-            </p>
-            {passThroughPoints.length > 0 ? (
-              <ul className="pass-through-list">
-                {passThroughPoints.map((point) => (
-                  <li key={point.id} className="pass-through-item">
-                    <div>
-                      <strong>{point.label}</strong>
-                      <span>
-                        {point.coordinate.lat.toFixed(4)},{" "}
-                        {point.coordinate.lon.toFixed(4)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="mini-action"
-                      onClick={() => removePassThroughPoint(point.id)}
-                    >
-                      Remove
-                    </button>
-                  </li>
+            <section className="form-section">
+              <div className="section-heading">
+                <h3>Surface preference</h3>
+                <p>
+                  Scoring comes later, but the preference is already explicit.
+                </p>
+              </div>
+              <div className="segmented-grid segmented-grid--surface">
+                {surfacePreferenceOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`segment${
+                      surfacePreference === option ? " segment--selected" : ""
+                    }`}
+                    onClick={() => setSurfacePreference(option)}
+                  >
+                    {surfaceLabels[option]}
+                  </button>
                 ))}
-              </ul>
-            ) : (
-              <p className="empty-state">
-                No required pass-through points yet. The route can stay fully
-                spontaneous.
-              </p>
-            )}
-          </section>
+              </div>
+            </section>
 
-          <section className="form-section form-section--actions">
-            <div className="button-row">
-              <button
-                type="button"
-                className="button button--primary"
-                disabled={isRequestingRoutePreview}
-                onClick={requestRoute}
-              >
-                {isRequestingRoutePreview ? "Generating..." : "Generate route"}
-              </button>
-              <button
-                type="button"
-                className="button button--secondary"
-                disabled={isRequestingRoutePreview}
-                onClick={requestVariation}
-              >
+            <section className="form-section">
+              <div className="section-heading">
+                <h3>Pass-through points</h3>
+                <p>
+                  Pass-through waypoints now come from live map clicks. Local
+                  place search can be layered in later.
+                </p>
+              </div>
+              <div className="button-row">
+                <button
+                  type="button"
+                  className={`button ${
+                    isAwaitingPassThroughPoint
+                      ? "button--secondary"
+                      : "button--primary"
+                  }`}
+                  onClick={togglePassThroughPointSelection}
+                >
+                  {isAwaitingPassThroughPoint
+                    ? "Cancel map click"
+                    : "Add next map click"}
+                </button>
+                <button type="button" className="button button--ghost" disabled>
+                  Place search later
+                </button>
+              </div>
+              <p className="helper-copy">
+                {isAwaitingPassThroughPoint
+                  ? `Click the planning map to add pass-through point ${passThroughPoints.length + 1}.`
+                  : "Each pass-through point is now created from a real map click and can still be removed from the list."}
+              </p>
+              {passThroughPoints.length > 0 ? (
+                <ul className="pass-through-list">
+                  {passThroughPoints.map((point) => (
+                    <li key={point.id} className="pass-through-item">
+                      <div>
+                        <strong>{point.label}</strong>
+                        <span>
+                          {point.coordinate.lat.toFixed(4)},{" "}
+                          {point.coordinate.lon.toFixed(4)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="mini-action"
+                        onClick={() => removePassThroughPoint(point.id)}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty-state">
+                  No required pass-through points yet. The route can stay fully
+                  spontaneous.
+                </p>
+              )}
+            </section>
+
+            <section className="form-section form-section--actions">
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="button button--primary"
+                  disabled={isRequestingRoutePreview}
+                  onClick={requestRoute}
+                >
+                  {isRequestingRoutePreview
+                    ? "Generating..."
+                    : "Generate route"}
+                </button>
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  disabled={isRequestingRoutePreview}
+                  onClick={requestVariation}
+                >
+                  {isRequestingRoutePreview
+                    ? "Waiting for preview..."
+                    : "Generate variation"}
+                </button>
+              </div>
+              <p className="helper-copy">
                 {isRequestingRoutePreview
-                  ? "Waiting for preview..."
-                  : "Generate variation"}
-              </button>
-            </div>
-            <p className="helper-copy">
-              {isRequestingRoutePreview
-                ? `Requesting candidate ${previewCandidateIndex} from the backend route boundary now.`
-                : routePreviewRequestError
-                  ? routePreviewRequestError
-                  : isRoutePreviewStale
-                    ? "Planning inputs changed since the last routed preview. Generate again to refresh the map and summary."
-                    : hasRoutePreview
-                      ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
-                      : "Generate a route to call the backend preview boundary for the first time."}
-            </p>
-          </section>
+                  ? `Requesting candidate ${previewCandidateIndex} from the backend route boundary now.`
+                  : routePreviewRequestError
+                    ? routePreviewRequestError
+                    : isRoutePreviewStale
+                      ? "Planning inputs changed since the last routed preview. Generate again to refresh the map and summary."
+                      : hasRoutePreview
+                        ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
+                        : "Generate a route to call the backend preview boundary for the first time."}
+              </p>
+            </section>
+          </fieldset>
         </form>
 
         <section className="preview-column">
@@ -533,15 +629,28 @@ export function App() {
             </div>
 
             <PlanningMap
-              center={startPoint.coordinate}
-              centerLabel={startPoint.label}
-              isMapStartActive={startPointMode === "map_point"}
-              interactionMode={mapInteractionMode}
-              onMapSelect={handleMapSelection}
+              center={mapCenter}
+              centerLabel={mapCenterLabel}
+              currentPosition={navigationSnapshot?.currentPosition ?? null}
+              currentPositionLabel={
+                navigationSnapshot
+                  ? `Progress ${navigationSnapshot.progressPercent}%`
+                  : null
+              }
+              isMapStartActive={
+                !isNavigationActive && startPointMode === "map_point"
+              }
+              isNavigationActive={isNavigationActive}
+              interactionMode={isNavigationActive ? "idle" : mapInteractionMode}
+              onMapSelect={
+                isNavigationActive ? ignoreMapSelection : handleMapSelection
+              }
               passThroughPoints={passThroughPoints}
               regionName={webRuntimeConfig.regionName}
-              routeGeometry={routePreview?.geometry ?? null}
-              routeStatus={routePreview?.status ?? null}
+              routeGeometry={mapRouteGeometry}
+              routeStatus={mapRouteStatus}
+              startPoint={startPoint.coordinate}
+              startPointLabel={startPoint.label}
               styleUrl={webRuntimeConfig.tileStyleUrl}
             />
 
@@ -733,34 +842,209 @@ export function App() {
             ) : null}
           </article>
 
-          <article className="card navigation-handoff">
+          <article className="card navigation-session">
             <div className="panel-heading">
               <div>
                 <p className="section-label">Execution state</p>
-                <h2>Navigation stays separate</h2>
+                <h2>
+                  {isNavigationActive
+                    ? "Navigation session live"
+                    : canStartNavigation
+                      ? "Navigation ready"
+                      : "Navigation waits for a route"}
+                </h2>
               </div>
-              <span className="status-pill">Locked for now</span>
+              <span
+                className={`status-pill${
+                  isNavigationActive
+                    ? " status-pill--active"
+                    : canStartNavigation
+                      ? ""
+                      : " status-pill--warning"
+                }`}
+              >
+                {isNavigationActive
+                  ? "Following route"
+                  : canStartNavigation
+                    ? "Ready to start"
+                    : "Waiting for preview"}
+              </span>
             </div>
-            <p className="panel-copy">
-              Route execution controls stay out of the planning state until a
-              confirmed route exists.
-            </p>
-            <ul className="handoff-list">
-              <li>
-                Current route line and follow-position behavior come later.
-              </li>
-              <li>
-                Instruction cues, progress metrics, and off-route alerts stay in
-                the navigation phase.
-              </li>
-              <li>
-                Start navigation remains disabled until route preview work is
-                real.
-              </li>
-            </ul>
-            <button type="button" className="button button--ghost" disabled>
-              Start navigation later
-            </button>
+            {navigationSnapshot && navigationSession ? (
+              <>
+                <p className="panel-copy">
+                  This first execution shell keeps route-following separate from
+                  planning by driving a local current-position marker and
+                  progress metrics from the loaded route geometry.
+                </p>
+                <div className="preview-grid preview-grid--navigation">
+                  <div className="preview-stat">
+                    <span>Current position</span>
+                    <strong>
+                      {formatCoordinate(navigationSnapshot.currentPosition)}
+                    </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Completed</span>
+                    <strong>
+                      {formatDistanceKilometers(
+                        navigationSnapshot.completedDistanceMeters,
+                      )}
+                    </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Remaining</span>
+                    <strong>
+                      {formatDistanceKilometers(
+                        navigationSnapshot.remainingDistanceMeters,
+                      )}
+                    </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Total</span>
+                    <strong>
+                      {formatDistanceKilometers(
+                        navigationSnapshot.totalDistanceMeters,
+                      )}
+                    </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Progress</span>
+                    <strong>{navigationSnapshot.progressPercent}%</strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Route id</span>
+                    <strong>{navigationSession.routeId}</strong>
+                  </div>
+                </div>
+                <div className="navigation-slider">
+                  <div className="section-heading">
+                    <h3>Simulated current position</h3>
+                    <p>
+                      Until live GPS handling lands, this slider moves the
+                      current position along the routed line using the geo
+                      progress primitive.
+                    </p>
+                  </div>
+                  <input
+                    className="distance-slider"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(
+                      navigationSession.simulatedProgressFraction * 100,
+                    )}
+                    onChange={(event) =>
+                      updateNavigationProgress(Number(event.target.value))
+                    }
+                  />
+                  <div className="status-row">
+                    <span className="status-pill">
+                      {navigationSession.routeStatus === "partial"
+                        ? "Partial preview route"
+                        : "Full preview route"}
+                    </span>
+                    <span className="status-pill">
+                      Marker centered on {navigationSnapshot.progressPercent}%
+                    </span>
+                  </div>
+                </div>
+                <div className="button-row">
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    onClick={stopNavigation}
+                  >
+                    Stop navigation
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--ghost"
+                    onClick={resetNavigationProgress}
+                  >
+                    Restart at route start
+                  </button>
+                </div>
+              </>
+            ) : canStartNavigation && navigableRoutePreview ? (
+              <>
+                <p className="panel-copy">
+                  A routed preview is ready to enter execution mode. Starting
+                  navigation keeps the current route line mounted, freezes
+                  planning edits, and computes progress locally from the route
+                  geometry.
+                </p>
+                <div className="preview-grid preview-grid--navigation">
+                  <div className="preview-stat">
+                    <span>Route id</span>
+                    <strong>{navigableRoutePreview.routeId}</strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Status</span>
+                    <strong>
+                      {routeStatusLabels[navigableRoutePreview.status]}
+                    </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Route line</span>
+                    <strong>
+                      {navigableRoutePreview.geometry.coordinates.length} points
+                    </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Total</span>
+                    <strong>
+                      {navigableRoutePreview.summary
+                        ? `${navigableRoutePreview.summary.totalDistanceKm.toFixed(2)} km`
+                        : "Unavailable"}
+                    </strong>
+                  </div>
+                </div>
+                <p className="helper-copy">
+                  This first navigation pass uses a local simulated current
+                  position. Turn-by-turn cues and off-route handling remain
+                  separate follow-up work.
+                </p>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={startNavigation}
+                >
+                  Start navigation
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="panel-copy">
+                  Route execution now has its own real entry point, but it still
+                  waits for a usable routed preview with geometry before a
+                  session can start.
+                </p>
+                <ul className="handoff-list">
+                  <li>
+                    Generate a successful or partial route preview with geometry
+                    before starting navigation.
+                  </li>
+                  <li>
+                    Planning edits stay separate from route-following once a
+                    navigation session is active.
+                  </li>
+                  <li>
+                    Instruction cues and off-route alerts remain later
+                    navigation work.
+                  </li>
+                </ul>
+                <p className="helper-copy">
+                  {isRoutePreviewStale
+                    ? "The latest routed preview is stale. Generate again to refresh the route before starting navigation."
+                    : "No navigable routed preview is available yet."}
+                </p>
+                <button type="button" className="button button--ghost" disabled>
+                  Start navigation
+                </button>
+              </>
+            )}
           </article>
         </section>
       </section>
@@ -776,6 +1060,10 @@ function formatDistanceDelta(distanceDeltaMeters: number) {
   const sign = distanceDeltaMeters > 0 ? "+" : "";
 
   return `${sign}${distanceDeltaMeters} m`;
+}
+
+function formatDistanceKilometers(distanceMeters: number) {
+  return `${(distanceMeters / 1_000).toFixed(2)} km`;
 }
 
 function getErrorMessage(error: unknown) {
@@ -807,4 +1095,17 @@ function serializeComparablePlanningRequest(request: RouteGenerateRequest) {
     targetDistanceKm: request.targetDistanceKm,
     toleranceMeters: request.toleranceMeters,
   });
+}
+
+function getNavigableRoutePreview(
+  routePreview: RouteGenerateResponse | null,
+): NavigableRoutePreview | null {
+  if (
+    routePreview?.geometry &&
+    (routePreview.status === "success" || routePreview.status === "partial")
+  ) {
+    return routePreview as NavigableRoutePreview;
+  }
+
+  return null;
 }

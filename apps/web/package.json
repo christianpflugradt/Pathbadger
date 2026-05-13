@@ -7,6 +7,7 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@pathbadger/geo": "0.1.0",
     "@pathbadger/shared": "0.1.0",
     "maplibre-gl": "^5.24.0",
     "react": "^19.2.6",

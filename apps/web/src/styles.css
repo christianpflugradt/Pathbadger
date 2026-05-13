@@ -162,6 +162,15 @@ body {
   gap: 0.9rem;
 }
 
+.form-fieldset {
+  display: grid;
+  gap: 1.25rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .form-section--actions {
   padding-top: 0.25rem;
 }
@@ -355,6 +364,11 @@ body {
   gap: 1.25rem;
 }
 
+.navigation-session {
+  display: grid;
+  gap: 1.25rem;
+}
+
 .planning-map {
   position: relative;
   overflow: hidden;
@@ -464,6 +478,14 @@ body {
   background: rgba(20, 33, 61, 0.92);
 }
 
+.planning-marker--current {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-color: rgba(20, 33, 61, 0.42);
+  background: linear-gradient(135deg, #eac435 0%, #f28f3b 100%);
+  color: #14213d;
+}
+
 .planning-map--loading .planning-map__status {
   background: rgba(20, 33, 61, 0.78);
 }
@@ -497,6 +519,10 @@ body {
   display: grid;
   gap: 0.8rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preview-grid--navigation {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .preview-stat {
@@ -606,6 +632,15 @@ body {
 
 .response-note--warning {
   color: #8c5d14;
+}
+
+.helper-copy--locked {
+  color: #8c5d14;
+}
+
+.navigation-slider {
+  display: grid;
+  gap: 0.85rem;
 }
 
 .request-preview pre {

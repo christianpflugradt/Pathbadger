@@ -11,13 +11,18 @@ import "maplibre-gl/dist/maplibre-gl.css";
 type PlanningMapProps = {
   center: Coordinate;
   centerLabel: string;
+  currentPosition: Coordinate | null;
+  currentPositionLabel: string | null;
   isMapStartActive: boolean;
+  isNavigationActive: boolean;
   interactionMode: "idle" | "add_pass_through";
   onMapSelect: (coordinate: Coordinate) => void;
   passThroughPoints: Array<{ coordinate: Coordinate; label: string }>;
   regionName: string;
   routeGeometry: RouteGeometry | null;
   routeStatus: RouteStatus | null;
+  startPoint: Coordinate;
+  startPointLabel: string;
   styleUrl: string;
 };
 
@@ -32,13 +37,18 @@ const ROUTE_PREVIEW_LINE_LAYER_ID = "route-preview-line";
 export function PlanningMap({
   center,
   centerLabel,
+  currentPosition,
+  currentPositionLabel,
   isMapStartActive,
+  isNavigationActive,
   interactionMode,
   onMapSelect,
   passThroughPoints,
   regionName,
   routeGeometry,
   routeStatus,
+  startPoint,
+  startPointLabel,
   styleUrl,
 }: PlanningMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -145,8 +155,9 @@ export function PlanningMap({
       return;
     }
 
-    const cursor =
-      interactionMode === "add_pass_through" || isMapStartActive
+    const cursor = isNavigationActive
+      ? "grab"
+      : interactionMode === "add_pass_through" || isMapStartActive
         ? "crosshair"
         : "grab";
 
@@ -155,7 +166,7 @@ export function PlanningMap({
     return () => {
       map.getCanvas().style.cursor = "";
     };
-  }, [interactionMode, isMapStartActive, styleUrl]);
+  }, [interactionMode, isMapStartActive, isNavigationActive, styleUrl]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -169,9 +180,9 @@ export function PlanningMap({
     const nextMarkers = [
       new maplibregl.Marker({
         anchor: "bottom",
-        element: createMarkerElement("start", "S", centerLabel),
+        element: createMarkerElement("start", "S", startPointLabel),
       })
-        .setLngLat([center.lon, center.lat])
+        .setLngLat([startPoint.lon, startPoint.lat])
         .addTo(map),
       ...passThroughPoints.map((point, index) =>
         new maplibregl.Marker({
@@ -185,6 +196,20 @@ export function PlanningMap({
           .setLngLat([point.coordinate.lon, point.coordinate.lat])
           .addTo(map),
       ),
+      ...(currentPosition
+        ? [
+            new maplibregl.Marker({
+              anchor: "center",
+              element: createMarkerElement(
+                "current",
+                "N",
+                currentPositionLabel ?? "Current position",
+              ),
+            })
+              .setLngLat([currentPosition.lon, currentPosition.lat])
+              .addTo(map),
+          ]
+        : []),
     ];
 
     markersRef.current = nextMarkers;
@@ -193,7 +218,14 @@ export function PlanningMap({
       nextMarkers.forEach((marker) => marker.remove());
       markersRef.current = [];
     };
-  }, [center, centerLabel, passThroughPoints, styleUrl]);
+  }, [
+    currentPosition,
+    currentPositionLabel,
+    passThroughPoints,
+    startPoint,
+    startPointLabel,
+    styleUrl,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -213,39 +245,47 @@ export function PlanningMap({
   const isAwaitingPassThroughPoint = interactionMode === "add_pass_through";
   const interactionLabel = isAwaitingPassThroughPoint
     ? "Add pass-through"
-    : isMapStartActive
-      ? "Move start point"
-      : "Preview only";
+    : isNavigationActive
+      ? "Follow route"
+      : isMapStartActive
+        ? "Move start point"
+        : "Preview only";
   const statusHeading =
     loadState === "error"
       ? "Self-hosted map unavailable"
-      : isAwaitingPassThroughPoint
-        ? "Click map to add a pass-through point"
-        : isMapStartActive
-          ? "Click map to move the start point"
-          : routeGeometry
-            ? "Routed preview is rendered"
-            : loadState === "ready"
-              ? "Planning map is live"
-              : "Loading self-hosted map";
+      : isNavigationActive
+        ? "Navigation session is live"
+        : isAwaitingPassThroughPoint
+          ? "Click map to add a pass-through point"
+          : isMapStartActive
+            ? "Click map to move the start point"
+            : routeGeometry
+              ? "Routed preview is rendered"
+              : loadState === "ready"
+                ? "Planning map is live"
+                : "Loading self-hosted map";
   const statusBody =
     loadState === "error"
       ? errorMessage
-      : isAwaitingPassThroughPoint
-        ? isFallbackStyle
-          ? `The next map click will append pass-through point ${passThroughPoints.length + 1}. This local boot is using the bundled fallback grid, so point placement works even before self-hosted tile data is installed.`
-          : `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
-        : isMapStartActive
+      : isNavigationActive
+        ? routeGeometry
+          ? "Route-following mode is active. The current-position marker and progress state are now driven locally from the routed geometry while planning edits stay paused."
+          : "Navigation mode is active, but the current route geometry is unavailable."
+        : isAwaitingPassThroughPoint
           ? isFallbackStyle
-            ? "Map-selected start mode is active. Each map click updates the route origin immediately, and the bundled fallback grid stays visible until a real self-hosted tile style is configured."
-            : "Map-selected start mode is active. Each map click updates the route origin and request preview immediately."
-          : routeGeometry
-            ? "The latest backend preview returned route geometry, and the live map is now drawing that line alongside the planning markers."
-            : loadState === "ready"
-              ? isFallbackStyle
-                ? "The live planning surface is mounted with the bundled fallback grid. You can place points and inspect route lines here, but roads and trails will not appear until self-hosted tile data is added."
-                : "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
-              : "Connecting to the configured style document before route overlays and point selection are added.";
+            ? `The next map click will append pass-through point ${passThroughPoints.length + 1}. This local boot is using the bundled fallback grid, so point placement works even before self-hosted tile data is installed.`
+            : `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
+          : isMapStartActive
+            ? isFallbackStyle
+              ? "Map-selected start mode is active. Each map click updates the route origin immediately, and the bundled fallback grid stays visible until a real self-hosted tile style is configured."
+              : "Map-selected start mode is active. Each map click updates the route origin and request preview immediately."
+            : routeGeometry
+              ? "The latest backend preview returned route geometry, and the live map is now drawing that line alongside the planning markers."
+              : loadState === "ready"
+                ? isFallbackStyle
+                  ? "The live planning surface is mounted with the bundled fallback grid. You can place points and inspect route lines here, but roads and trails will not appear until self-hosted tile data is added."
+                  : "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
+                : "Connecting to the configured style document before route overlays and point selection are added.";
 
   return (
     <section
@@ -303,7 +343,7 @@ function formatCoordinate(coordinate: Coordinate) {
 }
 
 function createMarkerElement(
-  kind: "start" | "waypoint",
+  kind: "current" | "start" | "waypoint",
   text: string,
   title: string,
 ) {

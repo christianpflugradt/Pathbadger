@@ -1,7 +1,7 @@
 id: ITEM-0019
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0009
@@ -18,6 +18,9 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: `apps/web/src/App.tsx` still renders a locked `Navigation stays separate` card even when a route preview and geometry already exist."
   - "2026-05-13 refine: `packages/geo` now has the first local progress primitive, so the smallest next web execution step is to use it for a navigation shell before layering instruction and off-route behavior on top."
+  - "2026-05-13 implement: Added `apps/web/src/navigation-session.ts` and `navigation-session.test.ts` so the web app can derive a simulated current position plus completed, remaining, total, and percent progress from routed geometry via `calculateRouteProgress`."
+  - "2026-05-13 implement: Replaced the locked navigation handoff in `apps/web/src/App.tsx` with a real execution card that starts from successful or partial routed previews, pauses planning edits while active, and drives a local follow-progress slider."
+  - "2026-05-13 implement: Updated `apps/web/src/PlanningMap.tsx`, `apps/web/src/styles.css`, and the geo/web package manifests so the live map keeps the route line visible during navigation and shows a dedicated current-position marker."
 created_at: 2026-05-13T20:07:22+02:00
-updated_at: 2026-05-13T20:07:22+02:00
-closed_at: null
+updated_at: 2026-05-13T20:42:29+02:00
+closed_at: 2026-05-13T20:42:29+02:00
