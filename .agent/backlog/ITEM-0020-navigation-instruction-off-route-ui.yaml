@@ -1,7 +1,7 @@
 id: ITEM-0020
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0009
@@ -17,6 +17,9 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: the product brief requires next-instruction distance and off-route warning, but the current web app has neither a navigation instruction model nor a route-deviation threshold."
+  - "2026-05-13 implement: Extended `apps/web/src/navigation-session.ts` with local next-instruction selection, a conservative `DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS`, snapped-position/off-route distance reporting, and simulated lateral deviation support for the first navigation UI."
+  - "2026-05-13 implement: Added focused helper coverage in `apps/web/src/navigation-session.test.ts` for instruction selection, off-route threshold behavior, and simulated navigation snapshots without live geolocation."
+  - "2026-05-13 implement: Verified the web execution UI against a browser-loaded mocked route preview so `Navigation session live` renders the next instruction panel and navigation session state from real browser traffic, while conservative off-route warning behavior remains covered by the helper tests."
 created_at: 2026-05-13T20:07:22+02:00
-updated_at: 2026-05-13T20:07:22+02:00
-closed_at: null
+updated_at: 2026-05-13T21:00:57+02:00
+closed_at: 2026-05-13T21:00:57+02:00

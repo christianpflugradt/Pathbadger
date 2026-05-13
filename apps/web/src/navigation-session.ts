@@ -2,12 +2,30 @@ import {
   calculateRouteProgress,
   haversineDistanceMeters,
 } from "@pathbadger/geo";
-import type { Coordinate, RouteGeometry } from "@pathbadger/shared";
+import type {
+  Coordinate,
+  RouteGeometry,
+  RouteInstruction,
+} from "@pathbadger/shared";
+
+const EARTH_RADIUS_METERS = 6_371_000;
+
+export const DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS = 40;
+
+export type NavigationInstructionCue = {
+  distanceMeters: number;
+  instruction: RouteInstruction;
+};
 
 export type NavigationSnapshot = {
   currentPosition: Coordinate;
   completedDistanceMeters: number;
+  isOffRoute: boolean;
+  nextInstruction: NavigationInstructionCue | null;
+  offRouteDistanceMeters: number;
+  offRouteWarningThresholdMeters: number;
   remainingDistanceMeters: number;
+  snappedPosition: Coordinate;
   totalDistanceMeters: number;
   progressFraction: number;
   progressPercent: number;
@@ -15,21 +33,53 @@ export type NavigationSnapshot = {
 
 export function createNavigationSnapshot(
   routeGeometry: RouteGeometry,
-  requestedProgressFraction: number,
+  options: {
+    instructions?: ReadonlyArray<RouteInstruction> | null;
+    lateralOffsetMeters?: number;
+    offRouteWarningThresholdMeters?: number;
+    requestedProgressFraction: number;
+  },
 ): NavigationSnapshot {
-  const currentPosition = getRouteCoordinateAtFraction(
+  const targetRoutePosition = getRoutePositionAtFraction(
     routeGeometry,
-    requestedProgressFraction,
+    options.requestedProgressFraction,
   );
+  const currentPosition =
+    options.lateralOffsetMeters && options.lateralOffsetMeters !== 0
+      ? offsetCoordinatePerpendicular(
+          targetRoutePosition.coordinate,
+          targetRoutePosition.segmentEnd,
+          targetRoutePosition.segmentStart,
+          options.lateralOffsetMeters,
+        )
+      : targetRoutePosition.coordinate;
+  const preferredDistanceFromStartMeters =
+    getTotalRouteDistanceMeters(routeGeometry) *
+    clamp(options.requestedProgressFraction, 0, 1);
   const progress = calculateRouteProgress(
     routeGeometry.coordinates,
     currentPosition,
+    {
+      preferredDistanceFromStartMeters,
+    },
   );
+  const offRouteWarningThresholdMeters =
+    options.offRouteWarningThresholdMeters ??
+    DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS;
 
   return {
     currentPosition,
     completedDistanceMeters: progress.distanceFromStartMeters,
+    isOffRoute:
+      progress.offRouteDistanceMeters > offRouteWarningThresholdMeters,
+    nextInstruction: getNextNavigationInstruction(
+      options.instructions ?? null,
+      progress.distanceFromStartMeters,
+    ),
+    offRouteDistanceMeters: progress.offRouteDistanceMeters,
+    offRouteWarningThresholdMeters,
     remainingDistanceMeters: progress.remainingDistanceMeters,
+    snappedPosition: progress.nearestPoint,
     totalDistanceMeters: progress.totalDistanceMeters,
     progressFraction: progress.progressFraction,
     progressPercent: Math.round(progress.progressFraction * 100),
@@ -37,6 +87,41 @@ export function createNavigationSnapshot(
 }
 
 export function getRouteCoordinateAtFraction(
+  routeGeometry: RouteGeometry,
+  requestedProgressFraction: number,
+) {
+  return getRoutePositionAtFraction(routeGeometry, requestedProgressFraction)
+    .coordinate;
+}
+
+export function getNextNavigationInstruction(
+  instructions: ReadonlyArray<RouteInstruction> | null,
+  distanceFromStartMeters: number,
+): NavigationInstructionCue | null {
+  if (!instructions?.length) {
+    return null;
+  }
+
+  const nextInstruction =
+    instructions.find(
+      (instruction) =>
+        instruction.distanceFromStartMeters >= distanceFromStartMeters,
+    ) ?? instructions[instructions.length - 1];
+
+  if (!nextInstruction) {
+    return null;
+  }
+
+  return {
+    distanceMeters: Math.max(
+      nextInstruction.distanceFromStartMeters - distanceFromStartMeters,
+      0,
+    ),
+    instruction: nextInstruction,
+  };
+}
+
+function getRoutePositionAtFraction(
   routeGeometry: RouteGeometry,
   requestedProgressFraction: number,
 ) {
@@ -55,7 +140,11 @@ export function getRouteCoordinateAtFraction(
   );
 
   if (totalDistanceMeters === 0) {
-    return firstSegment.start;
+    return {
+      coordinate: firstSegment.start,
+      segmentEnd: firstSegment.end,
+      segmentStart: firstSegment.start,
+    };
   }
 
   const targetDistanceMeters =
@@ -71,7 +160,7 @@ export function getRouteCoordinateAtFraction(
       traversedDistanceMeters + segment.lengthMeters;
 
     if (targetDistanceMeters <= nextTraversedDistanceMeters) {
-      return interpolateCoordinate(
+      return interpolateRoutePosition(
         segment.start,
         segment.end,
         (targetDistanceMeters - traversedDistanceMeters) / segment.lengthMeters,
@@ -81,7 +170,11 @@ export function getRouteCoordinateAtFraction(
     traversedDistanceMeters = nextTraversedDistanceMeters;
   }
 
-  return segments[segments.length - 1]!.end;
+  return {
+    coordinate: segments[segments.length - 1]!.end,
+    segmentEnd: segments[segments.length - 1]!.end,
+    segmentStart: segments[segments.length - 1]!.start,
+  };
 }
 
 function getRouteSegments(routeGeometry: RouteGeometry) {
@@ -106,6 +199,13 @@ function getRouteSegments(routeGeometry: RouteGeometry) {
     .filter((segment) => segment !== null);
 }
 
+function getTotalRouteDistanceMeters(routeGeometry: RouteGeometry) {
+  return getRouteSegments(routeGeometry).reduce(
+    (distanceMeters, segment) => distanceMeters + segment.lengthMeters,
+    0,
+  );
+}
+
 function lineStringCoordinateToCoordinate(
   coordinate: RouteGeometry["coordinates"][number],
 ): Coordinate {
@@ -114,15 +214,92 @@ function lineStringCoordinateToCoordinate(
   return { lat, lon };
 }
 
-function interpolateCoordinate(
+function interpolateRoutePosition(
   start: Coordinate,
   end: Coordinate,
   fraction: number,
-): Coordinate {
+) {
   return {
-    lat: start.lat + (end.lat - start.lat) * fraction,
-    lon: start.lon + (end.lon - start.lon) * fraction,
+    coordinate: {
+      lat: start.lat + (end.lat - start.lat) * fraction,
+      lon: start.lon + (end.lon - start.lon) * fraction,
+    },
+    segmentEnd: end,
+    segmentStart: start,
   };
+}
+
+function offsetCoordinatePerpendicular(
+  coordinate: Coordinate,
+  segmentEnd: Coordinate,
+  segmentStart: Coordinate,
+  offsetMeters: number,
+) {
+  const referenceLatRadians = toRadians(coordinate.lat);
+  const segmentVector = projectToLocalMeters(
+    segmentStart,
+    segmentEnd,
+    referenceLatRadians,
+  );
+  const segmentLengthMeters = Math.hypot(segmentVector.x, segmentVector.y);
+
+  if (segmentLengthMeters === 0) {
+    return {
+      lat: coordinate.lat + toDegrees(offsetMeters / EARTH_RADIUS_METERS),
+      lon: coordinate.lon,
+    };
+  }
+
+  const unitPerpendicular = {
+    x: -segmentVector.y / segmentLengthMeters,
+    y: segmentVector.x / segmentLengthMeters,
+  };
+
+  return translateCoordinateInLocalMeters(
+    coordinate,
+    {
+      x: unitPerpendicular.x * offsetMeters,
+      y: unitPerpendicular.y * offsetMeters,
+    },
+    referenceLatRadians,
+  );
+}
+
+function projectToLocalMeters(
+  origin: Coordinate,
+  target: Coordinate,
+  referenceLatRadians: number,
+) {
+  return {
+    x:
+      toRadians(target.lon - origin.lon) *
+      EARTH_RADIUS_METERS *
+      Math.cos(referenceLatRadians),
+    y: toRadians(target.lat - origin.lat) * EARTH_RADIUS_METERS,
+  };
+}
+
+function translateCoordinateInLocalMeters(
+  origin: Coordinate,
+  offset: { x: number; y: number },
+  referenceLatRadians: number,
+) {
+  return {
+    lat: origin.lat + toDegrees(offset.y / EARTH_RADIUS_METERS),
+    lon:
+      origin.lon +
+      toDegrees(
+        offset.x / (EARTH_RADIUS_METERS * Math.cos(referenceLatRadians)),
+      ),
+  };
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function toDegrees(value: number) {
+  return (value * 180) / Math.PI;
 }
 
 function clamp(value: number, min: number, max: number) {

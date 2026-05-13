@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { haversineDistanceMeters } from "@pathbadger/geo";
-import type { RouteGeometry } from "@pathbadger/shared";
+import type { RouteGeometry, RouteInstruction } from "@pathbadger/shared";
 
 import {
   createNavigationSnapshot,
+  DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS,
+  getNextNavigationInstruction,
   getRouteCoordinateAtFraction,
 } from "./navigation-session.js";
 
@@ -31,6 +33,47 @@ describe("getRouteCoordinateAtFraction", () => {
   });
 });
 
+describe("getNextNavigationInstruction", () => {
+  const instructions = [
+    {
+      distanceFromStartMeters: 0,
+      distanceToNextMeters: 650,
+      type: "depart",
+      text: "Leave the trailhead",
+      streetName: null,
+      coordinate: [10.0, 54.0],
+    },
+    {
+      distanceFromStartMeters: 650,
+      distanceToNextMeters: 500,
+      type: "turn_right",
+      text: "Turn right onto Forest path",
+      streetName: "Forest path",
+      coordinate: [10.01, 54.0],
+    },
+    {
+      distanceFromStartMeters: 1_150,
+      distanceToNextMeters: null,
+      type: "arrive",
+      text: "Arrive at destination",
+      streetName: null,
+      coordinate: [10.02, 54.0],
+    },
+  ] satisfies RouteInstruction[];
+
+  it("selects the nearest upcoming instruction and remaining distance", () => {
+    expect(getNextNavigationInstruction(instructions, 700)).toEqual({
+      distanceMeters: 450,
+      instruction: instructions[2],
+    });
+  });
+
+  it("stays honest when no instruction data is available", () => {
+    expect(getNextNavigationInstruction([], 400)).toBeNull();
+    expect(getNextNavigationInstruction(null, 400)).toBeNull();
+  });
+});
+
 describe("createNavigationSnapshot", () => {
   const straightRoute = {
     type: "LineString" as const,
@@ -47,13 +90,33 @@ describe("createNavigationSnapshot", () => {
       [10.01, 54.01],
     ],
   } satisfies RouteGeometry;
+  const instructions = [
+    {
+      distanceFromStartMeters: 0,
+      distanceToNextMeters: 750,
+      type: "depart",
+      text: "Start route",
+      streetName: null,
+      coordinate: [10.0, 54.0],
+    },
+    {
+      distanceFromStartMeters: 750,
+      distanceToNextMeters: null,
+      type: "arrive",
+      text: "Arrive at destination",
+      streetName: null,
+      coordinate: [10.02, 54.0],
+    },
+  ] satisfies RouteInstruction[];
 
   it("derives midpoint progress metrics for a straight route", () => {
     const totalDistanceMeters = haversineDistanceMeters(
       { lat: 54.0, lon: 10.0 },
       { lat: 54.0, lon: 10.02 },
     );
-    const snapshot = createNavigationSnapshot(straightRoute, 0.5);
+    const snapshot = createNavigationSnapshot(straightRoute, {
+      requestedProgressFraction: 0.5,
+    });
 
     expect(snapshot.currentPosition.lat).toBeCloseTo(54.0, 6);
     expect(snapshot.currentPosition.lon).toBeCloseTo(10.01, 6);
@@ -68,6 +131,8 @@ describe("createNavigationSnapshot", () => {
     expect(snapshot.totalDistanceMeters).toBeCloseTo(totalDistanceMeters, 0);
     expect(snapshot.progressFraction).toBeCloseTo(0.5, 2);
     expect(snapshot.progressPercent).toBe(50);
+    expect(snapshot.isOffRoute).toBe(false);
+    expect(snapshot.offRouteDistanceMeters).toBeCloseTo(0, 6);
   });
 
   it("continues progress onto later route segments", () => {
@@ -80,7 +145,9 @@ describe("createNavigationSnapshot", () => {
       { lat: 54.01, lon: 10.01 },
     );
     const totalDistanceMeters = firstSegmentMeters + secondSegmentMeters;
-    const snapshot = createNavigationSnapshot(cornerRoute, 0.75);
+    const snapshot = createNavigationSnapshot(cornerRoute, {
+      requestedProgressFraction: 0.75,
+    });
 
     expect(snapshot.currentPosition.lon).toBeCloseTo(10.01, 6);
     expect(snapshot.currentPosition.lat).toBeGreaterThan(54.002);
@@ -94,5 +161,42 @@ describe("createNavigationSnapshot", () => {
       0,
     );
     expect(snapshot.progressPercent).toBe(75);
+  });
+
+  it("selects the next upcoming instruction from current progress", () => {
+    const snapshot = createNavigationSnapshot(straightRoute, {
+      instructions,
+      requestedProgressFraction: 0.25,
+    });
+
+    expect(snapshot.nextInstruction?.instruction.text).toBe(
+      "Arrive at destination",
+    );
+    expect(snapshot.nextInstruction?.distanceMeters).toBeGreaterThan(300);
+  });
+
+  it("warns when the current position exceeds the conservative off-route threshold", () => {
+    const snapshot = createNavigationSnapshot(straightRoute, {
+      lateralOffsetMeters: DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS + 15,
+      requestedProgressFraction: 0.5,
+    });
+
+    expect(snapshot.offRouteDistanceMeters).toBeGreaterThan(
+      DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS,
+    );
+    expect(snapshot.isOffRoute).toBe(true);
+    expect(snapshot.snappedPosition.lat).toBeCloseTo(54.0, 6);
+  });
+
+  it("stays on route when the deviation stays under the warning threshold", () => {
+    const snapshot = createNavigationSnapshot(straightRoute, {
+      lateralOffsetMeters: DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS - 15,
+      requestedProgressFraction: 0.5,
+    });
+
+    expect(snapshot.offRouteDistanceMeters).toBeLessThan(
+      DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS,
+    );
+    expect(snapshot.isOffRoute).toBe(false);
   });
 });
