@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 56
+  overall_progress_percent: 58
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -62,7 +62,7 @@ roadmap:
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: active
-      progress_percent: 60
+      progress_percent: 75
       target_outcome: candidate generation and scoring that match distance and surface preferences honestly
     - id: navigation
       title: GPS route following and navigation metrics
@@ -89,9 +89,10 @@ roadmap:
     - the api now exposes `POST /routes/generate` with shared request validation, honest preview status mapping, and browser-safe local CORS handling
     - the web planner now calls backend preview generation, renders routed warnings and summary state, and can draw response geometry on the live planning map when the backend provides it
     - the api now scores routed preview candidates in a dedicated boundary and selects the best available candidate across deterministic seeds instead of accepting the first routed result
+    - the GraphHopper adapter now requests route path details and normalizes routed surface segments into an internal `surfaceDetails` shape with an honest unknown fallback when live detail data is missing
   remaining_summary:
-    - current route-generation focus is ITEM-0014 normalized surface-detail extraction from routed candidates, followed by ITEM-0015 surface-aware scoring and honest summary population, with ITEM-0016 queued for planner surface rendering
-    - routing-core now includes a real route-generation endpoint and web hookup, but real Schleswig-Holstein map-data routing behavior is still unproven outside mocked coverage
-    - surface preference scoring and surface summary fields remain incomplete, so preview responses still keep surface percentages null and warn conservatively until the new route-generation epic lands
+    - current route-generation focus is ITEM-0015 surface-aware scoring and honest summary population, with ITEM-0016 queued behind it for planner surface rendering
+    - routing-core now includes path-detail normalization as well as a real route-generation endpoint and web hookup, but live Schleswig-Holstein routing and GraphHopper path-detail behavior are still unproven outside mocked coverage
+    - routed previews now carry normalized surface segments from the adapter, but surface preference scoring and summary percentages remain incomplete until ITEM-0015 consumes that data
     - navigation groundwork still stops at raw distance helpers, with ITEM-0003 intentionally blocked until route-generation surface behavior is honest enough to hand off a stable preview into later follow-position work
     - active navigation behavior, richer route statistics, and later hardening loops remain unimplemented
