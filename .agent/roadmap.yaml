@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 18
+  overall_progress_percent: 22
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -57,7 +57,7 @@ roadmap:
     - id: map-ui
       title: MapLibre map UI and route display
       status: active
-      progress_percent: 0
+      progress_percent: 20
       target_outcome: route planning map with self-hosted tile wiring and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
@@ -81,8 +81,10 @@ roadmap:
     - npm run compose:test now builds and boots the scaffolded api and web containers, verifies the api health endpoint, and tears the stack down again
     - api, web, shared, and geo packages all have typed starter scaffolds that compile cleanly
     - shared route-generation contracts and a mocked GraphHopper adapter boundary are in place for future api route work
+    - the web app and docs now expose an explicit self-hosted tile-style contract through `PUBLIC_TILE_STYLE_URL`
   remaining_summary:
-    - current map-ui focus is ITEM-0006 self-hosted map and tile contract clarification, followed by ITEM-0004 planning-screen structure
+    - current map-ui focus is ITEM-0004 planning-screen structure, which still needs the route-request controls and two-state shell
+    - map-ui groundwork exists, but no actual MapLibre map rendering or route preview is implemented yet
     - routing-core groundwork exists, but live route-generation orchestration and legal request handling remain future work
     - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
     - route generation, active navigation behavior, and later hardening loops remain unimplemented
