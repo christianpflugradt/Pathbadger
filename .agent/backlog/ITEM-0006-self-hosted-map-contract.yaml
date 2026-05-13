@@ -1,6 +1,6 @@
 id: ITEM-0006
 type: docs
-priority: P1
+priority: P0
 status: open
 scope: docs
 origin: user
@@ -16,6 +16,7 @@ verification:
   - npm run typecheck
 implementation_notes:
   - "2026-05-13 refine: `PUBLIC_TILE_STYLE_URL` exists in `docker-compose.yml`, but the web app and docs do not yet treat it as an explicit self-hosted tile-style contract."
+  - "2026-05-13 refine: Raised to P0 because it is the smallest map-ui item and makes the future tile-style source explicit before the larger planning-screen shell work lands."
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T14:37:51+02:00
+updated_at: 2026-05-13T16:17:32+02:00
 closed_at: null
