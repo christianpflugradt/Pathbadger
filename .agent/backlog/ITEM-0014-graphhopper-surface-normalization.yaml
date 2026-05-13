@@ -1,0 +1,23 @@
+id: ITEM-0014
+type: feature
+priority: P0
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0008
+title: Normalize routed surface details from GraphHopper responses
+summary: Extend the routing adapter boundary so routed candidates carry normalized surface-oriented data that later scoring and preview summary logic can consume without depending on raw GraphHopper payload fields.
+acceptance_criteria:
+  - adapter results expose a normalized surface-detail shape suitable for later scoring and summary aggregation
+  - mocked adapter coverage includes at least one representative GraphHopper detail payload and one missing-detail fallback path
+  - route-generation code can consume the new adapter result shape without leaking GraphHopper-specific response parsing outside the adapter boundary
+verification:
+  - npm run test
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/api/src/routing/graphhopper-adapter.ts` currently returns only distance, duration, elevation, and geometry, so downstream scoring has no route-surface evidence to compare otherwise-similar candidates."
+  - "2026-05-13 refine: `apps/api/src/routing/routed-candidate-scoring.ts` still hard-codes all surface percentages to null and emits `surface_preference_pending`, which means surface-preference behavior is not yet observable in tests or preview summaries."
+created_at: 2026-05-13T18:35:35+02:00
+updated_at: 2026-05-13T18:35:35+02:00
+closed_at: null

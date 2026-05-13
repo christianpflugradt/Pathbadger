@@ -1,0 +1,23 @@
+id: ITEM-0015
+type: feature
+priority: P1
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0008
+title: Score routed previews by surface preference and fill honest summaries
+summary: Use normalized routed surface data to rank candidates for trail, mixed, asphalt, and indifferent requests while populating honest surface percentages and unknown-coverage warnings in the shared response summary.
+acceptance_criteria:
+  - scoring tests show observable preference differences for trail, mixed, asphalt, and indifferent requests when routed candidates differ mainly by surface composition
+  - route preview summaries populate surface percentage fields or explicit unknown coverage instead of leaving every value null
+  - preview warnings distinguish distance-fit issues from incomplete or uncertain surface classification
+verification:
+  - npm run test
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: product phase 4 still calls for surface preference mapping and route summary statistics, but the current scorer only ranks by distance fit and treats every non-indifferent request as surface work still pending."
+  - "2026-05-13 refine: the next scoring step should stay inside `apps/api/src/routing/routed-candidate-scoring.ts` and `route-generation-service.ts` so the planner can receive richer summaries without changing the request contract again."
+created_at: 2026-05-13T18:35:35+02:00
+updated_at: 2026-05-13T18:35:35+02:00
+closed_at: null

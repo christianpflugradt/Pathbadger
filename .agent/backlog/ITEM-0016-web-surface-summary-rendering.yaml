@@ -1,0 +1,23 @@
+id: ITEM-0016
+type: feature
+priority: P2
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0008
+title: Render routed surface composition in the planner preview
+summary: Extend the web preview panel so it presents surfaced percentage breakdowns and unknown-coverage messaging once the backend returns honest route surface summary data.
+acceptance_criteria:
+  - planner preview renders available surface percentages from the shared route summary in a readable format
+  - failed or partial previews still communicate missing or unknown surface data clearly without implying precision the backend did not provide
+  - browser verification confirms the preview UI can show richer surface details without breaking map rendering or variation requests
+verification:
+  - npm run lint
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/web/src/App.tsx` currently shows distance, elevation, status, and warning count, but it does not render any surface composition values from `RouteGenerateResponse.summary.surface`."
+  - "2026-05-13 refine: keeping the web rendering as a separate follow-up item preserves a clear adapter-first, scoring-second, UI-third sequence for the remaining route-generation work."
+created_at: 2026-05-13T18:35:35+02:00
+updated_at: 2026-05-13T18:35:35+02:00
+closed_at: null

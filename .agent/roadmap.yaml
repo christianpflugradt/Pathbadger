@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 52
+  overall_progress_percent: 56
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -62,7 +62,7 @@ roadmap:
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: active
-      progress_percent: 35
+      progress_percent: 60
       target_outcome: candidate generation and scoring that match distance and surface preferences honestly
     - id: navigation
       title: GPS route following and navigation metrics
@@ -74,7 +74,7 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0007
+  current_epic: EPIC-0008
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -88,9 +88,10 @@ roadmap:
     - the api now derives deterministic candidate waypoint seeds from planning inputs, preserving pass-through order and stable random-seed behavior for later routed preview work
     - the api now exposes `POST /routes/generate` with shared request validation, honest preview status mapping, and browser-safe local CORS handling
     - the web planner now calls backend preview generation, renders routed warnings and summary state, and can draw response geometry on the live planning map when the backend provides it
+    - the api now scores routed preview candidates in a dedicated boundary and selects the best available candidate across deterministic seeds instead of accepting the first routed result
   remaining_summary:
-    - current route-generation focus is ITEM-0012 dedicated routed-candidate scoring, followed by ITEM-0013 best-candidate selection across deterministic seeds
+    - current route-generation focus is ITEM-0014 normalized surface-detail extraction from routed candidates, followed by ITEM-0015 surface-aware scoring and honest summary population, with ITEM-0016 queued for planner surface rendering
     - routing-core now includes a real route-generation endpoint and web hookup, but real Schleswig-Holstein map-data routing behavior is still unproven outside mocked coverage
-    - surface preference scoring and surface summary fields remain incomplete, so preview responses still keep surface percentages null and warn conservatively
-    - navigation groundwork still stops at raw distance helpers, with ITEM-0003 queued only after route-generation scoring is further along
+    - surface preference scoring and surface summary fields remain incomplete, so preview responses still keep surface percentages null and warn conservatively until the new route-generation epic lands
+    - navigation groundwork still stops at raw distance helpers, with ITEM-0003 intentionally blocked until route-generation surface behavior is honest enough to hand off a stable preview into later follow-position work
     - active navigation behavior, richer route statistics, and later hardening loops remain unimplemented
