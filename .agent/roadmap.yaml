@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 22
+  overall_progress_percent: 29
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -57,7 +57,7 @@ roadmap:
     - id: map-ui
       title: MapLibre map UI and route display
       status: active
-      progress_percent: 20
+      progress_percent: 40
       target_outcome: route planning map with self-hosted tile wiring and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
@@ -74,7 +74,7 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0003
+  current_epic: EPIC-0005
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -82,9 +82,10 @@ roadmap:
     - api, web, shared, and geo packages all have typed starter scaffolds that compile cleanly
     - shared route-generation contracts and a mocked GraphHopper adapter boundary are in place for future api route work
     - the web app and docs now expose an explicit self-hosted tile-style contract through `PUBLIC_TILE_STYLE_URL`
+    - the web planning shell now renders route-request controls, shared request previews, and a separate navigation handoff without mixing execution state into planning
   remaining_summary:
-    - current map-ui focus is ITEM-0004 planning-screen structure, which still needs the route-request controls and two-state shell
-    - map-ui groundwork exists, but no actual MapLibre map rendering or route preview is implemented yet
+    - current map-ui focus is ITEM-0007 live MapLibre mount, followed by ITEM-0008 map-selected point sync
+    - map-ui groundwork exists, but the route preview is still a static placeholder with no live MapLibre surface or geometry overlay
     - routing-core groundwork exists, but live route-generation orchestration and legal request handling remain future work
     - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
     - route generation, active navigation behavior, and later hardening loops remain unimplemented

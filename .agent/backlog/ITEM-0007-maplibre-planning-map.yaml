@@ -1,0 +1,22 @@
+id: ITEM-0007
+type: feature
+priority: P0
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0005
+title: Replace the preview placeholder with a live MapLibre planning map
+summary: Mount MapLibre GL JS in the planning screen using the self-hosted style contract so the web UI has a real map surface before routing overlays land.
+acceptance_criteria:
+  - planning screen renders a live MapLibre map using `PUBLIC_TILE_STYLE_URL`
+  - map initialization and cleanup stay behind a small component or hook boundary instead of spreading imperative map code through the page
+  - the app shows an honest loading or failure state if the self-hosted style cannot be loaded
+verification:
+  - npm run lint
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/web` still has no `maplibre-gl` dependency and renders a static preview placeholder where the planning map should live."
+created_at: 2026-05-13T16:49:16+02:00
+updated_at: 2026-05-13T16:49:16+02:00
+closed_at: null
