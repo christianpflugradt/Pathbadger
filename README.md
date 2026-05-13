@@ -28,7 +28,8 @@ This repository is initialized for an agent-driven workflow with three recurring
 1. Run `npm install`.
 2. Run `npm run verify`.
 3. Run `npm run compose:test`.
-4. Read the active epic and backlog in `.agent/`.
+4. Use `make run-app` to start the local app stack when you want to open it in the browser.
+5. Read the active epic and backlog in `.agent/`.
 
 ## Docker notes
 
@@ -36,7 +37,8 @@ This repository is initialized for an agent-driven workflow with three recurring
 - `graphhopper` and `tileserver` are behind the `maps` profile until real regional data is prepared.
 - `npm run compose:test` now builds and starts the scaffolded `api` and `web` services, checks the api `/health` endpoint, and tears the stack down again.
 - The compose smoke covers only the default `api` and `web` services; the `maps` profile remains excluded until real regional data is prepared.
-- `PUBLIC_TILE_STYLE_URL` is the frontend contract for future MapLibre work and should point to a self-hosted style JSON endpoint such as `http://localhost:8080/styles/basic/style.json`.
+- `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default compose workflow for local app startup, shutdown, and forced rebuilds.
+- `PUBLIC_TILE_STYLE_URL` is the frontend map-style contract. The default local boot uses the bundled `/styles/local-fallback.json` grid, and the variable can be overridden later with a self-hosted style JSON endpoint such as `http://localhost:8080/styles/basic/style.json`.
 
 ## Agent workflow
 
