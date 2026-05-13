@@ -7,22 +7,37 @@ import {
 import { createRouteGenerationService } from "./route-generation-service.js";
 
 describe("createRouteGenerationService", () => {
-  it("returns a successful routed preview when the route fits the request", async () => {
+  it("returns a successful routed preview when the best routed candidate fits the request", async () => {
     const service = createRouteGenerationService({
       routingEngine: {
-        getRoute: vi.fn().mockResolvedValue({
-          distanceMeters: 12_040,
-          durationMs: 4_920_000,
-          elevationGainMeters: 88,
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [10.1228, 54.3233],
-              [10.1452, 54.3321],
-              [10.1228, 54.3233],
-            ],
-          },
-        }),
+        getRoute: vi
+          .fn()
+          .mockResolvedValueOnce({
+            distanceMeters: 12_240,
+            durationMs: 4_920_000,
+            elevationGainMeters: 88,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.1452, 54.3321],
+                [10.1228, 54.3233],
+              ],
+            },
+          })
+          .mockResolvedValueOnce({
+            distanceMeters: 12_040,
+            durationMs: 4_910_000,
+            elevationGainMeters: 82,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.141, 54.332],
+                [10.1228, 54.3233],
+              ],
+            },
+          }),
       },
     });
 
@@ -37,14 +52,14 @@ describe("createRouteGenerationService", () => {
     });
 
     expect(response).toEqual({
-      routeId: "preview-seed-clockwise",
+      routeId: "preview-seed-counter",
       status: "success",
       warnings: [],
       summary: {
         totalDistanceKm: 12.04,
         targetDistanceKm: 12,
         distanceDeltaMeters: 40,
-        elevationGainMeters: 88,
+        elevationGainMeters: 82,
         surface: {
           asphaltPercent: null,
           trailUnpavedPercent: null,
@@ -56,29 +71,44 @@ describe("createRouteGenerationService", () => {
         type: "LineString",
         coordinates: [
           [10.1228, 54.3233],
-          [10.1452, 54.3321],
+          [10.141, 54.332],
           [10.1228, 54.3233],
         ],
       },
     });
   });
 
-  it("returns a partial routed preview with honest warnings when fit is incomplete", async () => {
+  it("returns the best partial routed preview when no candidate fits within tolerance", async () => {
     const service = createRouteGenerationService({
       routingEngine: {
-        getRoute: vi.fn().mockResolvedValue({
-          distanceMeters: 12_340,
-          durationMs: 4_920_000,
-          elevationGainMeters: 88,
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [10.1228, 54.3233],
-              [10.152, 54.3375],
-              [10.1228, 54.3233],
-            ],
-          },
-        }),
+        getRoute: vi
+          .fn()
+          .mockResolvedValueOnce({
+            distanceMeters: 12_520,
+            durationMs: 4_920_000,
+            elevationGainMeters: 88,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.152, 54.3375],
+                [10.1228, 54.3233],
+              ],
+            },
+          })
+          .mockResolvedValueOnce({
+            distanceMeters: 12_340,
+            durationMs: 4_880_000,
+            elevationGainMeters: 84,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.1478, 54.3341],
+                [10.1228, 54.3233],
+              ],
+            },
+          }),
       },
     });
 
@@ -92,33 +122,122 @@ describe("createRouteGenerationService", () => {
       toleranceMeters: 150,
     });
 
-    expect(response.status).toBe("partial");
-    expect(response.warnings).toEqual([
-      {
-        code: "distance_outside_tolerance",
-        message:
-          "The first routed preview is outside the requested distance tolerance.",
+    expect(response).toEqual({
+      routeId: "warning-seed-counter",
+      status: "partial",
+      warnings: [
+        {
+          code: "distance_outside_tolerance",
+          message:
+            "The first routed preview is outside the requested distance tolerance.",
+        },
+        {
+          code: "surface_preference_pending",
+          message:
+            "Surface preference is not applied yet in the first routed preview.",
+        },
+      ],
+      summary: {
+        totalDistanceKm: 12.34,
+        targetDistanceKm: 12,
+        distanceDeltaMeters: 340,
+        elevationGainMeters: 84,
+        surface: {
+          asphaltPercent: null,
+          trailUnpavedPercent: null,
+          fieldTrackOtherPercent: null,
+          unknownPercent: null,
+        },
       },
-      {
-        code: "surface_preference_pending",
-        message:
-          "Surface preference is not applied yet in the first routed preview.",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.1478, 54.3341],
+          [10.1228, 54.3233],
+        ],
       },
-    ]);
-    expect(response.summary?.distanceDeltaMeters).toBe(340);
+    });
   });
 
-  it("maps unavailable routing-engine failures into a failed response", async () => {
+  it("keeps evaluating later candidates after an earlier routing failure", async () => {
+    const getRoute = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new GraphHopperUnavailableError(
+          "GraphHopper returned 503 for route requests.",
+          503,
+        ),
+      )
+      .mockResolvedValueOnce({
+        distanceMeters: 20_040,
+        durationMs: 2_340_000,
+        elevationGainMeters: 120,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.141, 54.332],
+            [10.1228, 54.3233],
+          ],
+        },
+      });
     const service = createRouteGenerationService({
       routingEngine: {
-        getRoute: vi
-          .fn()
-          .mockRejectedValue(
-            new GraphHopperUnavailableError(
-              "GraphHopper returned 503 for route requests.",
-              503,
-            ),
-          ),
+        getRoute,
+      },
+    });
+
+    const response = await service.generateRoute({
+      activity: "cycling",
+      passThroughPoints: [],
+      randomSeed: "recovery-seed",
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "indifferent",
+      targetDistanceKm: 20,
+      toleranceMeters: 150,
+    });
+
+    expect(getRoute).toHaveBeenCalledTimes(2);
+    expect(response).toEqual({
+      routeId: "recovery-seed-counter",
+      status: "success",
+      warnings: [],
+      summary: {
+        totalDistanceKm: 20.04,
+        targetDistanceKm: 20,
+        distanceDeltaMeters: 40,
+        elevationGainMeters: 120,
+        surface: {
+          asphaltPercent: null,
+          trailUnpavedPercent: null,
+          fieldTrackOtherPercent: null,
+          unknownPercent: null,
+        },
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.141, 54.332],
+          [10.1228, 54.3233],
+        ],
+      },
+    });
+  });
+
+  it("returns a failed response when every routed candidate fails", async () => {
+    const getRoute = vi
+      .fn()
+      .mockRejectedValue(
+        new GraphHopperUnavailableError(
+          "GraphHopper returned 503 for route requests.",
+          503,
+        ),
+      );
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
       },
     });
 
@@ -144,9 +263,10 @@ describe("createRouteGenerationService", () => {
       summary: null,
       geometry: null,
     });
+    expect(getRoute).toHaveBeenCalledTimes(2);
   });
 
-  it("maps malformed routing-engine data into a failed response", async () => {
+  it("maps malformed routing-engine data into a failed response when no candidate can be scored", async () => {
     const service = createRouteGenerationService({
       routingEngine: {
         getRoute: vi

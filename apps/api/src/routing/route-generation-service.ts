@@ -29,9 +29,11 @@ export function createRouteGenerationService(
   return {
     async generateRoute(request) {
       const parsedRequest = routeGenerateRequestSchema.parse(request);
-      const [candidate] = createRouteCandidateWaypointSeeds(parsedRequest);
+      const candidates = createRouteCandidateWaypointSeeds(parsedRequest);
+      const scoredCandidates = [];
+      const failures = [];
 
-      if (!candidate) {
+      if (candidates.length === 0) {
         return routeGenerateResponseSchema.parse({
           routeId: "unavailable-candidate",
           status: "failed",
@@ -47,33 +49,87 @@ export function createRouteGenerationService(
         });
       }
 
-      try {
-        const routedCandidate = await options.routingEngine.getRoute({
-          points: candidate.points,
-          activity: parsedRequest.activity,
-        });
-        const scoredCandidate = scoreRoutedCandidate({
-          request: parsedRequest,
-          candidate: {
-            routeId: candidate.id,
-            ...routedCandidate,
-          },
-        });
+      for (const candidate of candidates) {
+        try {
+          const routedCandidate = await options.routingEngine.getRoute({
+            points: candidate.points,
+            activity: parsedRequest.activity,
+          });
+          const scoredCandidate = scoreRoutedCandidate({
+            request: parsedRequest,
+            candidate: {
+              routeId: candidate.id,
+              ...routedCandidate,
+            },
+          });
 
-        return routeGenerateResponseSchema.parse({
-          routeId: scoredCandidate.routeId,
-          status: scoredCandidate.status,
-          warnings: scoredCandidate.warnings,
-          summary: scoredCandidate.summary,
-          geometry: scoredCandidate.geometry,
-        });
-      } catch (error) {
+          scoredCandidates.push(scoredCandidate);
+        } catch (error) {
+          failures.push({
+            error,
+            routeId: candidate.id,
+          });
+        }
+      }
+
+      const bestScoredCandidate = selectBestScoredCandidate(scoredCandidates);
+
+      if (bestScoredCandidate) {
         return routeGenerateResponseSchema.parse(
-          mapFailureToResponse(candidate.id, error),
+          buildRouteResponse(bestScoredCandidate),
         );
       }
+
+      const [firstFailure] = failures;
+
+      return routeGenerateResponseSchema.parse(
+        firstFailure
+          ? mapFailureToResponse(firstFailure.routeId, firstFailure.error)
+          : createFailedRouteResponse(
+              "unavailable-candidate",
+              "route_generation_failed",
+              "Route generation failed before a scored preview was available.",
+            ),
+      );
     },
   };
+}
+
+function buildRouteResponse(
+  scoredCandidate: ReturnType<typeof scoreRoutedCandidate>,
+) {
+  return {
+    routeId: scoredCandidate.routeId,
+    status: scoredCandidate.status,
+    warnings: scoredCandidate.warnings,
+    summary: scoredCandidate.summary,
+    geometry: scoredCandidate.geometry,
+  };
+}
+
+function selectBestScoredCandidate(
+  scoredCandidates: Array<ReturnType<typeof scoreRoutedCandidate>>,
+) {
+  return scoredCandidates.reduce<ReturnType<
+    typeof scoreRoutedCandidate
+  > | null>((bestCandidate, currentCandidate) => {
+    if (!bestCandidate) {
+      return currentCandidate;
+    }
+
+    if (currentCandidate.score > bestCandidate.score) {
+      return currentCandidate;
+    }
+
+    if (
+      currentCandidate.score === bestCandidate.score &&
+      currentCandidate.warnings.length < bestCandidate.warnings.length
+    ) {
+      return currentCandidate;
+    }
+
+    return bestCandidate;
+  }, null);
 }
 
 function mapFailureToResponse(routeId: string, error: unknown) {
@@ -96,7 +152,7 @@ function mapFailureToResponse(routeId: string, error: unknown) {
   return createFailedRouteResponse(
     routeId,
     "route_generation_failed",
-    "Route generation failed unexpectedly before a preview was available.",
+    "Route generation failed unexpectedly before a scored preview was available.",
   );
 }
 
