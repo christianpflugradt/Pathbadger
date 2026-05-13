@@ -4,9 +4,9 @@ priority: P1
 status: open
 scope: web
 origin: user
-parent_epic: EPIC-0001
+parent_epic: EPIC-0003
 title: Turn the web placeholder into the planning screen structure
-summary: Build the first real planning-screen layout with the required product fields while keeping map behavior and routing actions stubbed.
+summary: Replace the current placeholder shell with the first planning-screen layout while keeping map behavior and routing actions stubbed.
 acceptance_criteria:
   - the web app renders start-point, activity, target-distance, surface-preference, and pass-through controls
   - the planning screen reflects the two-state product model and keeps navigation controls out of route generation state until needed
@@ -14,7 +14,8 @@ acceptance_criteria:
 verification:
   - npm run typecheck
   - npm run lint
-implementation_notes: []
+implementation_notes:
+  - "2026-05-13 refine: `apps/web/src/App.tsx` is still a hero plus option-list scaffold and does not yet render the required planning controls."
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T00:00:00+02:00
+updated_at: 2026-05-13T14:37:51+02:00
 closed_at: null

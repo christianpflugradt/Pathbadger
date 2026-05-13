@@ -1,20 +1,14 @@
 id: EPIC-0001
 status: open
 phase: foundation
-title: Turn the repository scaffold into a verified foundation for routing work
-objective: make the initialized workspace trustworthy enough that future implement steps can stay small while preserving the self-hosted architecture and npm-only workflow
+title: Finish the remaining foundation verification work
+objective: prove the scaffolded local stack is reproducible enough that future implement steps can rely on container runtime checks instead of config-only validation
 success_criteria:
-  - foundation verification runs reliably through npm commands
-  - API and web scaffolds are ready to grow without architectural rework
-  - routing-core integration boundaries are explicit before GraphHopper work begins
-  - compose and docs clearly describe how self-hosted services fit into the roadmap
+  - npm run verify and npm run compose:test both exercise the current scaffold honestly
+  - api and web containers boot cleanly through Docker Compose with at least one confirmed healthy signal from the api service
+  - local stack docs match what the compose smoke actually verifies
 items:
   - ITEM-0001
-  - ITEM-0002
-  - ITEM-0003
-  - ITEM-0004
-  - ITEM-0005
-  - ITEM-0006
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T00:00:00+02:00
+updated_at: 2026-05-13T14:37:51+02:00
 closed_at: null

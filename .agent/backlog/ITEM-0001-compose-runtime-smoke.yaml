@@ -6,14 +6,15 @@ scope: docker
 origin: user
 parent_epic: EPIC-0001
 title: Enable a real compose runtime smoke for the scaffolded web and api services
-summary: Replace the current config-only compose verification with a repeatable runtime smoke that proves the npm workspace containers boot cleanly.
+summary: Replace the current config-only compose verification with a repeatable runtime smoke that proves the scaffolded api and web containers boot cleanly.
 acceptance_criteria:
   - npm run compose:test can bring up and tear down the scaffolded web and api services
   - the smoke test checks at least one healthy signal from the api container
   - documentation explains what is and is not covered before maps-profile services are ready
 verification:
   - npm run compose:test
-implementation_notes: []
+implementation_notes:
+  - "2026-05-13 refine: apps/api already exposes `/health`, but `scripts/test-compose.sh` still stops after `docker compose config` unless `PATHBADGER_RUNTIME_SMOKE=1` is set."
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T00:00:00+02:00
+updated_at: 2026-05-13T14:37:51+02:00
 closed_at: null

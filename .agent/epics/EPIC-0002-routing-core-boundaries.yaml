@@ -1,0 +1,15 @@
+id: EPIC-0002
+status: blocked
+phase: routing-core
+title: Establish routing contracts before live GraphHopper integration
+objective: define shared request and response contracts plus an api adapter seam so GraphHopper wiring can land without spreading routing logic through handlers
+success_criteria:
+  - shared schemas cover the first route-planning request and response shapes from the product brief
+  - api owns a dedicated routing-engine adapter boundary with mocked success and failure coverage
+  - routing-core work can advance without revisiting foundation tooling decisions
+items:
+  - ITEM-0002
+  - ITEM-0005
+created_at: 2026-05-13T14:37:51+02:00
+updated_at: 2026-05-13T14:37:51+02:00
+closed_at: null

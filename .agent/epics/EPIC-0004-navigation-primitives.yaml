@@ -1,0 +1,14 @@
+id: EPIC-0004
+status: blocked
+phase: navigation
+title: Add reusable navigation progress primitives
+objective: extend the geo package beyond raw distance helpers so later route-following UI can reuse tested progress calculations
+success_criteria:
+  - geo exports at least one reusable progress-oriented primitive
+  - unit tests cover representative route-progress behavior
+  - later navigation UI work can build on geo helpers instead of duplicating math
+items:
+  - ITEM-0003
+created_at: 2026-05-13T14:37:51+02:00
+updated_at: 2026-05-13T14:37:51+02:00
+closed_at: null

@@ -3,7 +3,7 @@ state:
   current_command: null
   current_epic: EPIC-0001
   current_item: null
-  last_refine: null
+  last_refine: 2026-05-13T14:37:51+02:00
   last_implement: null
   last_review: null
   remote_connected: true

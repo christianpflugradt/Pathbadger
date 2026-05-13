@@ -4,9 +4,9 @@ priority: P0
 status: open
 scope: shared
 origin: user
-parent_epic: EPIC-0001
+parent_epic: EPIC-0002
 title: Define shared route request and response contracts
-summary: Create the first shared schemas for route generation and analysis so api and web can evolve against a durable contract.
+summary: Expand the existing shared schema scaffold into the first durable route request and response contract for api and web.
 acceptance_criteria:
   - packages/shared exports request and response schemas aligned with the product brief
   - schemas cover activity, surface preference, coordinates, target distance, tolerance, warnings, and summary placeholders
@@ -14,7 +14,8 @@ acceptance_criteria:
 verification:
   - npm run test
   - npm run typecheck
-implementation_notes: []
+implementation_notes:
+  - "2026-05-13 refine: `packages/shared/src/index.ts` currently exports activity, surface-preference, and coordinate schemas only."
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T00:00:00+02:00
+updated_at: 2026-05-13T14:37:51+02:00
 closed_at: null

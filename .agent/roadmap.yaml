@@ -47,7 +47,7 @@ roadmap:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
       status: active
-      progress_percent: 0
+      progress_percent: 75
       target_outcome: verified npm-only monorepo foundation with agent workflow and reproducible checks
     - id: routing-core
       title: Self-hosted GraphHopper routing for Schleswig-Holstein
@@ -75,11 +75,13 @@ roadmap:
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
   current_epic: EPIC-0001
-  completed_summary: []
+  completed_summary:
+    - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
+    - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
+    - api, web, shared, and geo packages all have typed starter scaffolds that compile cleanly
   remaining_summary:
-    - verified foundation workflows still need refinement and end-to-end hardening
-    - routing-core logic is not implemented
-    - self-hosted tile and graph data workflows are not implemented
-    - planning UI is not implemented
-    - navigation runtime is not implemented
-    - review and hardening loops have not started
+    - npm run compose:test still skips the real api/web runtime smoke and does not verify a healthy container signal yet
+    - shared route request and response contracts plus the GraphHopper adapter boundary remain unimplemented
+    - the planning-state UI shell and explicit self-hosted tile-style contract remain unimplemented
+    - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
+    - route generation, active navigation behavior, and later hardening loops remain unimplemented
