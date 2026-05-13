@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 58
+  overall_progress_percent: 62
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -61,12 +61,12 @@ roadmap:
       target_outcome: route planning map with self-hosted tile wiring and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
-      status: active
-      progress_percent: 75
+      status: done
+      progress_percent: 100
       target_outcome: candidate generation and scoring that match distance and surface preferences honestly
     - id: navigation
       title: GPS route following and navigation metrics
-      status: planned
+      status: active
       progress_percent: 0
       target_outcome: mobile-friendly outdoor navigation with local progress calculations
     - id: hardening
@@ -74,7 +74,7 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0008
+  current_epic: EPIC-0004
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -90,9 +90,10 @@ roadmap:
     - the web planner now calls backend preview generation, renders routed warnings and summary state, and can draw response geometry on the live planning map when the backend provides it
     - the api now scores routed preview candidates in a dedicated boundary and selects the best available candidate across deterministic seeds instead of accepting the first routed result
     - the GraphHopper adapter now requests route path details and normalizes routed surface segments into an internal `surfaceDetails` shape with an honest unknown fallback when live detail data is missing
+    - routed preview scoring now accounts for trail, mixed, asphalt, and indifferent surface preferences while filling honest surface percentage summaries and incomplete-data warnings
+    - the planner now renders routed surface composition cards and unknown-coverage messaging, so surface-aware route previews are visible end to end in the web UI
   remaining_summary:
-    - current route-generation focus is ITEM-0015 surface-aware scoring and honest summary population, with ITEM-0016 queued behind it for planner surface rendering
-    - routing-core now includes path-detail normalization as well as a real route-generation endpoint and web hookup, but live Schleswig-Holstein routing and GraphHopper path-detail behavior are still unproven outside mocked coverage
-    - routed previews now carry normalized surface segments from the adapter, but surface preference scoring and summary percentages remain incomplete until ITEM-0015 consumes that data
-    - navigation groundwork still stops at raw distance helpers, with ITEM-0003 intentionally blocked until route-generation surface behavior is honest enough to hand off a stable preview into later follow-position work
-    - active navigation behavior, richer route statistics, and later hardening loops remain unimplemented
+    - current focus is ITEM-0003 in EPIC-0004, which should add reusable geo progress primitives so later navigation UI can measure route-following state without duplicating math
+    - routing-core and route-generation now reach an honest preview loop with surface-aware summaries, but live Schleswig-Holstein routing quality and GraphHopper path-detail behavior are still only proven through mocked coverage
+    - active navigation behavior, richer route statistics, and route-following UI remain unimplemented after the shared geo primitive groundwork
+    - hardening, operational cleanup, and broader end-to-end validation remain pending after navigation primitives land

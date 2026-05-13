@@ -1,6 +1,6 @@
 id: ITEM-0003
 type: feature
-priority: P1
+priority: P0
 status: open
 scope: geo
 origin: user
@@ -16,6 +16,7 @@ verification:
   - npm run typecheck
 implementation_notes:
   - "2026-05-13 refine: `packages/geo` currently stops at `kilometersToMeters` and `haversineDistanceMeters`, so no progress-oriented primitive exists yet."
+  - "2026-05-13 refine: route-generation surface work is done, so this is now the active next implementation target for navigation groundwork."
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T14:37:51+02:00
+updated_at: 2026-05-13T19:41:33+02:00
 closed_at: null
