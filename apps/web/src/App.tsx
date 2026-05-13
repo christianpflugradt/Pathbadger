@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   DEFAULT_DISTANCE_TOLERANCE_METERS,
   activityOptions,
@@ -8,11 +8,13 @@ import type {
   Activity,
   Coordinate,
   RouteGenerateRequest,
+  RouteGenerateResponse,
   SurfacePreference,
 } from "@pathbadger/shared";
 
 import { webRuntimeConfig } from "./config";
 import { PlanningMap } from "./PlanningMap";
+import { requestRoutePreview } from "./route-preview-client";
 import "./styles.css";
 
 type StartPointMode =
@@ -67,6 +69,11 @@ const surfaceLabels: Record<SurfacePreference, string> = {
   asphalt: "Asphalt first",
   indifferent: "Indifferent",
 };
+const routeStatusLabels: Record<RouteGenerateResponse["status"], string> = {
+  success: "Preview ready",
+  partial: "Preview needs review",
+  failed: "Preview unavailable",
+};
 
 export function App() {
   const [startPointMode, setStartPointMode] =
@@ -83,7 +90,20 @@ export function App() {
   const [passThroughPoints, setPassThroughPoints] = useState<
     PassThroughPoint[]
   >([]);
-  const [variationCount, setVariationCount] = useState(0);
+  const [previewCandidateIndex, setPreviewCandidateIndex] = useState(1);
+  const [routePreview, setRoutePreview] =
+    useState<RouteGenerateResponse | null>(null);
+  const [lastSubmittedRequest, setLastSubmittedRequest] =
+    useState<RouteGenerateRequest | null>(null);
+  const [lastSubmittedSeed, setLastSubmittedSeed] = useState<string | null>(
+    null,
+  );
+  const [isRequestingRoutePreview, setIsRequestingRoutePreview] =
+    useState(false);
+  const [routePreviewRequestError, setRoutePreviewRequestError] = useState<
+    string | null
+  >(null);
+  const latestRoutePreviewRequestIdRef = useRef(0);
 
   const startPoint =
     startPointMode === "map_point"
@@ -100,9 +120,22 @@ export function App() {
     activity,
     surfacePreference,
     passThroughPoints: passThroughPoints.map((point) => point.coordinate),
-    randomSeed: variationCount > 0 ? `draft-variation-${variationCount}` : null,
+    randomSeed: null,
     toleranceMeters: DEFAULT_DISTANCE_TOLERANCE_METERS,
   };
+  const hasRoutePreview = routePreview !== null;
+  const submittedRequestSignature = lastSubmittedRequest
+    ? serializeComparablePlanningRequest(lastSubmittedRequest)
+    : null;
+  const currentRequestSignature =
+    serializeComparablePlanningRequest(planningRequest);
+  const isRoutePreviewStale =
+    submittedRequestSignature !== null &&
+    submittedRequestSignature !== currentRequestSignature;
+  const requestPreviewCode = JSON.stringify(planningRequest, null, 2);
+  const responsePreviewCode = routePreview
+    ? JSON.stringify(routePreview, null, 2)
+    : null;
 
   function handleStartPointModeChange(mode: StartPointMode) {
     setStartPointMode(mode);
@@ -148,12 +181,62 @@ export function App() {
     );
   }
 
+  async function submitRoutePreviewRequest(options: {
+    candidateIndex: number;
+    randomSeed: string | null;
+  }) {
+    const nextRequest: RouteGenerateRequest = {
+      ...planningRequest,
+      randomSeed: options.randomSeed,
+    };
+    const nextRequestId = latestRoutePreviewRequestIdRef.current + 1;
+
+    latestRoutePreviewRequestIdRef.current = nextRequestId;
+    setPreviewCandidateIndex(options.candidateIndex);
+    setLastSubmittedRequest(nextRequest);
+    setLastSubmittedSeed(options.randomSeed);
+    setRoutePreview(null);
+    setRoutePreviewRequestError(null);
+    setIsRequestingRoutePreview(true);
+
+    try {
+      const previewResponse = await requestRoutePreview({
+        apiBaseUrl: webRuntimeConfig.apiBaseUrl,
+        request: nextRequest,
+      });
+
+      if (latestRoutePreviewRequestIdRef.current !== nextRequestId) {
+        return;
+      }
+
+      setRoutePreview(previewResponse);
+    } catch (error) {
+      if (latestRoutePreviewRequestIdRef.current !== nextRequestId) {
+        return;
+      }
+
+      setRoutePreviewRequestError(getErrorMessage(error));
+    } finally {
+      if (latestRoutePreviewRequestIdRef.current === nextRequestId) {
+        setIsRequestingRoutePreview(false);
+      }
+    }
+  }
+
   function requestRoute() {
-    setVariationCount(1);
+    void submitRoutePreviewRequest({
+      candidateIndex: 1,
+      randomSeed: null,
+    });
   }
 
   function requestVariation() {
-    setVariationCount((current) => Math.max(1, current + 1));
+    const nextCandidateIndex = hasRoutePreview ? previewCandidateIndex + 1 : 1;
+
+    void submitRoutePreviewRequest({
+      candidateIndex: nextCandidateIndex,
+      randomSeed: `draft-variation-${nextCandidateIndex}`,
+    });
   }
 
   return (
@@ -163,9 +246,9 @@ export function App() {
           <p className="eyebrow">Pathbadger</p>
           <h1>Plan a trail-first route on a live self-hosted map.</h1>
           <p className="lead">
-            This shell now mirrors the route-planning state: start point,
-            activity, distance, surface preference, pass-through points, and a
-            live self-hosted map surface that is ready for later route overlays.
+            The planner now sends real route-preview requests, renders honest
+            backend warnings and summary data, and is ready to show routed map
+            geometry without mixing in navigation-only state.
           </p>
         </div>
         <div className="hero-status card">
@@ -177,6 +260,9 @@ export function App() {
           </div>
           <p>
             Region target: <strong>{webRuntimeConfig.regionName}</strong>
+          </p>
+          <p className="contract-line">
+            Route API: <code>{webRuntimeConfig.apiBaseUrl}</code>
           </p>
           <p className="contract-line">
             Self-hosted tile style: <code>{webRuntimeConfig.tileStyleUrl}</code>
@@ -195,8 +281,8 @@ export function App() {
               <h2>Planning controls</h2>
             </div>
             <p className="panel-copy">
-              The planning structure, live map, and point-picking are live.
-              Route generation still remains separate follow-up work.
+              Start point, pass-through picks, and route generation now share
+              the same live request path into the backend preview boundary.
             </p>
           </div>
 
@@ -378,21 +464,32 @@ export function App() {
               <button
                 type="button"
                 className="button button--primary"
+                disabled={isRequestingRoutePreview}
                 onClick={requestRoute}
               >
-                Generate route
+                {isRequestingRoutePreview ? "Generating..." : "Generate route"}
               </button>
               <button
                 type="button"
                 className="button button--secondary"
+                disabled={isRequestingRoutePreview}
                 onClick={requestVariation}
               >
-                Generate variation
+                {isRequestingRoutePreview
+                  ? "Waiting for preview..."
+                  : "Generate variation"}
               </button>
             </div>
             <p className="helper-copy">
-              Variation requests currently update the shell only. Live
-              GraphHopper orchestration remains later routing-core work.
+              {isRequestingRoutePreview
+                ? `Requesting candidate ${previewCandidateIndex} from the backend route boundary now.`
+                : routePreviewRequestError
+                  ? routePreviewRequestError
+                  : isRoutePreviewStale
+                    ? "Planning inputs changed since the last routed preview. Generate again to refresh the map and summary."
+                    : hasRoutePreview
+                      ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
+                      : "Generate a route to call the backend preview boundary for the first time."}
             </p>
           </section>
         </form>
@@ -404,9 +501,25 @@ export function App() {
                 <p className="section-label">Route planning state</p>
                 <h2>Planning map</h2>
               </div>
-              <span className="status-pill status-pill--active">
-                Candidate {Math.max(variationCount, 1)}
-              </span>
+              <div className="status-row">
+                <span className="status-pill status-pill--active">
+                  Candidate {previewCandidateIndex}
+                </span>
+                {routePreview ? (
+                  <span
+                    className={`status-pill ${getRouteStatusClass(
+                      routePreview.status,
+                    )}`}
+                  >
+                    {routeStatusLabels[routePreview.status]}
+                  </span>
+                ) : null}
+                {isRoutePreviewStale ? (
+                  <span className="status-pill status-pill--warning">
+                    Request changed
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <PlanningMap
@@ -417,6 +530,8 @@ export function App() {
               onMapSelect={handleMapSelection}
               passThroughPoints={passThroughPoints}
               regionName={webRuntimeConfig.regionName}
+              routeGeometry={routePreview?.geometry ?? null}
+              routeStatus={routePreview?.status ?? null}
               styleUrl={webRuntimeConfig.tileStyleUrl}
             />
 
@@ -439,18 +554,144 @@ export function App() {
               </div>
             </div>
 
+            <div className="route-response">
+              <div className="section-heading">
+                <h3>Routed preview response</h3>
+                <p>
+                  The first backend preview now returns summary data, warnings,
+                  and route geometry through the shared response contract.
+                </p>
+              </div>
+
+              {routePreviewRequestError ? (
+                <div className="response-banner response-banner--error">
+                  <strong>Preview request failed.</strong>
+                  <span>{routePreviewRequestError}</span>
+                </div>
+              ) : null}
+
+              {isRequestingRoutePreview ? (
+                <div className="response-banner response-banner--pending">
+                  <strong>Requesting routed preview.</strong>
+                  <span>
+                    Waiting for candidate {previewCandidateIndex} from{" "}
+                    <code>{webRuntimeConfig.apiBaseUrl}</code>.
+                  </span>
+                </div>
+              ) : null}
+
+              {routePreview ? (
+                <>
+                  <div className="preview-grid">
+                    <div className="preview-stat">
+                      <span>Status</span>
+                      <strong>{routeStatusLabels[routePreview.status]}</strong>
+                    </div>
+                    <div className="preview-stat">
+                      <span>Route id</span>
+                      <strong>{routePreview.routeId}</strong>
+                    </div>
+                    <div className="preview-stat">
+                      <span>Distance</span>
+                      <strong>
+                        {routePreview.summary
+                          ? `${routePreview.summary.totalDistanceKm.toFixed(2)} km`
+                          : "Unavailable"}
+                      </strong>
+                    </div>
+                    <div className="preview-stat">
+                      <span>Delta</span>
+                      <strong>
+                        {routePreview.summary
+                          ? formatDistanceDelta(
+                              routePreview.summary.distanceDeltaMeters,
+                            )
+                          : "Unavailable"}
+                      </strong>
+                    </div>
+                    <div className="preview-stat">
+                      <span>Elevation</span>
+                      <strong>
+                        {routePreview.summary?.elevationGainMeters === null
+                          ? "Unknown"
+                          : routePreview.summary?.elevationGainMeters
+                            ? `${Math.round(routePreview.summary.elevationGainMeters)} m`
+                            : "0 m"}
+                      </strong>
+                    </div>
+                    <div className="preview-stat">
+                      <span>Warnings</span>
+                      <strong>{routePreview.warnings.length}</strong>
+                    </div>
+                  </div>
+
+                  {routePreview.warnings.length > 0 ? (
+                    <ul className="warning-list">
+                      {routePreview.warnings.map((warning) => (
+                        <li key={`${warning.code}-${warning.message}`}>
+                          <strong>{warning.code}</strong>
+                          <span>{warning.message}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="helper-copy">
+                      No routed-preview warnings for this candidate.
+                    </p>
+                  )}
+
+                  <p className="response-note">
+                    Candidate {previewCandidateIndex}{" "}
+                    {lastSubmittedSeed
+                      ? `used random seed ${lastSubmittedSeed}.`
+                      : "used the backend's derived fallback seed."}{" "}
+                    {routePreview.geometry
+                      ? `The live map is rendering ${routePreview.geometry.coordinates.length} route coordinates.`
+                      : "No route geometry is available for the map yet."}
+                  </p>
+
+                  {isRoutePreviewStale ? (
+                    <p className="response-note response-note--warning">
+                      Planning inputs changed since this preview was generated.
+                      Generate again to refresh the map and summary.
+                    </p>
+                  ) : null}
+                </>
+              ) : !isRequestingRoutePreview && !routePreviewRequestError ? (
+                <p className="empty-state">
+                  No routed preview yet. Generate a route to call the backend
+                  and populate the map with real preview state.
+                </p>
+              ) : null}
+            </div>
+
             <div className="request-preview">
               <div className="section-heading">
-                <h3>Shared request contract preview</h3>
+                <h3>Current request contract preview</h3>
                 <p>
-                  The UI shell already lines up with the route request schema
-                  that the API boundary expects.
+                  The planner still shows the live request shape that the API
+                  boundary expects.
                 </p>
               </div>
               <pre>
-                <code>{JSON.stringify(planningRequest, null, 2)}</code>
+                <code>{requestPreviewCode}</code>
               </pre>
             </div>
+
+            {responsePreviewCode ? (
+              <div className="request-preview">
+                <div className="section-heading">
+                  <h3>Latest response contract preview</h3>
+                  <p>
+                    The most recent backend response stays visible for
+                    inspection alongside the summarized preview state.
+                  </p>
+                </div>
+                <pre>
+                  <code>{responsePreviewCode}</code>
+                </pre>
+              </div>
+            ) : null}
           </article>
 
           <article className="card navigation-handoff">
@@ -490,4 +731,41 @@ export function App() {
 
 function formatCoordinate(coordinate: Coordinate) {
   return `${coordinate.lat.toFixed(4)}, ${coordinate.lon.toFixed(4)}`;
+}
+
+function formatDistanceDelta(distanceDeltaMeters: number) {
+  const sign = distanceDeltaMeters > 0 ? "+" : "";
+
+  return `${sign}${distanceDeltaMeters} m`;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "Route preview request failed before the planner received a usable response.";
+}
+
+function getRouteStatusClass(status: RouteGenerateResponse["status"]) {
+  if (status === "success") {
+    return "status-pill--active";
+  }
+
+  if (status === "partial") {
+    return "status-pill--warning";
+  }
+
+  return "status-pill--error";
+}
+
+function serializeComparablePlanningRequest(request: RouteGenerateRequest) {
+  return JSON.stringify({
+    activity: request.activity,
+    passThroughPoints: request.passThroughPoints,
+    start: request.start,
+    surfacePreference: request.surfacePreference,
+    targetDistanceKm: request.targetDistanceKm,
+    toleranceMeters: request.toleranceMeters,
+  });
 }

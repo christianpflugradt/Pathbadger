@@ -1,7 +1,7 @@
 id: ITEM-0011
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0006
@@ -17,6 +17,9 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: `apps/web/src/App.tsx` still updates local shell state only for generate-route actions and does not consume any backend route response yet."
+  - "2026-05-13 implement: Added `apps/web/src/route-preview-client.ts` plus tests so the planner can call `POST /routes/generate` through `PUBLIC_API_BASE_URL`, validate the shared response contract, and surface request failures honestly."
+  - "2026-05-13 implement: Reworked `apps/web/src/App.tsx` to replace shell-only variation counters with real route-preview request state, including candidate tracking, stale-preview cues, warning rendering, summary cards, and raw request/response inspection panels."
+  - "2026-05-13 implement: Updated `apps/web/src/PlanningMap.tsx` to render returned route geometry as a MapLibre overlay and added local browser verification against live `api` and `web` containers, confirming `Generate route` and `Generate variation` both hit the backend preview boundary."
 created_at: 2026-05-13T17:26:57+02:00
-updated_at: 2026-05-13T17:26:57+02:00
-closed_at: null
+updated_at: 2026-05-13T18:10:31+02:00
+closed_at: 2026-05-13T18:10:31+02:00

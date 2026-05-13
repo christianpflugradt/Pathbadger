@@ -129,4 +129,33 @@ describe("createApp", () => {
 
     await app.close();
   });
+
+  it("returns browser-safe CORS headers for local web origins", async () => {
+    const app = createApp({
+      routeGenerationService: {
+        generateRoute: vi.fn(),
+      },
+    });
+
+    const response = await app.inject({
+      method: "OPTIONS",
+      url: "/routes/generate",
+      headers: {
+        origin: "http://localhost:5173",
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers["access-control-allow-origin"]).toBe(
+      "http://localhost:5173",
+    );
+    expect(response.headers["access-control-allow-methods"]).toBe(
+      "GET,POST,OPTIONS",
+    );
+    expect(response.headers["access-control-allow-headers"]).toBe(
+      "content-type",
+    );
+
+    await app.close();
+  });
 });

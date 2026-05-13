@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { Coordinate } from "@pathbadger/shared";
+import type {
+  Coordinate,
+  RouteGeometry,
+  RouteStatus,
+} from "@pathbadger/shared";
 import maplibregl from "maplibre-gl";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -12,12 +16,17 @@ type PlanningMapProps = {
   onMapSelect: (coordinate: Coordinate) => void;
   passThroughPoints: Array<{ coordinate: Coordinate; label: string }>;
   regionName: string;
+  routeGeometry: RouteGeometry | null;
+  routeStatus: RouteStatus | null;
   styleUrl: string;
 };
 
 type MapLoadState = "loading" | "ready" | "error";
 
 const DEFAULT_ZOOM = 11.5;
+const ROUTE_PREVIEW_SOURCE_ID = "route-preview";
+const ROUTE_PREVIEW_CASING_LAYER_ID = "route-preview-casing";
+const ROUTE_PREVIEW_LINE_LAYER_ID = "route-preview-line";
 
 export function PlanningMap({
   center,
@@ -27,6 +36,8 @@ export function PlanningMap({
   onMapSelect,
   passThroughPoints,
   regionName,
+  routeGeometry,
+  routeStatus,
   styleUrl,
 }: PlanningMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -65,6 +76,7 @@ export function PlanningMap({
     map.touchZoomRotate.disableRotation();
 
     const handleLoad = () => {
+      ensureRoutePreviewLayers(map);
       setLoadState("ready");
       setErrorMessage(null);
     };
@@ -181,6 +193,21 @@ export function PlanningMap({
     };
   }, [center, centerLabel, passThroughPoints, styleUrl]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map || loadState !== "ready") {
+      return;
+    }
+
+    ensureRoutePreviewLayers(map);
+    syncRoutePreview(map, routeGeometry, routeStatus);
+
+    if (routeGeometry?.coordinates.length) {
+      fitMapToRoutePreview(map, routeGeometry);
+    }
+  }, [loadState, routeGeometry, routeStatus, styleUrl]);
+
   const isAwaitingPassThroughPoint = interactionMode === "add_pass_through";
   const interactionLabel = isAwaitingPassThroughPoint
     ? "Add pass-through"
@@ -194,9 +221,11 @@ export function PlanningMap({
         ? "Click map to add a pass-through point"
         : isMapStartActive
           ? "Click map to move the start point"
-          : loadState === "ready"
-            ? "Planning map is live"
-            : "Loading self-hosted map";
+          : routeGeometry
+            ? "Routed preview is rendered"
+            : loadState === "ready"
+              ? "Planning map is live"
+              : "Loading self-hosted map";
   const statusBody =
     loadState === "error"
       ? errorMessage
@@ -204,9 +233,11 @@ export function PlanningMap({
         ? `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
         : isMapStartActive
           ? "Map-selected start mode is active. Each map click updates the route origin and request preview immediately."
-          : loadState === "ready"
-            ? "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
-            : "Connecting to the configured style document before route overlays and point selection are added.";
+          : routeGeometry
+            ? "The latest backend preview returned route geometry, and the live map is now drawing that line alongside the planning markers."
+            : loadState === "ready"
+              ? "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
+              : "Connecting to the configured style document before route overlays and point selection are added.";
 
   return (
     <section
@@ -240,6 +271,14 @@ export function PlanningMap({
             <dd>{passThroughPoints.length}</dd>
           </div>
           <div>
+            <dt>Route line</dt>
+            <dd>
+              {routeGeometry
+                ? `${routeGeometry.coordinates.length} points`
+                : "Not available"}
+            </dd>
+          </div>
+          <div>
             <dt>Style</dt>
             <dd>
               <code>{trimStyleUrl(styleUrl)}</code>
@@ -268,6 +307,112 @@ function createMarkerElement(
   element.setAttribute("aria-hidden", "true");
 
   return element;
+}
+
+function ensureRoutePreviewLayers(map: maplibregl.Map) {
+  if (!map.getSource(ROUTE_PREVIEW_SOURCE_ID)) {
+    map.addSource(ROUTE_PREVIEW_SOURCE_ID, {
+      type: "geojson",
+      data: emptyRoutePreviewCollection(),
+    });
+  }
+
+  if (!map.getLayer(ROUTE_PREVIEW_CASING_LAYER_ID)) {
+    map.addLayer({
+      id: ROUTE_PREVIEW_CASING_LAYER_ID,
+      type: "line",
+      source: ROUTE_PREVIEW_SOURCE_ID,
+      paint: {
+        "line-color": "rgba(20, 33, 61, 0.92)",
+        "line-opacity": 0.42,
+        "line-width": 8,
+      },
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+    });
+  }
+
+  if (!map.getLayer(ROUTE_PREVIEW_LINE_LAYER_ID)) {
+    map.addLayer({
+      id: ROUTE_PREVIEW_LINE_LAYER_ID,
+      type: "line",
+      source: ROUTE_PREVIEW_SOURCE_ID,
+      paint: {
+        "line-color": "#6b7a34",
+        "line-width": 4.8,
+      },
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+    });
+  }
+}
+
+function syncRoutePreview(
+  map: maplibregl.Map,
+  routeGeometry: RouteGeometry | null,
+  routeStatus: RouteStatus | null,
+) {
+  const source = map.getSource(ROUTE_PREVIEW_SOURCE_ID) as
+    | maplibregl.GeoJSONSource
+    | undefined;
+
+  if (!source) {
+    return;
+  }
+
+  source.setData(
+    routeGeometry
+      ? {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: routeGeometry,
+              properties: {},
+            },
+          ],
+        }
+      : emptyRoutePreviewCollection(),
+  );
+
+  map.setPaintProperty(
+    ROUTE_PREVIEW_LINE_LAYER_ID,
+    "line-color",
+    routeStatus === "partial" ? "#c98a2d" : "#6b7a34",
+  );
+}
+
+function fitMapToRoutePreview(
+  map: maplibregl.Map,
+  routeGeometry: RouteGeometry,
+) {
+  const [firstCoordinate] = routeGeometry.coordinates;
+
+  if (!firstCoordinate) {
+    return;
+  }
+
+  const bounds = routeGeometry.coordinates.reduce(
+    (currentBounds, [lon, lat]) => currentBounds.extend([lon, lat]),
+    new maplibregl.LngLatBounds(firstCoordinate, firstCoordinate),
+  );
+
+  map.fitBounds(bounds, {
+    padding: 72,
+    duration: 0,
+    maxZoom: 13,
+  });
+}
+
+function emptyRoutePreviewCollection() {
+  return {
+    type: "FeatureCollection" as const,
+    features: [],
+  };
 }
 
 function getMapErrorMessage(error: unknown, styleUrl: string) {
