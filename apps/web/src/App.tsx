@@ -12,6 +12,7 @@ import type {
 } from "@pathbadger/shared";
 
 import { webRuntimeConfig } from "./config";
+import { PlanningMap } from "./PlanningMap";
 import "./styles.css";
 
 type StartPointMode =
@@ -142,11 +143,11 @@ export function App() {
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">Pathbadger</p>
-          <h1>Plan a trail-first route before the map layer arrives.</h1>
+          <h1>Plan a trail-first route on a live self-hosted map.</h1>
           <p className="lead">
             This shell now mirrors the route-planning state: start point,
             activity, distance, surface preference, pass-through points, and a
-            reserved preview area for the future self-hosted map.
+            live self-hosted map surface that is ready for later route overlays.
           </p>
         </div>
         <div className="hero-status card">
@@ -176,8 +177,8 @@ export function App() {
               <h2>Planning controls</h2>
             </div>
             <p className="panel-copy">
-              The structure is live; routing and map interactions are still
-              stubbed behind this UI shell.
+              The planning structure and map mount are live. Route generation
+              and point-picking still remain separate follow-up work.
             </p>
           </div>
 
@@ -365,24 +366,19 @@ export function App() {
             <div className="panel-heading">
               <div>
                 <p className="section-label">Route planning state</p>
-                <h2>Preview shell</h2>
+                <h2>Planning map</h2>
               </div>
               <span className="status-pill status-pill--active">
                 Candidate {Math.max(variationCount, 1)}
               </span>
             </div>
 
-            <div className="map-placeholder">
-              <div className="map-placeholder__scrim" />
-              <div className="map-placeholder__content">
-                <p className="map-label">Future MapLibre mount</p>
-                <h3>Map and route preview reserved</h3>
-                <p>
-                  This surface is ready for the self-hosted style document and a
-                  later route line overlay.
-                </p>
-              </div>
-            </div>
+            <PlanningMap
+              center={startPoint.coordinate}
+              centerLabel={startPoint.label}
+              regionName={webRuntimeConfig.regionName}
+              styleUrl={webRuntimeConfig.tileStyleUrl}
+            />
 
             <div className="preview-grid">
               <div className="preview-stat">
