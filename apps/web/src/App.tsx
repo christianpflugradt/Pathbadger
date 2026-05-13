@@ -20,6 +20,7 @@ type StartPointMode =
   | "map_point"
   | "saved_default"
   | "last_used";
+type MapInteractionMode = "idle" | "add_pass_through";
 type PassThroughPoint = {
   id: string;
   label: string;
@@ -42,7 +43,7 @@ const startPointCatalog: Record<
   },
   map_point: {
     label: "Map-selected point",
-    detail: "Intended primary mode when MapLibre lands.",
+    detail: "Live map clicks set the planning start.",
     coordinate: { lat: 54.3362, lon: 10.1464 },
   },
   saved_default: {
@@ -66,27 +67,15 @@ const surfaceLabels: Record<SurfacePreference, string> = {
   asphalt: "Asphalt first",
   indifferent: "Indifferent",
 };
-const mapPointDrafts: Omit<PassThroughPoint, "id">[] = [
-  {
-    label: "Forest edge waypoint",
-    coordinate: { lat: 54.3414, lon: 10.1634 },
-    source: "map",
-  },
-  {
-    label: "Canal crossing waypoint",
-    coordinate: { lat: 54.3169, lon: 10.1884 },
-    source: "map",
-  },
-  {
-    label: "Trail junction waypoint",
-    coordinate: { lat: 54.3298, lon: 10.1113 },
-    source: "map",
-  },
-];
 
 export function App() {
   const [startPointMode, setStartPointMode] =
     useState<StartPointMode>("map_point");
+  const [mapSelectedStart, setMapSelectedStart] = useState<Coordinate>(
+    startPointCatalog.map_point.coordinate,
+  );
+  const [mapInteractionMode, setMapInteractionMode] =
+    useState<MapInteractionMode>("idle");
   const [activity, setActivity] = useState<Activity>("running_walking");
   const [surfacePreference, setSurfacePreference] =
     useState<SurfacePreference>("trail");
@@ -96,7 +85,15 @@ export function App() {
   >([]);
   const [variationCount, setVariationCount] = useState(0);
 
-  const startPoint = startPointCatalog[startPointMode];
+  const startPoint =
+    startPointMode === "map_point"
+      ? {
+          ...startPointCatalog.map_point,
+          coordinate: mapSelectedStart,
+          detail: "Click the live map to set the route origin.",
+        }
+      : startPointCatalog[startPointMode];
+  const isAwaitingPassThroughPoint = mapInteractionMode === "add_pass_through";
   const planningRequest: RouteGenerateRequest = {
     start: startPoint.coordinate,
     targetDistanceKm,
@@ -107,21 +104,42 @@ export function App() {
     toleranceMeters: DEFAULT_DISTANCE_TOLERANCE_METERS,
   };
 
-  function addPassThroughPoint() {
-    const draft =
-      mapPointDrafts[passThroughPoints.length % mapPointDrafts.length];
+  function handleStartPointModeChange(mode: StartPointMode) {
+    setStartPointMode(mode);
 
-    if (!draft) {
+    if (mode === "map_point") {
+      setMapInteractionMode("idle");
+    }
+  }
+
+  function handleMapSelection(coordinate: Coordinate) {
+    if (isAwaitingPassThroughPoint) {
+      setPassThroughPoints((current) => {
+        const nextIndex = current.length + 1;
+
+        return [
+          ...current,
+          {
+            id: `map-waypoint-${nextIndex}`,
+            label: `Map waypoint ${nextIndex}`,
+            coordinate,
+            source: "map",
+          },
+        ];
+      });
+      setMapInteractionMode("idle");
       return;
     }
 
-    setPassThroughPoints((current) => [
-      ...current,
-      {
-        ...draft,
-        id: `${draft.label.toLowerCase().replaceAll(" ", "-")}-${current.length + 1}`,
-      },
-    ]);
+    if (startPointMode === "map_point") {
+      setMapSelectedStart(coordinate);
+    }
+  }
+
+  function togglePassThroughPointSelection() {
+    setMapInteractionMode((current) =>
+      current === "add_pass_through" ? "idle" : "add_pass_through",
+    );
   }
 
   function removePassThroughPoint(id: string) {
@@ -177,8 +195,8 @@ export function App() {
               <h2>Planning controls</h2>
             </div>
             <p className="panel-copy">
-              The planning structure and map mount are live. Route generation
-              and point-picking still remain separate follow-up work.
+              The planning structure, live map, and point-picking are live.
+              Route generation still remains separate follow-up work.
             </p>
           </div>
 
@@ -200,13 +218,20 @@ export function App() {
                   className={`option-card${
                     startPointMode === mode ? " option-card--selected" : ""
                   }`}
-                  onClick={() => setStartPointMode(mode)}
+                  onClick={() => handleStartPointModeChange(mode)}
                 >
                   <span className="option-title">{option.label}</span>
                   <span className="option-detail">{option.detail}</span>
                 </button>
               ))}
             </div>
+            {startPointMode === "map_point" ? (
+              <p className="helper-copy">
+                Map-selected start:{" "}
+                <code>{formatCoordinate(mapSelectedStart)}</code>. Click the
+                planning map to move it.
+              </p>
+            ) : null}
           </section>
 
           <section className="form-section">
@@ -292,22 +317,33 @@ export function App() {
             <div className="section-heading">
               <h3>Pass-through points</h3>
               <p>
-                Map-selected waypoints are stubbed in now. Local place search
-                can be layered in later.
+                Pass-through waypoints now come from live map clicks. Local
+                place search can be layered in later.
               </p>
             </div>
             <div className="button-row">
               <button
                 type="button"
-                className="button button--primary"
-                onClick={addPassThroughPoint}
+                className={`button ${
+                  isAwaitingPassThroughPoint
+                    ? "button--secondary"
+                    : "button--primary"
+                }`}
+                onClick={togglePassThroughPointSelection}
               >
-                Add map-selected point
+                {isAwaitingPassThroughPoint
+                  ? "Cancel map click"
+                  : "Add next map click"}
               </button>
               <button type="button" className="button button--ghost" disabled>
                 Place search later
               </button>
             </div>
+            <p className="helper-copy">
+              {isAwaitingPassThroughPoint
+                ? `Click the planning map to add pass-through point ${passThroughPoints.length + 1}.`
+                : "Each pass-through point is now created from a real map click and can still be removed from the list."}
+            </p>
             {passThroughPoints.length > 0 ? (
               <ul className="pass-through-list">
                 {passThroughPoints.map((point) => (
@@ -376,6 +412,10 @@ export function App() {
             <PlanningMap
               center={startPoint.coordinate}
               centerLabel={startPoint.label}
+              isMapStartActive={startPointMode === "map_point"}
+              interactionMode={mapInteractionMode}
+              onMapSelect={handleMapSelection}
+              passThroughPoints={passThroughPoints}
               regionName={webRuntimeConfig.regionName}
               styleUrl={webRuntimeConfig.tileStyleUrl}
             />
@@ -446,4 +486,8 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function formatCoordinate(coordinate: Coordinate) {
+  return `${coordinate.lat.toFixed(4)}, ${coordinate.lon.toFixed(4)}`;
 }

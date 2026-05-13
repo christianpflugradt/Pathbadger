@@ -362,6 +362,7 @@ body {
   right: 1rem;
   bottom: 1rem;
   left: 1rem;
+  pointer-events: none;
   z-index: 1;
   display: grid;
   gap: 0.85rem;
@@ -424,6 +425,27 @@ body {
 .planning-map__facts code {
   font-size: 0.8rem;
   word-break: break-word;
+}
+
+.planning-marker {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 2px solid rgba(247, 244, 234, 0.92);
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(20, 33, 61, 0.24);
+  color: #f7f4ea;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.planning-marker--start {
+  background: linear-gradient(135deg, #6b7a34 0%, #8f9f4e 100%);
+}
+
+.planning-marker--waypoint {
+  background: rgba(20, 33, 61, 0.92);
 }
 
 .planning-map--loading .planning-map__status {
