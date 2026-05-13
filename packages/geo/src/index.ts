@@ -16,6 +16,10 @@ export type RouteProgress = {
   progressFraction: number;
 };
 
+export type CalculateRouteProgressOptions = {
+  preferredDistanceFromStartMeters?: number;
+};
+
 export function kilometersToMeters(distanceKm: number) {
   return distanceKm * 1_000;
 }
@@ -39,6 +43,7 @@ export function haversineDistanceMeters(start: Coordinate, end: Coordinate) {
 export function calculateRouteProgress(
   routeCoordinates: ReadonlyArray<RoutePolylineCoordinate>,
   position: Coordinate,
+  options: CalculateRouteProgressOptions = {},
 ): RouteProgress {
   if (routeCoordinates.length < 2) {
     throw new RangeError(
@@ -47,7 +52,7 @@ export function calculateRouteProgress(
   }
 
   let totalDistanceMeters = 0;
-  let bestCandidate: ProjectionCandidate | null = null;
+  const candidates: ProjectionCandidate[] = [];
 
   for (
     let segmentIndex = 0;
@@ -71,22 +76,28 @@ export function calculateRouteProgress(
       start,
     });
 
-    totalDistanceMeters += candidate.segmentLengthMeters;
-
-    if (
-      bestCandidate === null ||
-      candidate.offRouteDistanceMeters < bestCandidate.offRouteDistanceMeters
-    ) {
-      bestCandidate = candidate;
+    if (candidate === null) {
+      continue;
     }
+
+    totalDistanceMeters += candidate.segmentLengthMeters;
+    candidates.push(candidate);
   }
 
-  if (bestCandidate === null) {
+  if (candidates.length === 0 || totalDistanceMeters === 0) {
     throw new RangeError(
-      "Route progress requires at least one usable route segment.",
+      "Route progress requires at least one non-zero-length route segment.",
     );
   }
 
+  const preferredDistanceFromStartMeters =
+    options.preferredDistanceFromStartMeters === undefined
+      ? null
+      : clamp(options.preferredDistanceFromStartMeters, 0, totalDistanceMeters);
+  const bestCandidate = selectBestProjectionCandidate(
+    candidates,
+    preferredDistanceFromStartMeters,
+  );
   const distanceFromStartMeters = clamp(
     bestCandidate.distanceFromStartMeters,
     0,
@@ -135,17 +146,11 @@ function projectPositionOntoSegment({
   position: Coordinate;
   segmentIndex: number;
   start: Coordinate;
-}): ProjectionCandidate {
+}): ProjectionCandidate | null {
   const segmentLengthMeters = haversineDistanceMeters(start, end);
 
   if (segmentLengthMeters === 0) {
-    return {
-      nearestPoint: start,
-      segmentIndex,
-      distanceFromStartMeters: distanceBeforeSegmentMeters,
-      offRouteDistanceMeters: haversineDistanceMeters(start, position),
-      segmentLengthMeters: 0,
-    };
+    return null;
   }
 
   const referenceLatRadians = toRadians((start.lat + end.lat) / 2);
@@ -171,6 +176,56 @@ function projectPositionOntoSegment({
     offRouteDistanceMeters: haversineDistanceMeters(nearestPoint, position),
     segmentLengthMeters,
   };
+}
+
+function selectBestProjectionCandidate(
+  candidates: ReadonlyArray<ProjectionCandidate>,
+  preferredDistanceFromStartMeters: number | null,
+) {
+  const [firstCandidate, ...remainingCandidates] = candidates;
+
+  if (!firstCandidate) {
+    throw new RangeError(
+      "Route progress requires at least one non-zero-length route segment.",
+    );
+  }
+
+  let bestCandidate = firstCandidate;
+
+  for (const candidate of remainingCandidates) {
+    if (
+      candidate.offRouteDistanceMeters <
+      bestCandidate.offRouteDistanceMeters -
+        PROJECTION_DISTANCE_TIE_TOLERANCE_METERS
+    ) {
+      bestCandidate = candidate;
+      continue;
+    }
+
+    if (
+      preferredDistanceFromStartMeters !== null &&
+      Math.abs(
+        candidate.offRouteDistanceMeters - bestCandidate.offRouteDistanceMeters,
+      ) <= PROJECTION_DISTANCE_TIE_TOLERANCE_METERS
+    ) {
+      const candidateHintDistance = Math.abs(
+        candidate.distanceFromStartMeters - preferredDistanceFromStartMeters,
+      );
+      const bestHintDistance = Math.abs(
+        bestCandidate.distanceFromStartMeters -
+          preferredDistanceFromStartMeters,
+      );
+
+      if (
+        candidateHintDistance <
+        bestHintDistance - PROGRESS_HINT_TIE_TOLERANCE_METERS
+      ) {
+        bestCandidate = candidate;
+      }
+    }
+  }
+
+  return bestCandidate;
 }
 
 function lineStringCoordinateToCoordinate(
@@ -213,3 +268,6 @@ function dot(left: { x: number; y: number }, right: { x: number; y: number }) {
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
+
+const PROJECTION_DISTANCE_TIE_TOLERANCE_METERS = 0.01;
+const PROGRESS_HINT_TIE_TOLERANCE_METERS = 0.01;

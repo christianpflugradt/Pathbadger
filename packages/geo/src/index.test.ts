@@ -42,6 +42,14 @@ describe("calculateRouteProgress", () => {
     [10.01, 54.0],
     [10.01, 54.01],
   ] as const;
+  const repeatedSegmentRoute = [
+    [10.0, 54.0],
+    [10.01, 54.0],
+    [10.01, 54.01],
+    [10.0, 54.01],
+    [10.0, 54.0],
+    [10.01, 54.0],
+  ] as const;
 
   it("reports zero completed distance at the route start", () => {
     const totalDistanceMeters = haversineDistanceMeters(
@@ -142,6 +150,52 @@ describe("calculateRouteProgress", () => {
     expect(progress.progressFraction).toBeCloseTo(1, 6);
   });
 
+  it("uses a preferred route distance to disambiguate repeated geometry", () => {
+    const totalDistanceMeters =
+      haversineDistanceMeters(
+        { lat: 54.0, lon: 10.0 },
+        { lat: 54.0, lon: 10.01 },
+      ) +
+      haversineDistanceMeters(
+        { lat: 54.0, lon: 10.01 },
+        { lat: 54.01, lon: 10.01 },
+      ) +
+      haversineDistanceMeters(
+        { lat: 54.01, lon: 10.01 },
+        { lat: 54.01, lon: 10.0 },
+      ) +
+      haversineDistanceMeters(
+        { lat: 54.01, lon: 10.0 },
+        { lat: 54.0, lon: 10.0 },
+      ) +
+      haversineDistanceMeters(
+        { lat: 54.0, lon: 10.0 },
+        { lat: 54.0, lon: 10.01 },
+      );
+    const finalSegmentMeters = haversineDistanceMeters(
+      { lat: 54.0, lon: 10.0 },
+      { lat: 54.0, lon: 10.01 },
+    );
+    const progress = calculateRouteProgress(
+      repeatedSegmentRoute,
+      {
+        lat: 54.0,
+        lon: 10.005,
+      },
+      {
+        preferredDistanceFromStartMeters: totalDistanceMeters * 0.9,
+      },
+    );
+
+    expect(progress.nearestSegmentIndex).toBe(4);
+    expect(progress.nearestPoint).toEqual({ lat: 54.0, lon: 10.005 });
+    expect(progress.distanceFromStartMeters).toBeCloseTo(
+      totalDistanceMeters - finalSegmentMeters / 2,
+      0,
+    );
+    expect(progress.progressFraction).toBeGreaterThan(0.8);
+  });
+
   it("rejects route polylines with fewer than two coordinates", () => {
     expect(() =>
       calculateRouteProgress([[10.0, 54.0]], {
@@ -149,5 +203,20 @@ describe("calculateRouteProgress", () => {
         lon: 10.0,
       }),
     ).toThrow(/at least two coordinates/i);
+  });
+
+  it("rejects route polylines without any measurable segment length", () => {
+    expect(() =>
+      calculateRouteProgress(
+        [
+          [10.0, 54.0],
+          [10.0, 54.0],
+        ],
+        {
+          lat: 54.001,
+          lon: 10.0,
+        },
+      ),
+    ).toThrow(/non-zero-length route segment/i);
   });
 });
