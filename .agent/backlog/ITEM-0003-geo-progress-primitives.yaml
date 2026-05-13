@@ -17,6 +17,7 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: `packages/geo` currently stops at `kilometersToMeters` and `haversineDistanceMeters`, so no progress-oriented primitive exists yet."
   - "2026-05-13 refine: route-generation surface work is done, so this is now the active next implementation target for navigation groundwork."
+  - "2026-05-13 refine: the local app boot now has `make` shortcuts and a visible fallback planning grid, so this geo primitive remains the only open actionable item before navigation needs deeper backlog breakdown."
 created_at: 2026-05-13T00:00:00+02:00
-updated_at: 2026-05-13T19:41:33+02:00
+updated_at: 2026-05-13T19:55:19+02:00
 closed_at: null

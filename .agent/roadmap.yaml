@@ -92,8 +92,11 @@ roadmap:
     - the GraphHopper adapter now requests route path details and normalizes routed surface segments into an internal `surfaceDetails` shape with an honest unknown fallback when live detail data is missing
     - routed preview scoring now accounts for trail, mixed, asphalt, and indifferent surface preferences while filling honest surface percentage summaries and incomplete-data warnings
     - the planner now renders routed surface composition cards and unknown-coverage messaging, so surface-aware route previews are visible end to end in the web UI
+    - the default local app workflow now includes `make run-app`, `make stopp-app`, and `make rebuild-app`, with docs aligned to the compose-based browser startup flow
+    - the default planning map now shows a visible bundled fallback grid instead of an effectively blank canvas when the optional self-hosted tile stack is not running
   remaining_summary:
     - current focus is ITEM-0003 in EPIC-0004, which should add reusable geo progress primitives so later navigation UI can measure route-following state without duplicating math
-    - routing-core and route-generation now reach an honest preview loop with surface-aware summaries, but live Schleswig-Holstein routing quality and GraphHopper path-detail behavior are still only proven through mocked coverage
+    - the default local boot is now usable for planner interaction, but real Schleswig-Holstein graph data and self-hosted cartography are still gated behind the optional `maps` profile and unprepared local data directories
+    - routing-core and route-generation now reach an honest preview loop with surface-aware summaries, but live GraphHopper path-detail behavior and route quality remain proven only through mocked coverage
     - active navigation behavior, richer route statistics, and route-following UI remain unimplemented after the shared geo primitive groundwork
-    - hardening, operational cleanup, and broader end-to-end validation remain pending after navigation primitives land
+    - once ITEM-0003 lands, navigation will need deeper backlog breakdown for follow-position state, instruction handling, and progress metrics before hardening can take over
