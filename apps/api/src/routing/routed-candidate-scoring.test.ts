@@ -2,6 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { scoreRoutedCandidate } from "./routed-candidate-scoring.js";
 
+function createUnknownSurfaceDetails(distanceMeters: number) {
+  return [
+    {
+      distanceMeters,
+      surface: null,
+      roadClass: null,
+    },
+  ];
+}
+
 describe("scoreRoutedCandidate", () => {
   it("scores a within-tolerance indifferent candidate as a successful preview", () => {
     const scoredCandidate = scoreRoutedCandidate({
@@ -27,6 +37,7 @@ describe("scoreRoutedCandidate", () => {
             [10.1228, 54.3233],
           ],
         },
+        surfaceDetails: createUnknownSurfaceDetails(12_040),
       },
     });
 
@@ -84,6 +95,7 @@ describe("scoreRoutedCandidate", () => {
             [10.1228, 54.3233],
           ],
         },
+        surfaceDetails: createUnknownSurfaceDetails(12_340),
       },
     });
 
@@ -130,6 +142,7 @@ describe("scoreRoutedCandidate", () => {
             [10.141, 54.332],
           ],
         },
+        surfaceDetails: createUnknownSurfaceDetails(20_060),
       },
     });
     const fartherCandidate = scoreRoutedCandidate({
@@ -146,6 +159,7 @@ describe("scoreRoutedCandidate", () => {
             [10.152, 54.3375],
           ],
         },
+        surfaceDetails: createUnknownSurfaceDetails(20_380),
       },
     });
 

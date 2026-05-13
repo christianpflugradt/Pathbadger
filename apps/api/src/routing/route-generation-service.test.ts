@@ -6,6 +6,16 @@ import {
 } from "./graphhopper-adapter.js";
 import { createRouteGenerationService } from "./route-generation-service.js";
 
+function createUnknownSurfaceDetails(distanceMeters: number) {
+  return [
+    {
+      distanceMeters,
+      surface: null,
+      roadClass: null,
+    },
+  ];
+}
+
 describe("createRouteGenerationService", () => {
   it("returns a successful routed preview when the best routed candidate fits the request", async () => {
     const service = createRouteGenerationService({
@@ -24,6 +34,7 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            surfaceDetails: createUnknownSurfaceDetails(12_240),
           })
           .mockResolvedValueOnce({
             distanceMeters: 12_040,
@@ -37,6 +48,7 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            surfaceDetails: createUnknownSurfaceDetails(12_040),
           }),
       },
     });
@@ -95,6 +107,7 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            surfaceDetails: createUnknownSurfaceDetails(12_520),
           })
           .mockResolvedValueOnce({
             distanceMeters: 12_340,
@@ -108,6 +121,7 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
+            surfaceDetails: createUnknownSurfaceDetails(12_340),
           }),
       },
     });
@@ -181,6 +195,7 @@ describe("createRouteGenerationService", () => {
             [10.1228, 54.3233],
           ],
         },
+        surfaceDetails: createUnknownSurfaceDetails(20_040),
       });
     const service = createRouteGenerationService({
       routingEngine: {

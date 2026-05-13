@@ -7,6 +7,23 @@ import type { Activity, Coordinate, RouteGeometry } from "@pathbadger/shared";
 import { z } from "zod";
 
 const GRAPHHOPPER_ROUTE_PATH = "/api/1/route";
+const graphHopperTextPathDetailSchema = z.tuple([
+  z.number().int().nonnegative(),
+  z.number().int().nonnegative(),
+  z.string().nullable(),
+]);
+const graphHopperDistancePathDetailSchema = z.tuple([
+  z.number().int().nonnegative(),
+  z.number().int().nonnegative(),
+  z.number().nonnegative(),
+]);
+const graphHopperPathDetailsSchema = z
+  .object({
+    surface: z.array(graphHopperTextPathDetailSchema).optional(),
+    road_class: z.array(graphHopperTextPathDetailSchema).optional(),
+    distance: z.array(graphHopperDistancePathDetailSchema).optional(),
+  })
+  .passthrough();
 const graphHopperRouteRequestSchema = z.object({
   points: z.array(coordinateSchema).min(2),
   activity: activitySchema,
@@ -16,6 +33,7 @@ const graphHopperPathSchema = z.object({
   time: z.number().nonnegative().optional(),
   ascend: z.number().nullable().optional(),
   points: routeGeometrySchema,
+  details: graphHopperPathDetailsSchema.optional(),
 });
 const graphHopperResponseSchema = z.object({
   paths: z.array(graphHopperPathSchema).min(1),
@@ -28,11 +46,18 @@ export interface GraphHopperRouteRequest {
   activity: Activity;
 }
 
+export interface GraphHopperRouteSurfaceDetail {
+  distanceMeters: number;
+  surface: string | null;
+  roadClass: string | null;
+}
+
 export interface GraphHopperRouteResult {
   distanceMeters: number;
   durationMs: number | null;
   elevationGainMeters: number | null;
   geometry: RouteGeometry;
+  surfaceDetails: GraphHopperRouteSurfaceDetail[];
 }
 
 export interface RoutingEngineAdapter {
@@ -114,6 +139,7 @@ export function createGraphHopperAdapter(
         durationMs: path.time ?? null,
         elevationGainMeters: path.ascend ?? null,
         geometry: path.points,
+        surfaceDetails: normalizeRouteSurfaceDetails(path),
       };
     },
   };
@@ -147,8 +173,92 @@ function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
   url.searchParams.set("points_encoded", "false");
   url.searchParams.set("instructions", "false");
   url.searchParams.set("elevation", "true");
+  url.searchParams.append("details", "surface");
+  url.searchParams.append("details", "road_class");
+  url.searchParams.append("details", "distance");
 
   return url;
+}
+
+function normalizeRouteSurfaceDetails(
+  path: z.infer<typeof graphHopperPathSchema>,
+) {
+  const distanceDetails = path.details?.distance;
+
+  if (!distanceDetails || distanceDetails.length === 0) {
+    return [createUnknownRouteSurfaceDetail(path.distance)];
+  }
+
+  // GraphHopper returns path details as point-index intervals. We anchor on the
+  // documented distance intervals so every normalized segment carries a stable
+  // meter count even when surface or road-class details span multiple edges.
+  return distanceDetails.reduce<GraphHopperRouteSurfaceDetail[]>(
+    (normalizedDetails, [fromPointIndex, toPointIndex, distanceMeters]) => {
+      const nextDetail = {
+        distanceMeters,
+        surface: findTextPathDetailValue(
+          path.details?.surface,
+          fromPointIndex,
+          toPointIndex,
+        ),
+        roadClass: findTextPathDetailValue(
+          path.details?.road_class,
+          fromPointIndex,
+          toPointIndex,
+        ),
+      };
+      const lastDetail = normalizedDetails.at(-1);
+
+      if (
+        lastDetail &&
+        lastDetail.surface === nextDetail.surface &&
+        lastDetail.roadClass === nextDetail.roadClass
+      ) {
+        lastDetail.distanceMeters += nextDetail.distanceMeters;
+        return normalizedDetails;
+      }
+
+      normalizedDetails.push(nextDetail);
+      return normalizedDetails;
+    },
+    [],
+  );
+}
+
+function findTextPathDetailValue(
+  detailEntries:
+    | Array<z.infer<typeof graphHopperTextPathDetailSchema>>
+    | undefined,
+  fromPointIndex: number,
+  toPointIndex: number,
+) {
+  const detailEntry = detailEntries?.find(
+    ([detailFromPointIndex, detailToPointIndex]) =>
+      fromPointIndex >= detailFromPointIndex &&
+      toPointIndex <= detailToPointIndex,
+  );
+
+  return normalizePathDetailText(detailEntry?.[2] ?? null);
+}
+
+function normalizePathDetailText(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return trimmedValue.length > 0 ? trimmedValue : null;
+}
+
+function createUnknownRouteSurfaceDetail(
+  distanceMeters: number,
+): GraphHopperRouteSurfaceDetail {
+  return {
+    distanceMeters,
+    surface: null,
+    roadClass: null,
+  };
 }
 
 function toGraphHopperProfile(activity: Activity) {

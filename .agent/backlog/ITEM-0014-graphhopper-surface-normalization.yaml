@@ -1,7 +1,7 @@
 id: ITEM-0014
 type: feature
 priority: P0
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0008
@@ -18,6 +18,8 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: `apps/api/src/routing/graphhopper-adapter.ts` currently returns only distance, duration, elevation, and geometry, so downstream scoring has no route-surface evidence to compare otherwise-similar candidates."
   - "2026-05-13 refine: `apps/api/src/routing/routed-candidate-scoring.ts` still hard-codes all surface percentages to null and emits `surface_preference_pending`, which means surface-preference behavior is not yet observable in tests or preview summaries."
+  - "2026-05-13 implement: Updated `apps/api/src/routing/graphhopper-adapter.ts` to request GraphHopper `surface`, `road_class`, and `distance` path details, then normalize the response into internal `surfaceDetails` segments keyed by distance instead of leaking raw `path.details` parsing into later scoring work."
+  - "2026-05-13 implement: Added adapter coverage for a representative GraphHopper path-details payload plus an honest unknown-surface fallback when the routing response omits those details, and refreshed routed-candidate mocks so downstream route-generation tests consume the new adapter result shape."
 created_at: 2026-05-13T18:35:35+02:00
-updated_at: 2026-05-13T18:35:35+02:00
-closed_at: null
+updated_at: 2026-05-13T18:46:48+02:00
+closed_at: 2026-05-13T18:46:48+02:00
