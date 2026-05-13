@@ -1,6 +1,7 @@
 export const DEFAULT_PUBLIC_API_BASE_URL = "http://localhost:3001";
-export const DEFAULT_PUBLIC_TILE_STYLE_URL =
-  "http://localhost:8080/styles/basic/style.json";
+// Keep the default local app boot self-contained. A real TileServer style can
+// still override this through PUBLIC_TILE_STYLE_URL when that stack is ready.
+export const DEFAULT_PUBLIC_TILE_STYLE_URL = "/styles/local-fallback.json";
 
 export const webRuntimeConfig = {
   apiBaseUrl:
