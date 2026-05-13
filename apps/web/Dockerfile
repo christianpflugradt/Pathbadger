@@ -8,7 +8,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/geo/package.json packages/geo/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN npm install
+RUN npm ci --ignore-scripts
 
 COPY . .
 

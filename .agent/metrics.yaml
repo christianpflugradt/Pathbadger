@@ -11,7 +11,7 @@ metrics:
     test_status: pass
     lint_status: pass
     typecheck_status: pass
-    compose_status: config_valid_runtime_smoke_skipped
+    compose_status: config_valid_runtime_smoke_pass
   runtime:
     measured_memory_mb: null
     graphhopper_memory_mb: null

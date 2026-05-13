@@ -34,7 +34,8 @@ This repository is initialized for an agent-driven workflow with three recurring
 
 - `docker-compose.yml` defines the target service topology from day one.
 - `graphhopper` and `tileserver` are behind the `maps` profile until real regional data is prepared.
-- Runtime smoke verification is intentionally conservative during initialization; service-specific runtime checks should be strengthened as the foundation epic is implemented.
+- `npm run compose:test` now builds and starts the scaffolded `api` and `web` services, checks the api `/health` endpoint, and tears the stack down again.
+- The compose smoke covers only the default `api` and `web` services; the `maps` profile remains excluded until real regional data is prepared.
 
 ## Agent workflow
 

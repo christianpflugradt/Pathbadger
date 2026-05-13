@@ -7,6 +7,8 @@
 3. `npm run compose:test`
 4. `docker compose up -d --build` when you want the local stack
 
+`npm run compose:test` validates the compose file, builds the scaffolded `api` and `web` services, waits for them to stay running, verifies the api `/health` response from inside the container, and then tears the stack down.
+
 ## Package manager policy
 
 This repository is npm-only by explicit user instruction.
@@ -23,6 +25,7 @@ This repository is npm-only by explicit user instruction.
 - tile artifacts live under `data/tiles/`
 
 The `maps` profile is reserved for the real self-hosted map stack once data-preparation items are implemented.
+The compose smoke does not start `graphhopper` or `tileserver` yet, so map-data validation remains later work.
 
 ## Agent command behavior
 
