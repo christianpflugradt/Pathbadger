@@ -1,0 +1,23 @@
+id: ITEM-0019
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0009
+title: Replace the locked navigation handoff with a first execution state
+summary: Turn the disabled navigation placeholder into a real execution mode that starts from a routed preview and computes progress locally from route geometry and the geo package.
+acceptance_criteria:
+  - successful or partial routed previews can enter a navigation state instead of a permanently disabled handoff card
+  - execution UI shows current position, completed km, remaining km, total km, and progress percent using `calculateRouteProgress`
+  - current route line stays visible while execution state is active without mixing the planning form into route-following logic
+verification:
+  - npm run lint
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/web/src/App.tsx` still renders a locked `Navigation stays separate` card even when a route preview and geometry already exist."
+  - "2026-05-13 refine: `packages/geo` now has the first local progress primitive, so the smallest next web execution step is to use it for a navigation shell before layering instruction and off-route behavior on top."
+created_at: 2026-05-13T20:07:22+02:00
+updated_at: 2026-05-13T20:07:22+02:00
+closed_at: null

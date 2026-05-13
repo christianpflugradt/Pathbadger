@@ -1,0 +1,17 @@
+id: EPIC-0009
+status: open
+phase: navigation
+title: Turn routed previews into a first local navigation loop
+objective: carry instruction-aware route data into the web app and replace the locked navigation placeholder with real local execution state that uses geo progress calculations
+success_criteria:
+  - shared and api boundaries expose minimal route instructions without leaking raw GraphHopper response shapes
+  - web can start a first navigation mode from a routed preview and compute progress locally from route geometry
+  - next instruction distance and off-route warning are visible in the first execution UI
+items:
+  - ITEM-0017
+  - ITEM-0018
+  - ITEM-0019
+  - ITEM-0020
+created_at: 2026-05-13T20:07:22+02:00
+updated_at: 2026-05-13T20:07:22+02:00
+closed_at: null
