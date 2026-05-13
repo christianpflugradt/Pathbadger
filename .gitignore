@@ -5,6 +5,7 @@ coverage/
 .env
 .env.local
 .cache/
+.idea/
 data/osm/*
 !data/osm/.gitkeep
 data/graphhopper/*
