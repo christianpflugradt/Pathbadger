@@ -36,6 +36,7 @@ describe("requestRoutePreview", () => {
               [10.1228, 54.3233],
             ],
           },
+          instructions: null,
         }),
         {
           status: 200,
@@ -118,6 +119,7 @@ describe("requestRoutePreview", () => {
             totalDistanceKm: 12.34,
           },
           geometry: null,
+          instructions: null,
         }),
         {
           status: 200,

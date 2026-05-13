@@ -4,6 +4,7 @@ import {
   DEFAULT_DISTANCE_TOLERANCE_METERS,
   routeGenerateRequestSchema,
   routeGenerateResponseSchema,
+  routeInstructionSchema,
 } from "./index.js";
 
 describe("routeGenerateRequestSchema", () => {
@@ -52,7 +53,7 @@ describe("routeGenerateRequestSchema", () => {
 });
 
 describe("routeGenerateResponseSchema", () => {
-  it("parses a route response with summary, warnings, and geometry", () => {
+  it("parses a route response with summary, warnings, geometry, and instructions", () => {
     const parsed = routeGenerateResponseSchema.parse({
       routeId: "route-001",
       status: "partial",
@@ -81,14 +82,34 @@ describe("routeGenerateResponseSchema", () => {
           [10.141, 54.332],
         ],
       },
+      instructions: [
+        {
+          distanceFromStartMeters: 0,
+          distanceToNextMeters: 650,
+          type: "depart",
+          text: "Head north on the trail.",
+          streetName: null,
+          coordinate: [10.1228, 54.3233],
+        },
+        {
+          distanceFromStartMeters: 650,
+          distanceToNextMeters: null,
+          type: "arrive",
+          text: "Return to the start point.",
+          streetName: "Loop path",
+          coordinate: [10.141, 54.332],
+        },
+      ],
     });
 
     expect(parsed.status).toBe("partial");
     expect(parsed.summary?.surface.trailUnpavedPercent).toBe(65);
     expect(parsed.geometry?.coordinates).toHaveLength(2);
+    expect(parsed.instructions).toHaveLength(2);
+    expect(parsed.instructions?.[1]?.distanceToNextMeters).toBeNull();
   });
 
-  it("allows failed responses to keep summary and geometry as placeholders", () => {
+  it("allows failed responses to keep summary, geometry, and instructions as placeholders", () => {
     const parsed = routeGenerateResponseSchema.parse({
       routeId: "route-002",
       status: "failed",
@@ -100,10 +121,12 @@ describe("routeGenerateResponseSchema", () => {
       ],
       summary: null,
       geometry: null,
+      instructions: null,
     });
 
     expect(parsed.summary).toBeNull();
     expect(parsed.geometry).toBeNull();
+    expect(parsed.instructions).toBeNull();
   });
 
   it("rejects malformed response payloads", () => {
@@ -128,7 +151,63 @@ describe("routeGenerateResponseSchema", () => {
           type: "LineString",
           coordinates: [[200, 54.3233]],
         },
+        instructions: null,
       }),
     ).toThrow();
+  });
+
+  it("rejects malformed instruction payloads", () => {
+    expect(() =>
+      routeGenerateResponseSchema.parse({
+        routeId: "route-003",
+        status: "success",
+        warnings: [],
+        summary: {
+          totalDistanceKm: 8.5,
+          targetDistanceKm: 8,
+          distanceDeltaMeters: 500,
+          elevationGainMeters: 45,
+          surface: {
+            asphaltPercent: 40,
+            trailUnpavedPercent: 40,
+            fieldTrackOtherPercent: 10,
+            unknownPercent: 10,
+          },
+        },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.141, 54.332],
+          ],
+        },
+        instructions: [
+          {
+            distanceFromStartMeters: 200,
+            distanceToNextMeters: 150,
+            type: "",
+            text: "Turn right.",
+            streetName: null,
+            coordinate: [10.13, 54.325],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("routeInstructionSchema", () => {
+  it("parses a minimal navigation instruction", () => {
+    const parsed = routeInstructionSchema.parse({
+      distanceFromStartMeters: 1250,
+      distanceToNextMeters: 300,
+      type: "turn_right",
+      text: "Turn right onto the next path.",
+      streetName: "Forest path",
+      coordinate: [10.141, 54.332],
+    });
+
+    expect(parsed.distanceFromStartMeters).toBe(1250);
+    expect(parsed.streetName).toBe("Forest path");
   });
 });

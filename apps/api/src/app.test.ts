@@ -34,6 +34,7 @@ describe("createApp", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: null,
     });
     const app = createApp({
       routeGenerationService: {
@@ -95,6 +96,7 @@ describe("createApp", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: null,
     });
 
     await app.close();

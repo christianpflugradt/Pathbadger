@@ -1,7 +1,7 @@
 id: ITEM-0017
 type: feature
 priority: P0
-status: open
+status: done
 scope: shared
 origin: refine
 parent_epic: EPIC-0009
@@ -18,6 +18,9 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: `packages/shared/src/index.ts` currently exposes route status, warnings, summary, and geometry, but no instruction list for navigation."
   - "2026-05-13 refine: the next navigation epic needs a stable shared execution contract before adapter and web work can move independently."
+  - "2026-05-13 implement: Added `routeInstructionSchema` and `RouteInstruction` to `packages/shared/src/index.ts`, covering distance-from-start, distance-to-next, instruction type/text, street name, and coordinate fields."
+  - "2026-05-13 implement: Extended `routeGenerateResponseSchema` with a required nullable `instructions` field so current route previews can return `null` honestly until GraphHopper instruction normalization lands."
+  - "2026-05-13 implement: Added parsing coverage for valid instruction payloads and malformed instruction rejection in `packages/shared/src/index.test.ts`, and updated current api/web response fixtures to include `instructions: null` so existing consumers stay compatible."
 created_at: 2026-05-13T20:07:22+02:00
-updated_at: 2026-05-13T20:07:22+02:00
-closed_at: null
+updated_at: 2026-05-13T20:13:40+02:00
+closed_at: 2026-05-13T20:13:40+02:00

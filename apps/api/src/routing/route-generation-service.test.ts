@@ -124,6 +124,7 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: null,
     });
   });
 
@@ -208,6 +209,7 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: null,
     });
   });
 
@@ -286,6 +288,7 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: null,
     });
   });
 
@@ -325,6 +328,7 @@ describe("createRouteGenerationService", () => {
       ],
       summary: null,
       geometry: null,
+      instructions: null,
     });
     expect(getRoute).toHaveBeenCalledTimes(2);
   });
@@ -363,6 +367,7 @@ describe("createRouteGenerationService", () => {
       ],
       summary: null,
       geometry: null,
+      instructions: null,
     });
   });
 
@@ -463,6 +468,7 @@ describe("createRouteGenerationService", () => {
           [10.1228, 54.3233],
         ],
       },
+      instructions: null,
     });
   });
 });

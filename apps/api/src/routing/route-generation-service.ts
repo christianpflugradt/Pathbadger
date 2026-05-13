@@ -104,6 +104,7 @@ function buildRouteResponse(
     warnings: scoredCandidate.warnings,
     summary: scoredCandidate.summary,
     geometry: scoredCandidate.geometry,
+    instructions: null,
   };
 }
 
@@ -172,5 +173,6 @@ function createFailedRouteResponse(
     ],
     summary: null,
     geometry: null,
+    instructions: null,
   };
 }

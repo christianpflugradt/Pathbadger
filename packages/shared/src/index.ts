@@ -39,6 +39,14 @@ export const routeGeometrySchema = z.object({
   type: z.literal("LineString"),
   coordinates: z.array(lineStringCoordinateSchema).min(2),
 });
+export const routeInstructionSchema = z.object({
+  distanceFromStartMeters: z.number().min(0),
+  distanceToNextMeters: z.number().min(0).nullable(),
+  type: z.string().min(1),
+  text: z.string().min(1),
+  streetName: z.string().min(1).nullable(),
+  coordinate: lineStringCoordinateSchema,
+});
 export const routeGenerateRequestSchema = z.object({
   start: coordinateSchema,
   targetDistanceKm: z.number().positive(),
@@ -58,6 +66,7 @@ export const routeGenerateResponseSchema = z.object({
   warnings: z.array(routeWarningSchema),
   summary: routeSummarySchema.nullable(),
   geometry: routeGeometrySchema.nullable(),
+  instructions: z.array(routeInstructionSchema).nullable(),
 });
 
 export type Activity = z.infer<typeof activitySchema>;
@@ -68,6 +77,7 @@ export type RouteWarning = z.infer<typeof routeWarningSchema>;
 export type RouteSurfaceSummary = z.infer<typeof routeSurfaceSummarySchema>;
 export type RouteSummary = z.infer<typeof routeSummarySchema>;
 export type RouteGeometry = z.infer<typeof routeGeometrySchema>;
+export type RouteInstruction = z.infer<typeof routeInstructionSchema>;
 export type RouteGenerateRequest = z.infer<typeof routeGenerateRequestSchema>;
 export type RouteGenerateResponse = z.infer<typeof routeGenerateResponseSchema>;
 
