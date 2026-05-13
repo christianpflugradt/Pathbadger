@@ -14,6 +14,11 @@ import type {
   SurfacePreference,
 } from "@pathbadger/shared";
 
+import type { BrowserGeolocationState } from "./browser-geolocation";
+import {
+  DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
+  useBrowserGeolocation,
+} from "./browser-geolocation";
 import { webRuntimeConfig } from "./config";
 import {
   createNavigationSnapshot,
@@ -129,16 +134,43 @@ export function App() {
     string | null
   >(null);
   const latestRoutePreviewRequestIdRef = useRef(0);
+  const browserGeolocation = useBrowserGeolocation({
+    enabled: startPointMode === "current_position",
+    positionOptions: DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
+  });
+  const startPointOptions = {
+    ...startPointCatalog,
+    current_position: {
+      ...startPointCatalog.current_position,
+      coordinate:
+        browserGeolocation.position?.coordinate ??
+        startPointCatalog.current_position.coordinate,
+      detail: getCurrentPositionOptionDetail(browserGeolocation),
+    },
+    map_point: {
+      ...startPointCatalog.map_point,
+      coordinate: mapSelectedStart,
+    },
+  } satisfies Record<
+    StartPointMode,
+    {
+      label: string;
+      detail: string;
+      coordinate: Coordinate;
+    }
+  >;
 
   const startPoint =
     startPointMode === "map_point"
       ? {
-          ...startPointCatalog.map_point,
-          coordinate: mapSelectedStart,
+          ...startPointOptions.map_point,
           detail: "Click the live map to set the route origin.",
         }
-      : startPointCatalog[startPointMode];
+      : startPointOptions[startPointMode];
   const isAwaitingPassThroughPoint = mapInteractionMode === "add_pass_through";
+  const isCurrentPositionPendingRouteGeneration =
+    startPointMode === "current_position" &&
+    browserGeolocation.status !== "ready";
   const planningRequest: RouteGenerateRequest = {
     start: startPoint.coordinate,
     targetDistanceKm,
@@ -190,6 +222,10 @@ export function App() {
     navigationSession?.routeGeometry ?? routePreview?.geometry ?? null;
   const mapRouteStatus =
     navigationSession?.routeStatus ?? routePreview?.status ?? null;
+  const currentPositionStatusPillClassName =
+    getCurrentPositionStatusPillClassName(browserGeolocation);
+  const currentPositionHelperClassName =
+    getCurrentPositionHelperClassName(browserGeolocation);
 
   function handleStartPointModeChange(mode: StartPointMode) {
     setStartPointMode(mode);
@@ -415,9 +451,9 @@ export function App() {
               </div>
               <div className="option-grid">
                 {(
-                  Object.entries(startPointCatalog) as [
+                  Object.entries(startPointOptions) as [
                     StartPointMode,
-                    (typeof startPointCatalog)[StartPointMode],
+                    (typeof startPointOptions)[StartPointMode],
                   ][]
                 ).map(([mode, option]) => (
                   <button
@@ -433,6 +469,40 @@ export function App() {
                   </button>
                 ))}
               </div>
+              {startPointMode === "current_position" ? (
+                <div className="start-point-status">
+                  <div className="status-row">
+                    <span
+                      className={`status-pill${
+                        currentPositionStatusPillClassName
+                          ? ` ${currentPositionStatusPillClassName}`
+                          : ""
+                      }`}
+                    >
+                      {getCurrentPositionStatusLabel(browserGeolocation)}
+                    </span>
+                    {browserGeolocation.position ? (
+                      <span className="status-pill">
+                        Accuracy{" "}
+                        {browserGeolocation.position.accuracyMeters === null
+                          ? "unknown"
+                          : formatWholeMeters(
+                              browserGeolocation.position.accuracyMeters,
+                            )}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p
+                    className={`helper-copy${
+                      currentPositionHelperClassName
+                        ? ` ${currentPositionHelperClassName}`
+                        : ""
+                    }`}
+                  >
+                    {getCurrentPositionHelperCopy(browserGeolocation)}
+                  </p>
+                </div>
+              ) : null}
               {startPointMode === "map_point" ? (
                 <p className="helper-copy">
                   Map-selected start:{" "}
@@ -588,7 +658,10 @@ export function App() {
                 <button
                   type="button"
                   className="button button--primary"
-                  disabled={isRequestingRoutePreview}
+                  disabled={
+                    isRequestingRoutePreview ||
+                    isCurrentPositionPendingRouteGeneration
+                  }
                   onClick={requestRoute}
                 >
                   {isRequestingRoutePreview
@@ -598,7 +671,10 @@ export function App() {
                 <button
                   type="button"
                   className="button button--secondary"
-                  disabled={isRequestingRoutePreview}
+                  disabled={
+                    isRequestingRoutePreview ||
+                    isCurrentPositionPendingRouteGeneration
+                  }
                   onClick={requestVariation}
                 >
                   {isRequestingRoutePreview
@@ -609,13 +685,15 @@ export function App() {
               <p className="helper-copy">
                 {isRequestingRoutePreview
                   ? `Requesting candidate ${previewCandidateIndex} from the backend route boundary now.`
-                  : routePreviewRequestError
-                    ? routePreviewRequestError
-                    : isRoutePreviewStale
-                      ? "Planning inputs changed since the last routed preview. Generate again to refresh the map and summary."
-                      : hasRoutePreview
-                        ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
-                        : "Generate a route to call the backend preview boundary for the first time."}
+                  : isCurrentPositionPendingRouteGeneration
+                    ? getCurrentPositionRouteBlockingMessage(browserGeolocation)
+                    : routePreviewRequestError
+                      ? routePreviewRequestError
+                      : isRoutePreviewStale
+                        ? "Planning inputs changed since the last routed preview. Generate again to refresh the map and summary."
+                        : hasRoutePreview
+                          ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
+                          : "Generate a route to call the backend preview boundary for the first time."}
               </p>
             </section>
           </fieldset>
@@ -1131,10 +1209,11 @@ export function App() {
                   </div>
                 </div>
                 <p className="helper-copy">
-                  This first navigation pass uses a local simulated current
-                  position so the execution UI can surface route progress, next
-                  instruction cues, and off-route warnings without requiring
-                  live geolocation yet.
+                  Live browser geolocation now sits behind its own reusable
+                  boundary, but this first navigation pass still uses a local
+                  simulated current position so the execution UI can surface
+                  route progress, next instruction cues, and off-route warnings
+                  before the live position feed lands.
                 </p>
                 <button
                   type="button"
@@ -1227,6 +1306,128 @@ function getRouteStatusClass(status: RouteGenerateResponse["status"]) {
   }
 
   return "status-pill--error";
+}
+
+function getCurrentPositionOptionDetail(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "ready":
+      return "Using the latest browser GPS fix for route generation.";
+    case "requesting":
+      return "Waiting for browser permission and a usable GPS fix.";
+    case "denied":
+      return "Location permission is denied until it is re-enabled.";
+    case "unsupported":
+      return "This browser cannot provide a live GPS start point.";
+    case "unavailable":
+      return "Browser geolocation is available, but the current fix is unavailable.";
+    case "idle":
+    default:
+      return "Switch here to request browser GPS permission.";
+  }
+}
+
+function getCurrentPositionStatusLabel(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "ready":
+      return "GPS fix ready";
+    case "requesting":
+      return "Requesting GPS";
+    case "denied":
+      return "Permission denied";
+    case "unsupported":
+      return "Geolocation unsupported";
+    case "unavailable":
+      return "GPS unavailable";
+    case "idle":
+    default:
+      return "GPS idle";
+  }
+}
+
+function getCurrentPositionStatusPillClassName(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "ready":
+      return "status-pill--active";
+    case "requesting":
+      return "status-pill--warning";
+    case "denied":
+    case "unsupported":
+    case "unavailable":
+      return "status-pill--error";
+    case "idle":
+    default:
+      return "";
+  }
+}
+
+function getCurrentPositionHelperClassName(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "ready":
+      return "helper-copy--active";
+    case "requesting":
+      return "helper-copy--warning";
+    case "denied":
+    case "unsupported":
+    case "unavailable":
+      return "helper-copy--error";
+    case "idle":
+    default:
+      return "";
+  }
+}
+
+function getCurrentPositionHelperCopy(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  if (browserGeolocation.status === "ready" && browserGeolocation.position) {
+    const accuracyText =
+      browserGeolocation.position.accuracyMeters === null
+        ? "Accuracy is currently unavailable."
+        : `Accuracy is about ${formatWholeMeters(
+            browserGeolocation.position.accuracyMeters,
+          )}.`;
+
+    return `Using browser location ${formatCoordinate(
+      browserGeolocation.position.coordinate,
+    )} as the route start. ${accuracyText}`;
+  }
+
+  if (browserGeolocation.status === "requesting") {
+    return "The browser location watch is active. Route generation will stay paused until permission is granted and a usable fix arrives.";
+  }
+
+  if (browserGeolocation.message) {
+    return browserGeolocation.message;
+  }
+
+  return "Switch to Current GPS position to request browser location access.";
+}
+
+function getCurrentPositionRouteBlockingMessage(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "requesting":
+      return "Route generation waits for browser permission and a usable GPS fix before Current GPS position can be used.";
+    case "denied":
+      return "Route generation is paused because browser location permission was denied. Choose another start point or re-enable permission.";
+    case "unsupported":
+      return "Route generation is paused because this browser does not expose geolocation. Choose another start point.";
+    case "unavailable":
+      return "Route generation waits for a usable browser GPS fix. Choose another start point or try again once location data is available.";
+    case "idle":
+    case "ready":
+    default:
+      return "Route generation waits for the current browser location.";
+  }
 }
 
 function serializeComparablePlanningRequest(request: RouteGenerateRequest) {

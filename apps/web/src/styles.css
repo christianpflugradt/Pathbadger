@@ -634,8 +634,25 @@ body {
   color: #8c5d14;
 }
 
+.start-point-status {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.helper-copy--active {
+  color: #556427;
+}
+
 .helper-copy--locked {
   color: #8c5d14;
+}
+
+.helper-copy--warning {
+  color: #8c5d14;
+}
+
+.helper-copy--error {
+  color: #87342b;
 }
 
 .navigation-slider {

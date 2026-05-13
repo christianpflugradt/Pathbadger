@@ -1,7 +1,7 @@
 id: ITEM-0021
 type: feature
 priority: P0
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0010
@@ -17,6 +17,9 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: active navigation still depends on simulated slider state, so the smallest next slice is a reusable browser geolocation boundary rather than mixing `watchPosition` logic directly into the execution card."
+  - "2026-05-13 implement: Added `apps/web/src/browser-geolocation.ts` as the reusable browser-side geolocation boundary, including watch lifecycle management, normalized shared coordinate output, and honest `requesting`, `ready`, `unsupported`, `denied`, and `unavailable` states."
+  - "2026-05-13 implement: Wired `apps/web/src/App.tsx` into the new boundary for the Current GPS start mode so the planner shows live geolocation state, pauses route generation until a usable fix exists, and keeps navigation geolocation concerns out of the planning shell."
+  - "2026-05-13 implement: Covered normalized position handling plus unsupported and denied fallback behavior in `apps/web/src/browser-geolocation.test.ts`, then verified the UI in the in-app browser where Current GPS position surfaced `Permission denied` and disabled route generation honestly."
 created_at: 2026-05-13T21:06:33+02:00
-updated_at: 2026-05-13T21:06:33+02:00
-closed_at: null
+updated_at: 2026-05-13T21:28:20+02:00
+closed_at: 2026-05-13T21:28:20+02:00
