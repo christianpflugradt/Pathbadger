@@ -1,56 +1,452 @@
-import { activityOptions, surfacePreferenceOptions } from "@pathbadger/shared";
+import { useState } from "react";
+import {
+  DEFAULT_DISTANCE_TOLERANCE_METERS,
+  activityOptions,
+  surfacePreferenceOptions,
+} from "@pathbadger/shared";
+import type {
+  Activity,
+  Coordinate,
+  RouteGenerateRequest,
+  SurfacePreference,
+} from "@pathbadger/shared";
 
 import { webRuntimeConfig } from "./config";
 import "./styles.css";
 
+type StartPointMode =
+  | "current_position"
+  | "map_point"
+  | "saved_default"
+  | "last_used";
+type PassThroughPoint = {
+  id: string;
+  label: string;
+  coordinate: Coordinate;
+  source: "map";
+};
+
+const startPointCatalog: Record<
+  StartPointMode,
+  {
+    label: string;
+    detail: string;
+    coordinate: Coordinate;
+  }
+> = {
+  current_position: {
+    label: "Current GPS position",
+    detail: "Fastest option once location permission is granted.",
+    coordinate: { lat: 54.3233, lon: 10.1228 },
+  },
+  map_point: {
+    label: "Map-selected point",
+    detail: "Intended primary mode when MapLibre lands.",
+    coordinate: { lat: 54.3362, lon: 10.1464 },
+  },
+  saved_default: {
+    label: "Remembered default",
+    detail: "Useful for repeated trailheads or home starts.",
+    coordinate: { lat: 54.2981, lon: 10.1714 },
+  },
+  last_used: {
+    label: "Last used start",
+    detail: "Fallback when no explicit start is chosen.",
+    coordinate: { lat: 54.3448, lon: 10.1021 },
+  },
+};
+const activityLabels: Record<Activity, string> = {
+  running_walking: "Running / walking",
+  cycling: "Cycling",
+};
+const surfaceLabels: Record<SurfacePreference, string> = {
+  trail: "Trail first",
+  mixed: "Mixed",
+  asphalt: "Asphalt first",
+  indifferent: "Indifferent",
+};
+const mapPointDrafts: Omit<PassThroughPoint, "id">[] = [
+  {
+    label: "Forest edge waypoint",
+    coordinate: { lat: 54.3414, lon: 10.1634 },
+    source: "map",
+  },
+  {
+    label: "Canal crossing waypoint",
+    coordinate: { lat: 54.3169, lon: 10.1884 },
+    source: "map",
+  },
+  {
+    label: "Trail junction waypoint",
+    coordinate: { lat: 54.3298, lon: 10.1113 },
+    source: "map",
+  },
+];
+
 export function App() {
+  const [startPointMode, setStartPointMode] =
+    useState<StartPointMode>("map_point");
+  const [activity, setActivity] = useState<Activity>("running_walking");
+  const [surfacePreference, setSurfacePreference] =
+    useState<SurfacePreference>("trail");
+  const [targetDistanceKm, setTargetDistanceKm] = useState(12);
+  const [passThroughPoints, setPassThroughPoints] = useState<
+    PassThroughPoint[]
+  >([]);
+  const [variationCount, setVariationCount] = useState(0);
+
+  const startPoint = startPointCatalog[startPointMode];
+  const planningRequest: RouteGenerateRequest = {
+    start: startPoint.coordinate,
+    targetDistanceKm,
+    activity,
+    surfacePreference,
+    passThroughPoints: passThroughPoints.map((point) => point.coordinate),
+    randomSeed: variationCount > 0 ? `draft-variation-${variationCount}` : null,
+    toleranceMeters: DEFAULT_DISTANCE_TOLERANCE_METERS,
+  };
+
+  function addPassThroughPoint() {
+    const draft =
+      mapPointDrafts[passThroughPoints.length % mapPointDrafts.length];
+
+    if (!draft) {
+      return;
+    }
+
+    setPassThroughPoints((current) => [
+      ...current,
+      {
+        ...draft,
+        id: `${draft.label.toLowerCase().replaceAll(" ", "-")}-${current.length + 1}`,
+      },
+    ]);
+  }
+
+  function removePassThroughPoint(id: string) {
+    setPassThroughPoints((current) =>
+      current.filter((point) => point.id !== id),
+    );
+  }
+
+  function requestRoute() {
+    setVariationCount(1);
+  }
+
+  function requestVariation() {
+    setVariationCount((current) => Math.max(1, current + 1));
+  }
+
   return (
-    <main className="app-shell">
+    <main className="planner-shell">
       <section className="hero">
-        <p className="eyebrow">Pathbadger</p>
-        <h1>Agent-ready scaffold for a self-hosted trail routing app.</h1>
-        <p className="lead">
-          The product roadmap is initialized, the monorepo is wired, and the
-          frontend now carries an explicit self-hosted tile-style contract for
-          future MapLibre integration.
-        </p>
+        <div className="hero-copy">
+          <p className="eyebrow">Pathbadger</p>
+          <h1>Plan a trail-first route before the map layer arrives.</h1>
+          <p className="lead">
+            This shell now mirrors the route-planning state: start point,
+            activity, distance, surface preference, pass-through points, and a
+            reserved preview area for the future self-hosted map.
+          </p>
+        </div>
+        <div className="hero-status card">
+          <div className="status-row">
+            <span className="status-pill status-pill--active">
+              Planning state active
+            </span>
+            <span className="status-pill">Navigation later</span>
+          </div>
+          <p>
+            Region target: <strong>{webRuntimeConfig.regionName}</strong>
+          </p>
+          <p className="contract-line">
+            Self-hosted tile style: <code>{webRuntimeConfig.tileStyleUrl}</code>
+          </p>
+        </div>
       </section>
 
-      <section className="card-grid">
-        <article className="card">
-          <h2>Initial activities</h2>
-          <ul>
-            {activityOptions.map((activity) => (
-              <li key={activity}>{activity}</li>
-            ))}
-          </ul>
-        </article>
+      <section className="planner-grid">
+        <form
+          className="planner-panel card"
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <div className="panel-heading">
+            <div>
+              <p className="section-label">Route request</p>
+              <h2>Planning controls</h2>
+            </div>
+            <p className="panel-copy">
+              The structure is live; routing and map interactions are still
+              stubbed behind this UI shell.
+            </p>
+          </div>
 
-        <article className="card">
-          <h2>Surface preferences</h2>
-          <ul>
-            {surfacePreferenceOptions.map((preference) => (
-              <li key={preference}>{preference}</li>
-            ))}
-          </ul>
-        </article>
+          <section className="form-section">
+            <div className="section-heading">
+              <h3>Start point</h3>
+              <p>Choose how the route origin should be defined.</p>
+            </div>
+            <div className="option-grid">
+              {(
+                Object.entries(startPointCatalog) as [
+                  StartPointMode,
+                  (typeof startPointCatalog)[StartPointMode],
+                ][]
+              ).map(([mode, option]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`option-card${
+                    startPointMode === mode ? " option-card--selected" : ""
+                  }`}
+                  onClick={() => setStartPointMode(mode)}
+                >
+                  <span className="option-title">{option.label}</span>
+                  <span className="option-detail">{option.detail}</span>
+                </button>
+              ))}
+            </div>
+          </section>
 
-        <article className="card">
-          <h2>Current status</h2>
-          <ul>
-            <li>
-              Routing and map behavior are intentionally not implemented yet.
-            </li>
-            <li>
-              Self-hosted GraphHopper and tiles are reserved in Docker Compose.
-            </li>
-            <li>
-              Future map style source:{" "}
-              <code>{webRuntimeConfig.tileStyleUrl}</code>
-            </li>
-            <li>Target region: {webRuntimeConfig.regionName}</li>
-          </ul>
-        </article>
+          <section className="form-section">
+            <div className="section-heading">
+              <h3>Activity</h3>
+              <p>
+                Keep the request aligned with legal routing and trail usage.
+              </p>
+            </div>
+            <div className="segmented-grid">
+              {activityOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`segment${
+                    activity === option ? " segment--selected" : ""
+                  }`}
+                  onClick={() => setActivity(option)}
+                >
+                  {activityLabels[option]}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="form-section">
+            <div className="section-heading">
+              <h3>Target distance</h3>
+              <p>Distance stays in kilometers, with tolerance handled later.</p>
+            </div>
+            <div className="distance-controls">
+              <label className="distance-input">
+                <span>Target km</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="80"
+                  step="0.5"
+                  value={targetDistanceKm}
+                  onChange={(event) =>
+                    setTargetDistanceKm(Number(event.target.value) || 1)
+                  }
+                />
+              </label>
+              <input
+                className="distance-slider"
+                type="range"
+                min="4"
+                max="40"
+                step="1"
+                value={targetDistanceKm}
+                onChange={(event) =>
+                  setTargetDistanceKm(Number(event.target.value))
+                }
+              />
+            </div>
+          </section>
+
+          <section className="form-section">
+            <div className="section-heading">
+              <h3>Surface preference</h3>
+              <p>
+                Scoring comes later, but the preference is already explicit.
+              </p>
+            </div>
+            <div className="segmented-grid segmented-grid--surface">
+              {surfacePreferenceOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`segment${
+                    surfacePreference === option ? " segment--selected" : ""
+                  }`}
+                  onClick={() => setSurfacePreference(option)}
+                >
+                  {surfaceLabels[option]}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="form-section">
+            <div className="section-heading">
+              <h3>Pass-through points</h3>
+              <p>
+                Map-selected waypoints are stubbed in now. Local place search
+                can be layered in later.
+              </p>
+            </div>
+            <div className="button-row">
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={addPassThroughPoint}
+              >
+                Add map-selected point
+              </button>
+              <button type="button" className="button button--ghost" disabled>
+                Place search later
+              </button>
+            </div>
+            {passThroughPoints.length > 0 ? (
+              <ul className="pass-through-list">
+                {passThroughPoints.map((point) => (
+                  <li key={point.id} className="pass-through-item">
+                    <div>
+                      <strong>{point.label}</strong>
+                      <span>
+                        {point.coordinate.lat.toFixed(4)},{" "}
+                        {point.coordinate.lon.toFixed(4)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="mini-action"
+                      onClick={() => removePassThroughPoint(point.id)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-state">
+                No required pass-through points yet. The route can stay fully
+                spontaneous.
+              </p>
+            )}
+          </section>
+
+          <section className="form-section form-section--actions">
+            <div className="button-row">
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={requestRoute}
+              >
+                Generate route
+              </button>
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={requestVariation}
+              >
+                Generate variation
+              </button>
+            </div>
+            <p className="helper-copy">
+              Variation requests currently update the shell only. Live
+              GraphHopper orchestration remains later routing-core work.
+            </p>
+          </section>
+        </form>
+
+        <section className="preview-column">
+          <article className="card preview-card">
+            <div className="panel-heading">
+              <div>
+                <p className="section-label">Route planning state</p>
+                <h2>Preview shell</h2>
+              </div>
+              <span className="status-pill status-pill--active">
+                Candidate {Math.max(variationCount, 1)}
+              </span>
+            </div>
+
+            <div className="map-placeholder">
+              <div className="map-placeholder__scrim" />
+              <div className="map-placeholder__content">
+                <p className="map-label">Future MapLibre mount</p>
+                <h3>Map and route preview reserved</h3>
+                <p>
+                  This surface is ready for the self-hosted style document and a
+                  later route line overlay.
+                </p>
+              </div>
+            </div>
+
+            <div className="preview-grid">
+              <div className="preview-stat">
+                <span>Start mode</span>
+                <strong>{startPoint.label}</strong>
+              </div>
+              <div className="preview-stat">
+                <span>Activity</span>
+                <strong>{activityLabels[activity]}</strong>
+              </div>
+              <div className="preview-stat">
+                <span>Distance</span>
+                <strong>{targetDistanceKm.toFixed(1)} km</strong>
+              </div>
+              <div className="preview-stat">
+                <span>Surface</span>
+                <strong>{surfaceLabels[surfacePreference]}</strong>
+              </div>
+            </div>
+
+            <div className="request-preview">
+              <div className="section-heading">
+                <h3>Shared request contract preview</h3>
+                <p>
+                  The UI shell already lines up with the route request schema
+                  that the API boundary expects.
+                </p>
+              </div>
+              <pre>
+                <code>{JSON.stringify(planningRequest, null, 2)}</code>
+              </pre>
+            </div>
+          </article>
+
+          <article className="card navigation-handoff">
+            <div className="panel-heading">
+              <div>
+                <p className="section-label">Execution state</p>
+                <h2>Navigation stays separate</h2>
+              </div>
+              <span className="status-pill">Locked for now</span>
+            </div>
+            <p className="panel-copy">
+              Route execution controls stay out of the planning state until a
+              confirmed route exists.
+            </p>
+            <ul className="handoff-list">
+              <li>
+                Current route line and follow-position behavior come later.
+              </li>
+              <li>
+                Instruction cues, progress metrics, and off-route alerts stay in
+                the navigation phase.
+              </li>
+              <li>
+                Start navigation remains disabled until route preview work is
+                real.
+              </li>
+            </ul>
+            <button type="button" className="button button--ghost" disabled>
+              Start navigation later
+            </button>
+          </article>
+        </section>
       </section>
     </main>
   );
