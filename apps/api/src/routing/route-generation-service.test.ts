@@ -6,6 +6,16 @@ import {
 } from "./graphhopper-adapter.js";
 import { createRouteGenerationService } from "./route-generation-service.js";
 
+function createSurfaceDetails(
+  details: Array<{
+    distanceMeters: number;
+    surface: string | null;
+    roadClass: string | null;
+  }>,
+) {
+  return details;
+}
+
 function createUnknownSurfaceDetails(distanceMeters: number) {
   return [
     {
@@ -34,7 +44,18 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
-            surfaceDetails: createUnknownSurfaceDetails(12_240),
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 6_120,
+                surface: "asphalt",
+                roadClass: "residential",
+              },
+              {
+                distanceMeters: 6_120,
+                surface: "gravel",
+                roadClass: "track",
+              },
+            ]),
           })
           .mockResolvedValueOnce({
             distanceMeters: 12_040,
@@ -48,7 +69,23 @@ describe("createRouteGenerationService", () => {
                 [10.1228, 54.3233],
               ],
             },
-            surfaceDetails: createUnknownSurfaceDetails(12_040),
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 6_020,
+                surface: "asphalt",
+                roadClass: "residential",
+              },
+              {
+                distanceMeters: 3_010,
+                surface: "gravel",
+                roadClass: "track",
+              },
+              {
+                distanceMeters: 3_010,
+                surface: null,
+                roadClass: "path",
+              },
+            ]),
           }),
       },
     });
@@ -73,10 +110,10 @@ describe("createRouteGenerationService", () => {
         distanceDeltaMeters: 40,
         elevationGainMeters: 82,
         surface: {
-          asphaltPercent: null,
-          trailUnpavedPercent: null,
-          fieldTrackOtherPercent: null,
-          unknownPercent: null,
+          asphaltPercent: 50,
+          trailUnpavedPercent: 25,
+          fieldTrackOtherPercent: 25,
+          unknownPercent: 0,
         },
       },
       geometry: {
@@ -146,9 +183,9 @@ describe("createRouteGenerationService", () => {
             "The first routed preview is outside the requested distance tolerance.",
         },
         {
-          code: "surface_preference_pending",
+          code: "surface_data_incomplete",
           message:
-            "Surface preference is not applied yet in the first routed preview.",
+            "Surface classification is incomplete for 100% of this routed preview.",
         },
       ],
       summary: {
@@ -157,10 +194,10 @@ describe("createRouteGenerationService", () => {
         distanceDeltaMeters: 340,
         elevationGainMeters: 84,
         surface: {
-          asphaltPercent: null,
-          trailUnpavedPercent: null,
-          fieldTrackOtherPercent: null,
-          unknownPercent: null,
+          asphaltPercent: 0,
+          trailUnpavedPercent: 0,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 100,
         },
       },
       geometry: {
@@ -195,7 +232,18 @@ describe("createRouteGenerationService", () => {
             [10.1228, 54.3233],
           ],
         },
-        surfaceDetails: createUnknownSurfaceDetails(20_040),
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 10_020,
+            surface: "asphalt",
+            roadClass: "secondary",
+          },
+          {
+            distanceMeters: 10_020,
+            surface: "gravel",
+            roadClass: "track",
+          },
+        ]),
       });
     const service = createRouteGenerationService({
       routingEngine: {
@@ -224,10 +272,10 @@ describe("createRouteGenerationService", () => {
         distanceDeltaMeters: 40,
         elevationGainMeters: 120,
         surface: {
-          asphaltPercent: null,
-          trailUnpavedPercent: null,
-          fieldTrackOtherPercent: null,
-          unknownPercent: null,
+          asphaltPercent: 50,
+          trailUnpavedPercent: 50,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 0,
         },
       },
       geometry: {
@@ -315,6 +363,106 @@ describe("createRouteGenerationService", () => {
       ],
       summary: null,
       geometry: null,
+    });
+  });
+
+  it("prefers the better trail-matching routed candidate when distance fit is still reasonable", async () => {
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute: vi
+          .fn()
+          .mockResolvedValueOnce({
+            distanceMeters: 10_020,
+            durationMs: 2_340_000,
+            elevationGainMeters: 120,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.152, 54.3375],
+                [10.1228, 54.3233],
+              ],
+            },
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 9_018,
+                surface: "asphalt",
+                roadClass: "secondary",
+              },
+              {
+                distanceMeters: 1_002,
+                surface: null,
+                roadClass: "path",
+              },
+            ]),
+          })
+          .mockResolvedValueOnce({
+            distanceMeters: 10_100,
+            durationMs: 2_360_000,
+            elevationGainMeters: 124,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.141, 54.332],
+                [10.1228, 54.3233],
+              ],
+            },
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 7_070,
+                surface: "gravel",
+                roadClass: "track",
+              },
+              {
+                distanceMeters: 2_020,
+                surface: null,
+                roadClass: "path",
+              },
+              {
+                distanceMeters: 1_010,
+                surface: "asphalt",
+                roadClass: "residential",
+              },
+            ]),
+          }),
+      },
+    });
+
+    const response = await service.generateRoute({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: "trail-seed",
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "trail",
+      targetDistanceKm: 10,
+      toleranceMeters: 150,
+    });
+
+    expect(response).toEqual({
+      routeId: "trail-seed-counter",
+      status: "success",
+      warnings: [],
+      summary: {
+        totalDistanceKm: 10.1,
+        targetDistanceKm: 10,
+        distanceDeltaMeters: 100,
+        elevationGainMeters: 124,
+        surface: {
+          asphaltPercent: 10,
+          trailUnpavedPercent: 70,
+          fieldTrackOtherPercent: 20,
+          unknownPercent: 0,
+        },
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.141, 54.332],
+          [10.1228, 54.3233],
+        ],
+      },
     });
   });
 });

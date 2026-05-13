@@ -1,7 +1,7 @@
 id: ITEM-0015
 type: feature
 priority: P0
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0008
@@ -19,6 +19,9 @@ implementation_notes:
   - "2026-05-13 refine: product phase 4 still calls for surface preference mapping and route summary statistics, but the current scorer only ranks by distance fit and treats every non-indifferent request as surface work still pending."
   - "2026-05-13 refine: the next scoring step should stay inside `apps/api/src/routing/routed-candidate-scoring.ts` and `route-generation-service.ts` so the planner can receive richer summaries without changing the request contract again."
   - "2026-05-13 refine: `ITEM-0014` is now done, so routed candidates carry normalized `surfaceDetails` segments from the adapter. The smallest next step is to consume those segments in scoring, populate `RouteSummary.surface` honestly, and replace the placeholder `surface_preference_pending` behavior."
+  - "2026-05-13 implement: Reworked `apps/api/src/routing/routed-candidate-scoring.ts` to derive asphalt, trail/unpaved, field-track-other, and unknown percentages from normalized `surfaceDetails`, add a dedicated `surfacePreferenceScore`, and combine that with distance fit for candidate ranking."
+  - "2026-05-13 implement: Replaced the placeholder surface warning with `surface_data_incomplete`, so partial previews now distinguish distance misses from uncertain classification while returning honest `RouteSummary.surface` values instead of all-null placeholders."
+  - "2026-05-13 implement: Expanded scorer and route-generation tests to prove trail, asphalt, mixed, and indifferent preference behavior, plus updated app and web client fixtures so the shared preview contract reflects real surface summaries and warnings."
 created_at: 2026-05-13T18:35:35+02:00
-updated_at: 2026-05-13T18:49:17+02:00
-closed_at: null
+updated_at: 2026-05-13T19:05:53+02:00
+closed_at: 2026-05-13T19:05:53+02:00

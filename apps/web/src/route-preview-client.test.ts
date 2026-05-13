@@ -11,9 +11,9 @@ describe("requestRoutePreview", () => {
           status: "partial",
           warnings: [
             {
-              code: "surface_preference_pending",
+              code: "surface_data_incomplete",
               message:
-                "Surface preference is not applied yet in the first routed preview.",
+                "Surface classification is incomplete for 35% of this routed preview.",
             },
           ],
           summary: {
@@ -22,10 +22,10 @@ describe("requestRoutePreview", () => {
             distanceDeltaMeters: 340,
             elevationGainMeters: 88,
             surface: {
-              asphaltPercent: null,
-              trailUnpavedPercent: null,
-              fieldTrackOtherPercent: null,
-              unknownPercent: null,
+              asphaltPercent: 25,
+              trailUnpavedPercent: 40,
+              fieldTrackOtherPercent: 0,
+              unknownPercent: 35,
             },
           },
           geometry: {

@@ -2,6 +2,23 @@ import { describe, expect, it } from "vitest";
 
 import { scoreRoutedCandidate } from "./routed-candidate-scoring.js";
 
+function createSurfaceDetails(
+  details: Array<{
+    distanceMeters: number;
+    surface: string | null;
+    roadClass: string | null;
+  }>,
+) {
+  return details;
+}
+
+function createGeometry(coordinates: Array<[number, number]>) {
+  return {
+    type: "LineString" as const,
+    coordinates,
+  };
+}
+
 function createUnknownSurfaceDetails(distanceMeters: number) {
   return [
     {
@@ -29,15 +46,28 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 12_040,
         durationMs: 4_920_000,
         elevationGainMeters: 88,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.1452, 54.3321],
-            [10.1228, 54.3233],
-          ],
-        },
-        surfaceDetails: createUnknownSurfaceDetails(12_040),
+        geometry: createGeometry([
+          [10.1228, 54.3233],
+          [10.1452, 54.3321],
+          [10.1228, 54.3233],
+        ]),
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 6_020,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+          {
+            distanceMeters: 3_010,
+            surface: "gravel",
+            roadClass: "track",
+          },
+          {
+            distanceMeters: 3_010,
+            surface: null,
+            roadClass: "path",
+          },
+        ]),
       },
     });
 
@@ -45,6 +75,7 @@ describe("scoreRoutedCandidate", () => {
       routeId: "candidate-001",
       score: -40,
       distanceFitScore: -40,
+      surfacePreferenceScore: 0,
       isWithinTolerance: true,
       status: "success",
       warnings: [],
@@ -54,10 +85,10 @@ describe("scoreRoutedCandidate", () => {
         distanceDeltaMeters: 40,
         elevationGainMeters: 88,
         surface: {
-          asphaltPercent: null,
-          trailUnpavedPercent: null,
-          fieldTrackOtherPercent: null,
-          unknownPercent: null,
+          asphaltPercent: 50,
+          trailUnpavedPercent: 25,
+          fieldTrackOtherPercent: 25,
+          unknownPercent: 0,
         },
       },
       geometry: {
@@ -87,23 +118,27 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 12_340,
         durationMs: 4_920_000,
         elevationGainMeters: 88,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.152, 54.3375],
-            [10.1228, 54.3233],
-          ],
-        },
+        geometry: createGeometry([
+          [10.1228, 54.3233],
+          [10.152, 54.3375],
+          [10.1228, 54.3233],
+        ]),
         surfaceDetails: createUnknownSurfaceDetails(12_340),
       },
     });
 
     expect(scoredCandidate.status).toBe("partial");
-    expect(scoredCandidate.score).toBe(-340);
     expect(scoredCandidate.distanceFitScore).toBe(-340);
+    expect(scoredCandidate.surfacePreferenceScore).toBe(-100);
+    expect(scoredCandidate.score).toBe(-440);
     expect(scoredCandidate.isWithinTolerance).toBe(false);
     expect(scoredCandidate.summary.distanceDeltaMeters).toBe(340);
+    expect(scoredCandidate.summary.surface).toEqual({
+      asphaltPercent: 0,
+      trailUnpavedPercent: 0,
+      fieldTrackOtherPercent: 0,
+      unknownPercent: 100,
+    });
     expect(scoredCandidate.warnings).toEqual([
       {
         code: "distance_outside_tolerance",
@@ -111,9 +146,9 @@ describe("scoreRoutedCandidate", () => {
           "The first routed preview is outside the requested distance tolerance.",
       },
       {
-        code: "surface_preference_pending",
+        code: "surface_data_incomplete",
         message:
-          "Surface preference is not applied yet in the first routed preview.",
+          "Surface classification is incomplete for 100% of this routed preview.",
       },
     ]);
   });
@@ -135,14 +170,22 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 20_060,
         durationMs: 2_340_000,
         elevationGainMeters: 120,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.141, 54.332],
-          ],
-        },
-        surfaceDetails: createUnknownSurfaceDetails(20_060),
+        geometry: createGeometry([
+          [10.1228, 54.3233],
+          [10.141, 54.332],
+        ]),
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 10_030,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+          {
+            distanceMeters: 10_030,
+            surface: "gravel",
+            roadClass: "track",
+          },
+        ]),
       },
     });
     const fartherCandidate = scoreRoutedCandidate({
@@ -152,19 +195,204 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 20_380,
         durationMs: 2_340_000,
         elevationGainMeters: 120,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.152, 54.3375],
-          ],
-        },
-        surfaceDetails: createUnknownSurfaceDetails(20_380),
+        geometry: createGeometry([
+          [10.1228, 54.3233],
+          [10.152, 54.3375],
+        ]),
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 10_190,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+          {
+            distanceMeters: 10_190,
+            surface: "gravel",
+            roadClass: "track",
+          },
+        ]),
       },
     });
 
     expect(closerCandidate.score).toBeGreaterThan(fartherCandidate.score);
     expect(closerCandidate.distanceFitScore).toBe(-60);
     expect(fartherCandidate.distanceFitScore).toBe(-380);
+  });
+
+  it("makes trail and asphalt preferences observable in candidate scores", () => {
+    const trailCandidate = {
+      routeId: "candidate-trail",
+      distanceMeters: 10_040,
+      durationMs: 2_340_000,
+      elevationGainMeters: 120,
+      geometry: createGeometry([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
+      surfaceDetails: createSurfaceDetails([
+        {
+          distanceMeters: 7_028,
+          surface: "gravel",
+          roadClass: "track",
+        },
+        {
+          distanceMeters: 2_008,
+          surface: null,
+          roadClass: "path",
+        },
+        {
+          distanceMeters: 1_004,
+          surface: "asphalt",
+          roadClass: "residential",
+        },
+      ]),
+    };
+    const asphaltCandidate = {
+      routeId: "candidate-asphalt",
+      distanceMeters: 10_040,
+      durationMs: 2_340_000,
+      elevationGainMeters: 120,
+      geometry: createGeometry([
+        [10.1228, 54.3233],
+        [10.152, 54.3375],
+      ]),
+      surfaceDetails: createSurfaceDetails([
+        {
+          distanceMeters: 8_032,
+          surface: "asphalt",
+          roadClass: "secondary",
+        },
+        {
+          distanceMeters: 2_008,
+          surface: "gravel",
+          roadClass: "track",
+        },
+      ]),
+    };
+
+    const trailRequest = {
+      activity: "running_walking" as const,
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "trail" as const,
+      targetDistanceKm: 10,
+      toleranceMeters: 150,
+    };
+    const asphaltRequest = {
+      ...trailRequest,
+      surfacePreference: "asphalt" as const,
+    };
+
+    expect(
+      scoreRoutedCandidate({
+        request: trailRequest,
+        candidate: trailCandidate,
+      }).score,
+    ).toBeGreaterThan(
+      scoreRoutedCandidate({
+        request: trailRequest,
+        candidate: asphaltCandidate,
+      }).score,
+    );
+    expect(
+      scoreRoutedCandidate({
+        request: asphaltRequest,
+        candidate: asphaltCandidate,
+      }).score,
+    ).toBeGreaterThan(
+      scoreRoutedCandidate({
+        request: asphaltRequest,
+        candidate: trailCandidate,
+      }).score,
+    );
+  });
+
+  it("keeps mixed preference from collapsing into always-closest distance fit", () => {
+    const balancedCandidate = {
+      routeId: "candidate-balanced",
+      distanceMeters: 10_120,
+      durationMs: 2_340_000,
+      elevationGainMeters: 120,
+      geometry: createGeometry([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
+      surfaceDetails: createSurfaceDetails([
+        {
+          distanceMeters: 4_048,
+          surface: "asphalt",
+          roadClass: "residential",
+        },
+        {
+          distanceMeters: 3_036,
+          surface: "gravel",
+          roadClass: "track",
+        },
+        {
+          distanceMeters: 3_036,
+          surface: null,
+          roadClass: "path",
+        },
+      ]),
+    };
+    const oneSidedCandidate = {
+      routeId: "candidate-one-sided",
+      distanceMeters: 10_020,
+      durationMs: 2_340_000,
+      elevationGainMeters: 120,
+      geometry: createGeometry([
+        [10.1228, 54.3233],
+        [10.152, 54.3375],
+      ]),
+      surfaceDetails: createSurfaceDetails([
+        {
+          distanceMeters: 9_018,
+          surface: "asphalt",
+          roadClass: "secondary",
+        },
+        {
+          distanceMeters: 1_002,
+          surface: null,
+          roadClass: "path",
+        },
+      ]),
+    };
+    const mixedRequest = {
+      activity: "cycling" as const,
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed" as const,
+      targetDistanceKm: 10,
+      toleranceMeters: 150,
+    };
+    const indifferentRequest = {
+      ...mixedRequest,
+      surfacePreference: "indifferent" as const,
+    };
+
+    expect(
+      scoreRoutedCandidate({
+        request: mixedRequest,
+        candidate: balancedCandidate,
+      }).score,
+    ).toBeGreaterThan(
+      scoreRoutedCandidate({
+        request: mixedRequest,
+        candidate: oneSidedCandidate,
+      }).score,
+    );
+    expect(
+      scoreRoutedCandidate({
+        request: indifferentRequest,
+        candidate: oneSidedCandidate,
+      }).score,
+    ).toBeGreaterThan(
+      scoreRoutedCandidate({
+        request: indifferentRequest,
+        candidate: balancedCandidate,
+      }).score,
+    );
   });
 });
