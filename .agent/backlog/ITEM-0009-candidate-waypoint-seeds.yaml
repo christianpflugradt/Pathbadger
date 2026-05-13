@@ -1,7 +1,7 @@
 id: ITEM-0009
 type: feature
 priority: P0
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0006
@@ -17,6 +17,10 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: `apps/api` has a GraphHopper adapter but still lacks any route-generation helper that can turn a planning request into candidate waypoint sets for round-trip routing."
+  - "2026-05-13 implement: Added `apps/api/src/routing/candidate-waypoint-seeds.ts` as the first deterministic candidate-generation helper. It parses the shared planning request, resolves a stable seed, derives round-trip-friendly loop waypoints from target distance, and returns two candidate point lists for later GraphHopper orchestration."
+  - "2026-05-13 implement: Candidate output keeps optional pass-through points in-order inside every generated point list and falls back to a deterministic derived seed when the request does not provide one."
+  - "2026-05-13 implement: Added `apps/api/src/routing/candidate-waypoint-seeds.test.ts` to verify same-request determinism, pass-through ordering preservation, and deterministic fallback behavior for null random seeds."
+  - "2026-05-13 implement: Verified with `npm run test`, `npm run typecheck`, and `npm run verify`."
 created_at: 2026-05-13T17:26:57+02:00
-updated_at: 2026-05-13T17:26:57+02:00
-closed_at: null
+updated_at: 2026-05-13T17:34:10+02:00
+closed_at: 2026-05-13T17:34:10+02:00
