@@ -1,6 +1,6 @@
 id: ITEM-0010
 type: feature
-priority: P1
+priority: P0
 status: open
 scope: api
 origin: refine
@@ -17,6 +17,7 @@ verification:
   - npm run verify
 implementation_notes:
   - "2026-05-13 refine: `apps/api/src/app.ts` still exposes `/health` only, so no route-generation boundary exists for the web planner to call."
+  - "2026-05-13 refine: `apps/api/src/routing/candidate-waypoint-seeds.ts` now provides deterministic candidate waypoint sets, so the smallest next step is to orchestrate one routed preview candidate and map adapter failures into the shared response contract."
 created_at: 2026-05-13T17:26:57+02:00
-updated_at: 2026-05-13T17:26:57+02:00
+updated_at: 2026-05-13T17:38:14+02:00
 closed_at: null

@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 40
+  overall_progress_percent: 44
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -62,7 +62,7 @@ roadmap:
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: active
-      progress_percent: 10
+      progress_percent: 20
       target_outcome: candidate generation and scoring that match distance and surface preferences honestly
     - id: navigation
       title: GPS route following and navigation metrics
@@ -85,8 +85,9 @@ roadmap:
     - the web planning shell now renders route-request controls, shared request previews, and a separate navigation handoff without mixing execution state into planning
     - the planning screen now mounts a live self-hosted MapLibre surface and reports explicit loading or fetch-failure states instead of a static map placeholder
     - the live planning map now drives the map-selected start and pass-through list, so planner state is synced to real map clicks instead of placeholder coordinates
+    - the api now derives deterministic candidate waypoint seeds from planning inputs, preserving pass-through order and stable random-seed behavior for later routed preview work
   remaining_summary:
-    - current route-generation focus is ITEM-0009 deterministic candidate waypoint seeds, followed by ITEM-0010 API orchestration through the GraphHopper adapter
+    - current route-generation focus is ITEM-0010 API orchestration through the GraphHopper adapter, followed by ITEM-0011 web route-preview rendering
     - map-ui groundwork now includes a live MapLibre surface plus map-selected planning points, but no routed geometry overlay, summary panel, or warning rendering exists yet
     - routing-core groundwork exists, but the API still has no route-generation endpoint or route-response mapping boundary
     - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
