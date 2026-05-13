@@ -1,0 +1,25 @@
+testing:
+  unit:
+    required_for:
+      - geo_calculations
+      - scoring
+      - validation
+      - candidate_generation
+      - route_progress
+  integration:
+    required_for:
+      - api_routes
+      - graphhopper_adapter_with_mocked_http
+      - docker_compose_config
+  playwright_smoke:
+    limited_to:
+      - app_loads
+      - planning_form_renders
+      - route_preview_from_fixture
+      - navigation_view_from_fixture
+    avoid:
+      - brittle_map_pixel_assertions
+      - full_real_gps_tests
+  verification_commands:
+    - npm run verify
+    - npm run compose:test

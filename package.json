@@ -1,0 +1,42 @@
+{
+  "name": "pathbadger",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted trail-first route planning and navigation scaffold for Schleswig-Holstein.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck:shared && npm run typecheck:geo && npm run typecheck:api && npm run typecheck:web",
+    "typecheck:api": "tsc --noEmit -p apps/api/tsconfig.json",
+    "typecheck:geo": "tsc --noEmit -p packages/geo/tsconfig.json",
+    "typecheck:shared": "tsc --noEmit -p packages/shared/tsconfig.json",
+    "typecheck:web": "tsc --noEmit -p apps/web/tsconfig.json",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "./scripts/verify.sh",
+    "compose:test": "./scripts/test-compose.sh",
+    "prepare": "lefthook install"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.7.0",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "lefthook": "^2.1.6",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
+    "vitest": "^4.1.6"
+  }
+}

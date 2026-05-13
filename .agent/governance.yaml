@@ -1,0 +1,45 @@
+governance:
+  priority_order:
+    - correctness_of_core_route_and_navigation_behavior
+    - self_hosted_no_registration_architecture
+    - small_verified_iterations
+    - simplicity_and_low_operational_complexity
+    - low_runtime_memory_and_battery_awareness
+    - maintainability_and_testability
+    - user_experience_for_spontaneous_route_planning
+    - feature_completeness
+    - polish_and_visual_refinement
+  forbidden_autonomous_behavior:
+    - replacing_react_or_fastify_or_graphhopper_without_explicit_user_approval
+    - adding_registration_required_map_or_routing_dependencies
+    - adding_user_accounts_or_authentication
+    - adding_route_library_or_saved_route_management
+    - adding_postgresql_redis_or_postgis_before_a_backlog_item_justifies_it
+    - adding_graphql
+    - committing_large_map_artifacts_or_secrets
+    - bypassing_hooks_with_no_verify
+    - marking_items_done_without_verification
+    - implementing_multiple_unrelated_items_in_one_implement_command
+    - using_pnpm_yarn_bun_or_other_non_npm_package_managers
+  stop_conditions:
+    - architecture_conflict_with_product_brief
+    - paid_or_registered_dependency_becomes_required
+    - chosen_core_technology_is_not_viable
+    - quality_gates_fail_after_three_fix_attempts
+    - host_resources_cannot_support_compose_startup
+    - security_fix_requires_scope_change
+    - backlog_item_requires_product_scope_change
+    - implementation_requires_large_rewrite
+    - git_remote_unavailable_for_required_push
+    - map_data_or_licensing_becomes_unclear
+  item_size_limits:
+    target_changed_files_max: 12
+    hard_changed_files_max: 20
+    target_net_lines_changed_max: 500
+    hard_net_lines_changed_max: 900
+  command_rules:
+    refine_updates_roadmap: true
+    implement_exactly_one_item: true
+    review_does_not_update_roadmap: true
+    review_uses_product_vision_reference: true
+    package_manager_must_be_npm: true

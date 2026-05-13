@@ -1,0 +1,52 @@
+architecture:
+  stack:
+    package_manager: npm workspaces
+    frontend: React + TypeScript + Vite
+    map: MapLibre GL JS
+    backend: Node.js + TypeScript + Fastify
+    routing: GraphHopper self-hosted
+    tiles: self-hosted TileServer GL or equivalent
+    data: OpenStreetMap Schleswig-Holstein PBF
+    validation: Zod
+    testing: Vitest with limited later Playwright smoke coverage
+  services:
+    web:
+      role: mobile-friendly planning and navigation UI
+      path: apps/web
+    api:
+      role: routing orchestration and validation boundary
+      path: apps/api
+    graphhopper:
+      role: self-hosted routing engine
+      path: services/graphhopper
+      compose_profile: maps
+    tileserver:
+      role: self-hosted map tile service
+      path: services/tileserver
+      compose_profile: maps
+  packages:
+    shared:
+      path: packages/shared
+      role: shared domain types and schemas
+    geo:
+      path: packages/geo
+      role: geospatial math and route-progress calculations
+  constraints:
+    no_registration_required: true
+    no_google_maps_backend: true
+    docker_compose_required: true
+    low_memory_runtime: true
+    navigation_should_compute_locally: true
+    region_limited_to_schleswig_holstein: true
+    package_manager_npm_only: true
+  data_paths:
+    osm: data/osm
+    graphhopper: data/graphhopper
+    tiles: data/tiles
+  decision_records:
+    - docs/adr/ADR-0001-graphhopper.md
+    - docs/adr/ADR-0002-maplibre.md
+    - docs/adr/ADR-0003-schleswig-holstein-only.md
+    - docs/adr/ADR-0004-no-accounts-or-route-library.md
+    - docs/adr/ADR-0005-docker-compose-local-stack.md
+    - docs/adr/ADR-0006-browser-local-storage.md

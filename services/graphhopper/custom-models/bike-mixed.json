@@ -1,0 +1,9 @@
+{
+  "distance_influence": 50,
+  "priority": [
+    {
+      "if": "road_class == CYCLEWAY || road_class == TRACK",
+      "multiply_by": 1.1
+    }
+  ]
+}

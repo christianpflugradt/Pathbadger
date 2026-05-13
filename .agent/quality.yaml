@@ -1,0 +1,21 @@
+quality:
+  required_checks:
+    - lint
+    - typecheck
+    - unit_tests
+    - docker_compose_config_validation
+  optional_checks:
+    - docker_compose_runtime_smoke
+    - playwright_smoke
+  command_entrypoints:
+    verify: npm run verify
+    compose_test: npm run compose:test
+  commit_policy:
+    conventional_commits: true
+    require_scope: true
+    commit_must_pass_hooks: true
+  security:
+    no_secrets_committed: true
+    validate_inputs: true
+    avoid_untrusted_shell_execution: true
+    treat_location_data_as_private: true

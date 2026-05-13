@@ -1,0 +1,20 @@
+id: ITEM-0003
+type: feature
+priority: P1
+status: open
+scope: geo
+origin: user
+parent_epic: EPIC-0001
+title: Add geo primitives needed for route progress tracking
+summary: Expand the geo package with focused route-following utilities that later navigation work can reuse without pushing map logic into the UI.
+acceptance_criteria:
+  - geo exports at least nearest-point or progress-oriented primitives beyond raw distance helpers
+  - new geo behavior is covered by unit tests
+  - public function names and docs match planned navigation use
+verification:
+  - npm run test
+  - npm run typecheck
+implementation_notes: []
+created_at: 2026-05-13T00:00:00+02:00
+updated_at: 2026-05-13T00:00:00+02:00
+closed_at: null

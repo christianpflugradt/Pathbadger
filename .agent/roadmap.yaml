@@ -1,0 +1,85 @@
+roadmap:
+  version: 1
+  source:
+    operational_specs:
+      - .agent/product.yaml
+      - .agent/architecture.yaml
+      - .agent/governance.yaml
+      - .agent/quality.yaml
+    vision_reference: docs/product.md
+  final_product:
+    route_planning_state:
+      required_capabilities:
+        - choose_start_from_map_current_position_or_local_default
+        - choose_activity_running_walking_or_cycling
+        - enter_target_distance_in_km
+        - choose_surface_preference_trail_mixed_asphalt_or_indifferent
+        - add_optional_pass_through_points
+        - generate_one_random_route_candidate
+        - regenerate_a_new_variation
+        - inspect_distance_surface_and_warning_summary
+        - see_clear_feedback_for_unroutable_or_too_long_requests
+    route_execution_state:
+      required_capabilities:
+        - view_route_geometry_on_map
+        - follow_current_position
+        - inspect_next_instruction_and_distance
+        - see_completed_remaining_total_distance
+        - see_current_speed_average_speed_and_progress_percent
+        - receive_off_route_warning
+        - use_north_up_navigation_by_default
+    platform_and_operations:
+      required_capabilities:
+        - npm_only_monorepo_workflow
+        - self_hosted_graphhopper_service
+        - self_hosted_tile_service
+        - docker_compose_orchestrated_stack
+        - automated_lint_typecheck_test_and_compose_validation
+        - durable_agent_roadmap_backlog_and_review_state
+      constraints:
+        - Schleswig-Holstein_only
+        - kilometers_and_kmh_only
+        - no_accounts
+        - no_route_library
+        - no_registration_required_dependencies
+  overall_progress_percent: 0
+  phases:
+    - id: foundation
+      title: Repository, specs, tooling, Docker skeleton
+      status: active
+      progress_percent: 0
+      target_outcome: verified npm-only monorepo foundation with agent workflow and reproducible checks
+    - id: routing-core
+      title: Self-hosted GraphHopper routing for Schleswig-Holstein
+      status: planned
+      progress_percent: 0
+      target_outcome: GraphHopper-backed routing adapter with legal request handling and mocked tests
+    - id: map-ui
+      title: MapLibre map UI and route display
+      status: planned
+      progress_percent: 0
+      target_outcome: route planning map with self-hosted tile wiring and route preview
+    - id: route-generation
+      title: Random route generation, scoring, distance handling
+      status: planned
+      progress_percent: 0
+      target_outcome: candidate generation and scoring that match distance and surface preferences honestly
+    - id: navigation
+      title: GPS route following and navigation metrics
+      status: planned
+      progress_percent: 0
+      target_outcome: mobile-friendly outdoor navigation with local progress calculations
+    - id: hardening
+      title: QA, energy behavior, security, docs, operations
+      status: planned
+      progress_percent: 0
+      target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
+  current_epic: EPIC-0001
+  completed_summary: []
+  remaining_summary:
+    - verified foundation workflows still need refinement and end-to-end hardening
+    - routing-core logic is not implemented
+    - self-hosted tile and graph data workflows are not implemented
+    - planning UI is not implemented
+    - navigation runtime is not implemented
+    - review and hardening loops have not started

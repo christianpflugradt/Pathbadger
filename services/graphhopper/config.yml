@@ -1,0 +1,8 @@
+graphhopper:
+  datareader.file: /data/osm/schleswig-holstein-latest.osm.pbf
+  graph.location: /data/graphhopper/cache
+  import.osm.ignored_highways: motorway,trunk
+server:
+  application_connectors:
+    - type: http
+      port: 8989

@@ -1,0 +1,67 @@
+product:
+  name: pathbadger
+  purpose: spontaneous self-hosted route generation and route following for running and cycling in Schleswig-Holstein
+  region: Schleswig-Holstein
+  users:
+    - private_single_user
+  activities:
+    - running_walking
+    - cycling
+  units:
+    distance: km
+    speed: kmh
+  non_goals:
+    - user_accounts
+    - authentication
+    - multi_user_route_libraries
+    - social_sharing
+    - route_marketplace
+    - route_import
+    - route_management_ui
+    - route_notes
+    - route_ratings
+    - favorite_roads_or_trails
+    - reverse_route
+    - cloud_provider_dependency
+    - paid_map_apis
+    - global_routing
+    - native_mobile_app
+    - voice_navigation
+  feature_groups:
+    route_planning:
+      - start_point_from_map_click
+      - optional_current_position_start
+      - locally_remembered_default_start
+      - locally_remembered_last_start
+      - activity_selection
+      - target_distance_km
+      - surface_preference_selection
+      - optional_pass_through_points
+      - generate_single_route_candidate
+      - generate_another_variation
+      - route_summary_with_distance_surface_and_warnings
+      - impossible_or_too_long_route_handling
+    navigation:
+      - route_line_visible
+      - current_position_visible
+      - follow_position_default_behavior
+      - next_instruction_and_distance
+      - completed_remaining_total_km
+      - progress_percent
+      - current_and_average_speed
+      - off_route_warning
+      - north_up_mode
+      - optional_heading_up_later
+    settings:
+      - local_storage_for_last_activity
+      - local_storage_for_surface_preference
+      - local_storage_for_default_start
+      - local_storage_for_last_start
+      - local_storage_for_navigation_mode
+      - battery_mode_later
+    diagnostics:
+      - honest_surface_unknown_reporting
+      - out_of_region_warning_or_rejection
+      - routing_engine_unavailable_error
+      - invalid_request_error
+      - data_missing_error

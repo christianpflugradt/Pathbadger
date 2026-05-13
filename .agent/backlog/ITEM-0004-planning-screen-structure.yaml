@@ -1,0 +1,20 @@
+id: ITEM-0004
+type: feature
+priority: P1
+status: open
+scope: web
+origin: user
+parent_epic: EPIC-0001
+title: Turn the web placeholder into the planning screen structure
+summary: Build the first real planning-screen layout with the required product fields while keeping map behavior and routing actions stubbed.
+acceptance_criteria:
+  - the web app renders start-point, activity, target-distance, surface-preference, and pass-through controls
+  - the planning screen reflects the two-state product model and keeps navigation controls out of route generation state until needed
+  - the structure is ready for later MapLibre integration without a major rewrite
+verification:
+  - npm run typecheck
+  - npm run lint
+implementation_notes: []
+created_at: 2026-05-13T00:00:00+02:00
+updated_at: 2026-05-13T00:00:00+02:00
+closed_at: null

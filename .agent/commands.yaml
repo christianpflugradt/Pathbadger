@@ -1,0 +1,66 @@
+commands:
+  vision_reference:
+    path: docs/product.md
+    usage: review_only
+  operational_truth:
+    paths:
+      - .agent/product.yaml
+      - .agent/architecture.yaml
+      - .agent/governance.yaml
+      - .agent/quality.yaml
+      - .agent/testing.yaml
+      - .agent/roadmap.yaml
+      - .agent/state.yaml
+  transaction_model:
+    phases:
+      - read_state
+      - plan_minimal_change
+      - apply_change
+      - verify
+      - update_agent_metadata
+      - commit
+      - push
+      - report
+  initial_setup:
+    status: completed
+    package_manager: npm_only
+    next_expected_command: refine
+  refine:
+    purpose: planning_only
+    reads:
+      - full_workspace
+      - .agent/roadmap.yaml
+      - .agent/state.yaml
+      - .agent/product.yaml
+      - .agent/architecture.yaml
+      - .agent/quality.yaml
+      - .agent/epics/*
+      - .agent/backlog/*
+      - .agent/findings/*
+    writes:
+      - .agent/state.yaml
+      - .agent/roadmap.yaml
+      - .agent/epics/*
+      - .agent/backlog/*
+      - .agent/findings/*_only_when_closing_fixed_findings
+    code_changes_allowed: trivial_spec_consistency_only
+  implement:
+    purpose: implement_exactly_one_actionable_item
+    selection_order:
+      - critical_or_high_open_findings
+      - p0_items_in_current_epic
+      - p1_items_in_current_epic
+      - smallest_unblocking_chore
+    must:
+      - update_tests
+      - run_quality_checks
+      - update_item_status
+      - commit_and_push_when_remote_available
+  review:
+    purpose: workspace_audit_and_findings_only
+    compares_against:
+      - .agent/*.yaml
+      - docs/product.md
+    must_not:
+      - update_roadmap_progress
+      - create_scope_expansion_without_evidence

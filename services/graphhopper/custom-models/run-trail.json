@@ -1,0 +1,9 @@
+{
+  "distance_influence": 30,
+  "priority": [
+    {
+      "if": "road_class == FOOTWAY || road_class == PATH || road_class == TRACK",
+      "multiply_by": 1.2
+    }
+  ]
+}

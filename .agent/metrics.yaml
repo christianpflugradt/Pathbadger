@@ -1,0 +1,20 @@
+metrics:
+  product_progress:
+    overall_percent: 0
+    route_planning_percent: 0
+    routing_core_percent: 0
+    navigation_percent: 0
+    hardening_percent: 0
+  quality:
+    open_critical_findings: 0
+    open_high_findings: 0
+    test_status: pass
+    lint_status: pass
+    typecheck_status: pass
+    compose_status: config_valid_runtime_smoke_skipped
+  runtime:
+    measured_memory_mb: null
+    graphhopper_memory_mb: null
+    api_memory_mb: null
+    web_memory_mb: null
+    tileserver_memory_mb: null

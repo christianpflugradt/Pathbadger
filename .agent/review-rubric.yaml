@@ -1,0 +1,26 @@
+review_rubric:
+  categories:
+    - architecture
+    - product_gap
+    - correctness
+    - security
+    - maintainability
+    - duplication
+    - dead_code
+    - performance
+    - battery
+    - testing
+    - documentation
+    - operations
+    - mobile_usability
+  severity_rules:
+    critical: breaks_build_or_security_or_core_route_safety
+    high: blocks_mvp_or_creates_likely_wrong_routes
+    medium: degrades_maintainability_or_user_experience
+    low: minor_quality_gap
+  finding_requirements:
+    - evidence
+    - impact
+    - recommendation
+    - acceptance_criteria
+    - verification

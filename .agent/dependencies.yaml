@@ -1,0 +1,59 @@
+dependencies:
+  approved_stack:
+    language:
+      - TypeScript
+    package_manager:
+      - npm
+    frontend:
+      framework: React
+      build_tool: Vite
+      map_renderer: MapLibre GL JS
+      future_state_library: Zustand
+      future_server_state: TanStack Query
+      future_routing: React Router
+    backend:
+      runtime: Node.js
+      framework: Fastify
+      validation: Zod
+      logging: pino_or_fastify_logger
+    geospatial:
+      routing_engine: GraphHopper
+      map_data: OpenStreetMap Schleswig-Holstein PBF
+      tile_server: TileServer GL or justified Docker-compatible equivalent
+    tests:
+      unit: Vitest
+      ui_smoke: Playwright only for stable smoke tests
+    quality:
+      lint: ESLint
+      format: Prettier
+      hooks: Lefthook
+      commits: commitlint with Conventional Commits
+    containers:
+      orchestration: Docker Compose
+  forbidden_dependencies:
+    frontend:
+      - Next.js
+      - Angular
+      - Vue
+      - Redux
+      - MobX
+    backend:
+      - NestJS
+      - GraphQL
+    operations:
+      - Kubernetes
+      - cloud_only_infrastructure
+      - mandatory_saas_apis
+    maps_and_routing:
+      - Google Maps backend
+      - paid routing APIs
+      - registration required tile provider as core dependency
+    tooling:
+      package_managers:
+        - pnpm
+        - yarn
+        - bun
+  dependency_addition_policy:
+    require_current_item_need: true
+    prefer_existing_dependency: true
+    document_reason_in_item_notes: true
