@@ -1,0 +1,22 @@
+id: ITEM-0013
+type: feature
+priority: P1
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0007
+title: Select the best routed preview from multiple scored candidates
+summary: Update the route-generation service to route the available deterministic candidates, apply the scoring boundary, and return the best honest preview instead of always using the first candidate.
+acceptance_criteria:
+  - route-generation service evaluates more than one routed candidate when available
+  - best candidate selection uses the dedicated scoring module instead of hard-coded first-candidate behavior
+  - tests cover candidate ranking plus honest partial or failed responses when no scored candidate is strong
+verification:
+  - npm run test
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: the planner now requests real preview routes and exposes candidate ids in the UI, so selecting the best scored candidate is the next visible route-quality improvement."
+created_at: 2026-05-13T18:10:31+02:00
+updated_at: 2026-05-13T18:10:31+02:00
+closed_at: null

@@ -1,0 +1,23 @@
+id: ITEM-0012
+type: feature
+priority: P0
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0007
+title: Add a dedicated routed-candidate scoring module
+summary: Introduce the first scoring boundary for routed preview candidates so distance fit, tolerance handling, and later surface preferences can be compared outside the controller or GraphHopper adapter.
+acceptance_criteria:
+  - backend exports a scoring module that evaluates a routed candidate against the route request
+  - scoring output makes distance fit and partial-fit reasons observable in tests
+  - public scoring shape is ready for route-generation service selection without changing request contracts
+verification:
+  - npm run test
+  - npm run typecheck
+  - npm run verify
+implementation_notes:
+  - "2026-05-13 refine: `apps/api/src/routing/route-generation-service.ts` currently accepts the first deterministic candidate that returns from GraphHopper and never compares candidate quality, even though two seeded options already exist."
+  - "2026-05-13 refine: product phase 4 calls for a dedicated scoring module, so the smallest next step is to score routed candidates by distance fit first and leave richer surface scoring for a later follow-up."
+created_at: 2026-05-13T18:10:31+02:00
+updated_at: 2026-05-13T18:10:31+02:00
+closed_at: null

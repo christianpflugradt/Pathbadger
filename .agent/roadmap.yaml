@@ -42,7 +42,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 44
+  overall_progress_percent: 52
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -52,17 +52,17 @@ roadmap:
     - id: routing-core
       title: Self-hosted GraphHopper routing for Schleswig-Holstein
       status: planned
-      progress_percent: 40
+      progress_percent: 70
       target_outcome: GraphHopper-backed routing adapter with legal request handling and mocked tests
     - id: map-ui
       title: MapLibre map UI and route display
-      status: planned
-      progress_percent: 80
+      status: done
+      progress_percent: 100
       target_outcome: route planning map with self-hosted tile wiring and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: active
-      progress_percent: 20
+      progress_percent: 35
       target_outcome: candidate generation and scoring that match distance and surface preferences honestly
     - id: navigation
       title: GPS route following and navigation metrics
@@ -74,7 +74,7 @@ roadmap:
       status: planned
       progress_percent: 0
       target_outcome: stable self-hosted operation with honest warnings and conservative battery behavior
-  current_epic: EPIC-0006
+  current_epic: EPIC-0007
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -86,9 +86,11 @@ roadmap:
     - the planning screen now mounts a live self-hosted MapLibre surface and reports explicit loading or fetch-failure states instead of a static map placeholder
     - the live planning map now drives the map-selected start and pass-through list, so planner state is synced to real map clicks instead of placeholder coordinates
     - the api now derives deterministic candidate waypoint seeds from planning inputs, preserving pass-through order and stable random-seed behavior for later routed preview work
+    - the api now exposes `POST /routes/generate` with shared request validation, honest preview status mapping, and browser-safe local CORS handling
+    - the web planner now calls backend preview generation, renders routed warnings and summary state, and can draw response geometry on the live planning map when the backend provides it
   remaining_summary:
-    - current route-generation focus is ITEM-0010 API orchestration through the GraphHopper adapter, followed by ITEM-0011 web route-preview rendering
-    - map-ui groundwork now includes a live MapLibre surface plus map-selected planning points, but no routed geometry overlay, summary panel, or warning rendering exists yet
-    - routing-core groundwork exists, but the API still has no route-generation endpoint or route-response mapping boundary
-    - navigation groundwork still stops at raw distance helpers and lacks progress-oriented geo primitives
-    - route generation, active navigation behavior, and later hardening loops remain unimplemented
+    - current route-generation focus is ITEM-0012 dedicated routed-candidate scoring, followed by ITEM-0013 best-candidate selection across deterministic seeds
+    - routing-core now includes a real route-generation endpoint and web hookup, but real Schleswig-Holstein map-data routing behavior is still unproven outside mocked coverage
+    - surface preference scoring and surface summary fields remain incomplete, so preview responses still keep surface percentages null and warn conservatively
+    - navigation groundwork still stops at raw distance helpers, with ITEM-0003 queued only after route-generation scoring is further along
+    - active navigation behavior, richer route statistics, and later hardening loops remain unimplemented
