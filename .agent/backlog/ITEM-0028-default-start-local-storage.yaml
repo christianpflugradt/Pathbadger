@@ -1,7 +1,7 @@
 id: ITEM-0028
 type: feature
 priority: P0
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0012
@@ -18,6 +18,9 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: `apps/web/src/App.tsx` currently exposes `saved_default` in the start-point catalog, but it is still backed by a hard-coded coordinate instead of the browser-local storage strategy accepted in `docs/adr/ADR-0006-browser-local-storage.md`."
   - "2026-05-14 refine: this is the highest-priority planning-state gap because the UI already advertises a remembered default capability as if it exists."
+  - "2026-05-14 implement: Added `apps/web/src/planning-local-storage.ts` plus focused tests so the web app can load and save a remembered default coordinate through a narrow browser-local storage boundary without inventing any backend persistence."
+  - "2026-05-14 implement: Updated `apps/web/src/App.tsx` so `Remembered default` stays disabled until a value has actually been saved, added an explicit save/update control for the current non-GPS start, and surfaced honest helper copy when nothing is saved yet or browser storage is unavailable."
+  - "2026-05-14 implement: Verified with `npm run verify`, `make run-app`, and a supported local browser reload check proving `Remembered default` starts unavailable, becomes enabled after saving the current start locally, and stays selectable after refresh."
 created_at: 2026-05-14T10:40:22+02:00
-updated_at: 2026-05-14T10:40:22+02:00
-closed_at: null
+updated_at: 2026-05-14T10:52:31+02:00
+closed_at: 2026-05-14T10:52:31+02:00

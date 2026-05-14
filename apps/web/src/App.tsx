@@ -43,6 +43,11 @@ import {
   getNavigationSpeedMetrics,
 } from "./navigation-speed-state";
 import { PlanningMap } from "./PlanningMap";
+import {
+  getBrowserLocalStorage,
+  loadStoredCoordinate,
+  saveStoredCoordinate,
+} from "./planning-local-storage";
 import { requestRoutePreview } from "./route-preview-client";
 import {
   getRouteSurfaceSummaryCards,
@@ -71,6 +76,12 @@ type NavigationSession = {
 type NavigableRoutePreview = RouteGenerateResponse & {
   geometry: RouteGeometry;
   status: "partial" | "success";
+};
+type StartPointOption = {
+  coordinate: Coordinate;
+  detail: string;
+  disabled?: boolean;
+  label: string;
 };
 
 const startPointCatalog: Record<
@@ -117,11 +128,22 @@ const routeStatusLabels: Record<RouteGenerateResponse["status"], string> = {
   partial: "Preview needs review",
   failed: "Preview unavailable",
 };
+const SAVED_DEFAULT_START_STORAGE_KEY = "pathbadger.savedDefaultStart";
 const ignoreMapSelection: (coordinate: Coordinate) => void = () => {};
 
 export function App() {
   const [startPointMode, setStartPointMode] =
     useState<StartPointMode>("map_point");
+  const [savedDefaultStart, setSavedDefaultStart] = useState<Coordinate | null>(
+    () =>
+      loadStoredCoordinate({
+        key: SAVED_DEFAULT_START_STORAGE_KEY,
+        storage: getBrowserLocalStorage(),
+      }),
+  );
+  const [rememberedDefaultSaveError, setRememberedDefaultSaveError] = useState<
+    string | null
+  >(null);
   const [mapSelectedStart, setMapSelectedStart] = useState<Coordinate>(
     startPointCatalog.map_point.coordinate,
   );
@@ -165,7 +187,10 @@ export function App() {
     enabled: isBrowserGeolocationEnabled,
     positionOptions: DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
   });
-  const startPointOptions = {
+  const rememberedDefaultOptionDetail = savedDefaultStart
+    ? `Saved in this browser at ${formatCoordinate(savedDefaultStart)}.`
+    : "Unavailable until you save a remembered default locally.";
+  const startPointOptions: Record<StartPointMode, StartPointOption> = {
     ...startPointCatalog,
     current_position: {
       ...startPointCatalog.current_position,
@@ -178,14 +203,13 @@ export function App() {
       ...startPointCatalog.map_point,
       coordinate: mapSelectedStart,
     },
-  } satisfies Record<
-    StartPointMode,
-    {
-      label: string;
-      detail: string;
-      coordinate: Coordinate;
-    }
-  >;
+    saved_default: {
+      ...startPointCatalog.saved_default,
+      coordinate: savedDefaultStart ?? mapSelectedStart,
+      detail: rememberedDefaultOptionDetail,
+      disabled: savedDefaultStart === null,
+    },
+  };
 
   const startPoint =
     startPointMode === "map_point"
@@ -194,6 +218,10 @@ export function App() {
           detail: "Click the live map to set the route origin.",
         }
       : startPointOptions[startPointMode];
+  const canSaveRememberedDefault = startPointMode !== "current_position";
+  const rememberedDefaultButtonLabel = savedDefaultStart
+    ? "Update remembered default"
+    : "Save current start as default";
   const isAwaitingPassThroughPoint = mapInteractionMode === "add_pass_through";
   const isCurrentPositionPendingRouteGeneration =
     startPointMode === "current_position" &&
@@ -329,6 +357,21 @@ export function App() {
     getCurrentPositionStatusPillClassName(browserGeolocation);
   const currentPositionHelperClassName =
     getCurrentPositionHelperClassName(browserGeolocation);
+  const rememberedDefaultHelperClassName =
+    rememberedDefaultSaveError !== null
+      ? "helper-copy--error"
+      : canSaveRememberedDefault
+        ? savedDefaultStart
+          ? "helper-copy--active"
+          : "helper-copy--warning"
+        : "helper-copy--warning";
+  const rememberedDefaultHelperCopy = rememberedDefaultSaveError
+    ? rememberedDefaultSaveError
+    : getRememberedDefaultHelperCopy({
+        canSaveRememberedDefault,
+        currentStart: startPoint.coordinate,
+        savedDefaultStart,
+      });
 
   useEffect(() => {
     if (!navigationSession) {
@@ -357,7 +400,17 @@ export function App() {
     navigationSnapshot,
   ]);
 
+  useEffect(() => {
+    if (startPointMode === "saved_default" && savedDefaultStart === null) {
+      setStartPointMode("map_point");
+    }
+  }, [savedDefaultStart, startPointMode]);
+
   function handleStartPointModeChange(mode: StartPointMode) {
+    if (startPointOptions[mode].disabled) {
+      return;
+    }
+
     setStartPointMode(mode);
 
     if (mode === "map_point") {
@@ -393,6 +446,31 @@ export function App() {
     setMapInteractionMode((current) =>
       current === "add_pass_through" ? "idle" : "add_pass_through",
     );
+  }
+
+  function saveCurrentStartAsRememberedDefault() {
+    if (!canSaveRememberedDefault) {
+      setRememberedDefaultSaveError(
+        "Current GPS position is intentionally not saved as the remembered default. Choose a local start first.",
+      );
+      return;
+    }
+
+    const didSave = saveStoredCoordinate({
+      coordinate: startPoint.coordinate,
+      key: SAVED_DEFAULT_START_STORAGE_KEY,
+      storage: getBrowserLocalStorage(),
+    });
+
+    if (!didSave) {
+      setRememberedDefaultSaveError(
+        "Browser local storage is unavailable, so the remembered default could not be saved in this browser.",
+      );
+      return;
+    }
+
+    setSavedDefaultStart(startPoint.coordinate);
+    setRememberedDefaultSaveError(null);
   }
 
   function handleNavigationManualPan(center: Coordinate) {
@@ -571,9 +649,11 @@ export function App() {
                   <button
                     key={mode}
                     type="button"
+                    data-testid={`start-point-mode-${mode}`}
                     className={`option-card${
                       startPointMode === mode ? " option-card--selected" : ""
                     }`}
+                    disabled={option.disabled}
                     onClick={() => handleStartPointModeChange(mode)}
                   >
                     <span className="option-title">{option.label}</span>
@@ -622,6 +702,31 @@ export function App() {
                   planning map to move it.
                 </p>
               ) : null}
+              {startPointMode === "saved_default" && savedDefaultStart ? (
+                <p className="helper-copy helper-copy--active">
+                  Remembered default start:{" "}
+                  <code>{formatCoordinate(savedDefaultStart)}</code>.
+                </p>
+              ) : null}
+              <div className="start-point-status">
+                <div className="button-row">
+                  <button
+                    type="button"
+                    data-testid="save-remembered-default-start"
+                    className="button button--ghost"
+                    disabled={!canSaveRememberedDefault}
+                    onClick={saveCurrentStartAsRememberedDefault}
+                  >
+                    {rememberedDefaultButtonLabel}
+                  </button>
+                </div>
+                <p
+                  className={`helper-copy ${rememberedDefaultHelperClassName}`}
+                  data-testid="remembered-default-status"
+                >
+                  {rememberedDefaultHelperCopy}
+                </p>
+              </div>
             </section>
 
             <section className="form-section">
@@ -1638,6 +1743,30 @@ function getCurrentPositionRouteBlockingMessage(
   }
 }
 
+function getRememberedDefaultHelperCopy(options: {
+  canSaveRememberedDefault: boolean;
+  currentStart: Coordinate;
+  savedDefaultStart: Coordinate | null;
+}) {
+  if (!options.canSaveRememberedDefault) {
+    return "Current GPS position is intentionally not saved as the remembered default. Choose a local start first.";
+  }
+
+  if (!options.savedDefaultStart) {
+    return "No remembered default is saved in this browser yet. Save the current non-GPS start to enable that mode.";
+  }
+
+  if (areCoordinatesEqual(options.currentStart, options.savedDefaultStart)) {
+    return `Remembered default is saved in this browser at ${formatCoordinate(
+      options.savedDefaultStart,
+    )}.`;
+  }
+
+  return `Remembered default is saved at ${formatCoordinate(
+    options.savedDefaultStart,
+  )}. Save the current start to replace it.`;
+}
+
 function getNavigationMapMarkerLabel(options: {
   hasFreshPosition: boolean;
   navigationSnapshot: NonNullable<ReturnType<typeof createNavigationSnapshot>>;
@@ -1662,6 +1791,10 @@ function serializeComparablePlanningRequest(request: RouteGenerateRequest) {
     targetDistanceKm: request.targetDistanceKm,
     toleranceMeters: request.toleranceMeters,
   });
+}
+
+function areCoordinatesEqual(left: Coordinate, right: Coordinate) {
+  return left.lat === right.lat && left.lon === right.lon;
 }
 
 function getNavigableRoutePreview(
