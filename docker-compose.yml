@@ -33,14 +33,14 @@ services:
     profiles:
       - maps
     environment:
-      JAVA_OPTS: "-Xms512m -Xmx1024m"
+      JAVA_OPTS: "${GRAPHHOPPER_JAVA_OPTS:--Xms512m -Xmx1024m}"
     command:
       - -i
-      - /data/osm/schleswig-holstein-latest.osm.pbf
+      - ${GRAPHHOPPER_OSM_FILE:-/data/osm/schleswig-holstein-latest.osm.pbf}
       - -o
-      - /data/graphhopper/cache
+      - ${GRAPHHOPPER_GRAPH_CACHE:-/data/graphhopper/cache}
       - -c
-      - /config/config.yml
+      - ${GRAPHHOPPER_CONFIG_PATH:-/config/config.yml}
       - --host
       - 0.0.0.0
     expose:
@@ -49,6 +49,7 @@ services:
       - ./data/osm:/data/osm
       - ./data/graphhopper:/data/graphhopper
       - ./services/graphhopper/config.yml:/config/config.yml:ro
+      - ./services/graphhopper/config-elevation.yml:/config/config-elevation.yml:ro
       - ./services/graphhopper/custom-models:/custom-models:ro
 
   tileserver:

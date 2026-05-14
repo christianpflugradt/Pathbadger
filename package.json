@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:browser-smoke": "node ./scripts/browser-smoke.mjs",
     "test:live-route-quality": "node ./scripts/live-route-quality-check.mjs",
+    "test:live-route-elevation": "node ./scripts/live-route-quality-check.mjs --require-elevation",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify": "./scripts/verify.sh",

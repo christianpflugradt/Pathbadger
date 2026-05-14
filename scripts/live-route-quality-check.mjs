@@ -2,7 +2,7 @@ const DEFAULT_APP_URL = "http://127.0.0.1:5173";
 const DISTANCE_DELTA_ROUNDING_TOLERANCE_METERS = 10;
 const SURFACE_PERCENT_TOTAL_TOLERANCE = 1;
 
-const { appUrl } = parseArguments(process.argv.slice(2));
+const { appUrl, requireElevation } = parseArguments(process.argv.slice(2));
 const normalizedAppUrl = new URL(appUrl);
 
 const previewRequest = {
@@ -30,6 +30,7 @@ const failureResponse = await postRouteGenerate(outOfRegionRequest);
 const checks = [
   checkPreviewGeometryAndInstructionEndpoints(previewResponse),
   checkPreviewDistanceAndSurfaceHonesty(previewRequest, previewResponse),
+  ...(requireElevation ? [checkPreviewElevationGain(previewResponse)] : []),
   checkOutOfRegionFailure(failureResponse),
 ];
 
@@ -168,6 +169,27 @@ function checkPreviewDistanceAndSurfaceHonesty(request, response) {
   };
 }
 
+function checkPreviewElevationGain(response) {
+  const elevationGainMeters =
+    response.body.summary?.elevationGainMeters ?? null;
+  const ok =
+    response.httpStatus === 200 &&
+    (response.body.status === "success" ||
+      response.body.status === "partial") &&
+    Number.isFinite(elevationGainMeters);
+
+  return {
+    id: "preview_elevation_gain_is_available",
+    ok,
+    evidence: {
+      elevationGainMeters,
+      httpStatus: response.httpStatus,
+      status: response.body.status,
+      warningCodes: listWarningCodes(response.body.warnings),
+    },
+  };
+}
+
 function checkOutOfRegionFailure(response) {
   const ok =
     response.httpStatus === 200 &&
@@ -216,6 +238,7 @@ function listWarningCodes(warnings) {
 function parseArguments(argv) {
   const parsed = {
     appUrl: DEFAULT_APP_URL,
+    requireElevation: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -225,6 +248,9 @@ function parseArguments(argv) {
       case "--app-url":
         parsed.appUrl = argv[index + 1] ?? parsed.appUrl;
         index += 1;
+        break;
+      case "--require-elevation":
+        parsed.requireElevation = true;
         break;
       default:
         throw new Error(`Unknown argument: ${argument}`);

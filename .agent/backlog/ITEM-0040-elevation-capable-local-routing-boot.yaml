@@ -1,7 +1,7 @@
 id: ITEM-0040
 type: feature
 priority: P1
-status: open
+status: done
 scope: docker
 origin: refine
 parent_epic: EPIC-0016
@@ -20,6 +20,9 @@ implementation_notes:
   - "2026-05-14 refine: `services/graphhopper/README.md`, `README.md`, and `docs/operations.md` all explicitly document `GRAPHHOPPER_HAS_ELEVATION=false` in the supported routing workflow today, which keeps elevation honest but leaves a clear additive gap for real climb data."
   - "2026-05-14 refine: the product brief calls for route-summary elevation gain when available, and `docs/routing.md` already names elevation-capable previews as the most grounded remaining routing addition."
   - "2026-05-14 refine: a separate explicit elevation-capable boot is the safest first slice because it preserves the current proven routing workflow until the heavier terrain-data path has live startup and resource evidence."
+  - "2026-05-14 implement: added explicit `make run-routing-app-elevation` and `make rebuild-routing-app-elevation` targets that boot GraphHopper with `services/graphhopper/config-elevation.yml`, keep `GRAPHHOPPER_HAS_ELEVATION=false` as the default supported routing flow, and isolate the heavier runtime in `data/graphhopper/cache-elevation` plus `data/graphhopper/elevation`."
+  - "2026-05-14 implement: extended `scripts/dev-up.sh` and `scripts/live-route-quality-check.mjs` so the elevation-capable flow waits for a routed preview with non-null `summary.elevationGainMeters`, and added `npm run test:live-route-elevation` as the supported repeatable evidence command."
+  - "2026-05-14 implement: verified with `npm run verify`, `make run-routing-app-elevation`, and `npm run test:live-route-elevation`, where the supported frontend-proxied preview returned `elevationGainMeters: 93` while the other live route-quality checks stayed green."
 created_at: 2026-05-14T17:02:20+02:00
-updated_at: 2026-05-14T17:02:20+02:00
-closed_at: null
+updated_at: 2026-05-14T19:27:59+02:00
+closed_at: 2026-05-14T19:27:59+02:00

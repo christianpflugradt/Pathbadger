@@ -9,10 +9,13 @@
 5. `make run-app` when you want the local app stack in the browser
 6. `make run-routing-app` when you need a real routed preview and navigation start in the browser
 7. `npm run test:live-route-quality` after `make run-routing-app` when you need repeatable live evidence for instruction-endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure handling
-8. `make stopp-app` when you want to stop either local app stack again
-9. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
-10. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
-11. `make show` when you want the deterministic workspace summary
+8. `make run-routing-app-elevation` when you need a supported local preview that can return non-null elevation gain
+9. `npm run test:live-route-elevation` after `make run-routing-app-elevation` when you need repeatable climb-data evidence through the supported frontend proxy
+10. `make stopp-app` when you want to stop either local app stack again
+11. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
+12. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
+13. `make rebuild-routing-app-elevation` when you want to rebuild and recreate the elevation-capable local app stack
+14. `make show` when you want the deterministic workspace summary
 
 `npm run compose:test` validates both the default compose graph and the `maps`
 profile configuration, builds the `api`, `web`, and `tileserver` services,
@@ -24,10 +27,13 @@ The Make targets split the lighter planning boot from the heavier routing boot:
 
 - `make run-app`: generate the selected ignored map dataset if needed, then `docker compose up -d --build`
 - `make run-routing-app`: generate map data, download the Schleswig-Holstein routing extract if needed, boot `docker compose --profile maps up -d --build`, and wait until `/routes/generate` can return a real preview with geometry
+- `make run-routing-app-elevation`: reuse the supported routing boot but switch GraphHopper to the explicit elevation config, a separate graph cache, and a readiness check that waits for non-null `summary.elevationGainMeters`
 - `npm run test:live-route-quality`: hit the frontend-proxied `/api/routes/generate` contract with supported live requests and fail if route geometry, first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, or explicit out-of-region failure behavior drift
+- `npm run test:live-route-elevation`: rerun the same live route-quality contract with an extra assertion that the preview summary exposes non-null elevation gain
 - `make stopp-app`: `docker compose --profile maps down --remove-orphans`, so the same stop command fully tears down both the default stack and the routing-capable stack
 - `make rebuild-app`: stop the current stack, regenerate missing map data if needed, rebuild the default services, and recreate them so the browser sees the latest local changes
 - `make rebuild-routing-app`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack, and wait for routed-preview readiness again
+- `make rebuild-routing-app-elevation`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack with the elevation config, and wait for routed-preview elevation readiness again
 
 ## Package manager policy
 
@@ -55,6 +61,12 @@ the routing-capable boot reuses:
 
 - `schleswig-holstein-latest.osm.pbf` for GraphHopper import
 
+`data/graphhopper/` now separates the lighter and heavier routing imports:
+
+- `cache/` for the default supported routed-preview workflow without elevation
+- `cache-elevation/` for the explicit elevation-capable routed-preview workflow
+- `elevation/` for cached SRTM tiles downloaded during the elevation-capable import
+
 `graphhopper` stays out of the default map-only app flow and only boots through
 the explicit routing-capable workflow. The tile service remains part of the
 default supported app flow.
@@ -78,9 +90,16 @@ default supported app flow.
 - `GRAPHHOPPER_HAS_ELEVATION=false` remains the supported default for this local
   flow, so live routed previews keep elevation gain unavailable instead of
   pretending the 2D GraphHopper response contains real climb data.
+- `make run-routing-app-elevation` flips `GRAPHHOPPER_HAS_ELEVATION=true`,
+  switches GraphHopper to `services/graphhopper/config-elevation.yml`, persists
+  downloaded SRTM tiles under `data/graphhopper/elevation`, and keeps its
+  imported graph separate under `data/graphhopper/cache-elevation`.
 - The first `make run-routing-app` is significantly heavier than `make run-app`
   because GraphHopper must import the extract into `data/graphhopper/cache`
   before route previews can succeed.
+- The first `make run-routing-app-elevation` is heavier again because GraphHopper
+  must also fetch elevation tiles and build a second elevation-enabled graph
+  import before the route summary can expose climb data.
 
 ## Tile style contract
 
@@ -109,6 +128,12 @@ default supported app flow.
 - It does not yet prove intermediate instruction ordering or full cue-by-cue alignment along the route geometry.
 - Keep the command output together with any browser screenshots when route-quality work changes scoring, legality, region, warning, or instruction behavior.
 - For manual browser capture, use the default Bad Bramstedt starter area, generate an `8.0 km` `Running / walking` `Mixed` preview, and record whether the outcome is `success`, `partial`, or `failed` along with the visible warnings, summary, and instruction state.
+
+## Live elevation evidence
+
+- `npm run test:live-route-elevation` is the supported repeatable evidence command after `make run-routing-app-elevation`.
+- It reruns the live route-quality checks and additionally fails unless the returned preview summary includes non-null `elevationGainMeters`.
+- Keep that JSON output with any browser screenshots when the explicit elevation-capable runtime path changes.
 
 ## Agent command behavior
 

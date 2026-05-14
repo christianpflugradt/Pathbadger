@@ -25,6 +25,7 @@ The repository now implements a GraphHopper-backed routed-preview loop end to en
 - the api scores routed candidates and returns warnings, summary data, geometry, and instructions
 - legality and Schleswig-Holstein region guardrails reject unsupported routed candidates before they are presented as acceptable previews
 - the supported `make run-routing-app` flow can start a real navigation session from that preview in the browser, and `npm run test:live-route-quality` now captures repeatable live evidence through the frontend proxy
+- the explicit `make run-routing-app-elevation` flow can boot a heavier local GraphHopper import that returns non-null `summary.elevationGainMeters` when terrain data is available
 
 ## Supported live route-quality evidence
 
@@ -43,6 +44,17 @@ Use this repo-native flow when you need to capture supported live route-quality 
 
 The command does not yet validate intermediate instruction ordering or full cue-by-cue alignment along the route geometry, so treat it as endpoint-anchoring evidence rather than end-to-end instruction-alignment proof.
 
+## Supported live elevation evidence
+
+Use this repo-native flow when you need supported evidence that the heavier local routing path is exposing real climb data:
+
+1. Run `npm run verify`.
+2. Run `make run-routing-app-elevation`.
+3. Run `npm run test:live-route-elevation`.
+4. Capture the JSON evidence from that command alongside any manual browser screenshots.
+
+`npm run test:live-route-elevation` reruns the live route-quality checks and also fails unless the returned preview summary includes non-null `elevationGainMeters` through the supported frontend proxy.
+
 ## Browser walkthrough
 
 When you want a human-readable local browser walkthrough in addition to the command output:
@@ -57,4 +69,4 @@ Evidence to capture by outcome:
 - Partial: status is `partial`, the route line is still visible, warnings explain the limitation honestly, and the summary plus instruction preview still remain available instead of disappearing behind a silent failure.
 - Failed: status is `failed`, `summary` and `geometry` are absent, and the visible warning or the proxied JSON response names the blocking reason explicitly. Use `npm run test:live-route-quality` for the deterministic out-of-region failure capture if the current map-centered browser request does not naturally produce a failed preview.
 
-Remaining routing work is now limited to later optional capabilities such as elevation-capable previews plus broader hardening outside the routing-core scope.
+Remaining routing work is now limited to broader hardening outside the core routed-preview and supported local-runtime contracts.

@@ -33,8 +33,10 @@ This repository is initialized for an agent-driven workflow with four recurring 
 5. Use `make run-app` to start the local app stack when you want to open it in the browser.
 6. Use `make run-routing-app` when you need a real routed preview and navigation start in the browser.
 7. Run `npm run test:live-route-quality` after `make run-routing-app` when you need repeatable live route-quality evidence through the supported frontend proxy.
-8. Use `make show` when you want the deterministic workspace summary.
-9. Read the active epic and backlog in `.agent/`.
+8. Use `make run-routing-app-elevation` when you need a supported local routed preview that can report non-null elevation gain.
+9. Run `npm run test:live-route-elevation` after `make run-routing-app-elevation` when you need repeatable evidence that the elevation-capable stack is returning climb data honestly.
+10. Use `make show` when you want the deterministic workspace summary.
+11. Read the active epic and backlog in `.agent/`.
 
 ## Docker notes
 
@@ -44,9 +46,11 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - `npm run compose:test` now builds and starts `api`, `web`, and `tileserver`, checks the api `/health` endpoint, verifies the tile style endpoint from inside the stack, and tears everything down again.
 - `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default map-only compose workflow for local app startup, shutdown, and forced rebuilds, while `make stopp-app` also tears down the routing-capable profile if it is running.
 - `make run-routing-app` and `make rebuild-routing-app` start the same local app plus GraphHopper through the `maps` profile and wait until the API can return a real routed preview with geometry.
+- `make run-routing-app-elevation` and `make rebuild-routing-app-elevation` boot a distinct, heavier GraphHopper config that reuses the same Schleswig-Holstein extract but builds a separate elevation-enabled cache before the API reports non-null climb data.
 - `make run-app` and `make rebuild-app` call `scripts/ensure-map-data.sh`, which generates the selected ignored map dataset under `data/tiles/` when it is missing.
-- `make run-routing-app` also calls `scripts/ensure-routing-data.sh`, which downloads `data/osm/schleswig-holstein-latest.osm.pbf` on first use and then lets GraphHopper import it into `data/graphhopper/cache`.
-- The supported routing-capable flow currently keeps `GRAPHHOPPER_HAS_ELEVATION=false`, so live preview elevation stays honestly unavailable until a later elevation-capable GraphHopper setup is introduced.
+- `make run-routing-app` and `make run-routing-app-elevation` both call `scripts/ensure-routing-data.sh`, which downloads `data/osm/schleswig-holstein-latest.osm.pbf` on first use.
+- The default supported routing-capable flow keeps `GRAPHHOPPER_HAS_ELEVATION=false`, so live preview elevation stays honestly unavailable unless you opt into `make run-routing-app-elevation`.
+- The elevation-capable boot switches GraphHopper to `services/graphhopper/config-elevation.yml`, stores the imported graph under `data/graphhopper/cache-elevation`, and persists downloaded SRTM tiles under `data/graphhopper/elevation`.
 - `PATHBADGER_TILE_DATA_SCOPE=starter` is the default and uses a real 50 km Bad Bramstedt slice. `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` switches the tile service to a whole-state dataset file under `data/tiles/`.
 - `PATHBADGER_TILE_DATA_FILE=/absolute/path/to/custom.geojson` overrides the default file for either scope when you want the tile service to use another generated dataset.
 - `PUBLIC_API_BASE_URL` defaults to `/api`, and `PUBLIC_TILE_STYLE_URL` defaults to `/styles/basic/style.json`, so browser calls stay on the frontend origin and the web container can act as the front controller.
@@ -54,7 +58,9 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - Do not reintroduce direct browser calls to `api`, `tileserver`, or `graphhopper`, and do not add client-side CORS dependencies for those services. In the supported topology they are internal-only backends behind the frontend proxy.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` is the browser-level gate for map work. It passes only when the planning map uses a real self-hosted style contract and the page can reach tile-backed map assets without silently falling back.
 - `npm run test:live-route-quality` is the live routing-quality gate for routing work after `make run-routing-app`. It proves route geometry, first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure handling against the supported local stack.
+- `npm run test:live-route-elevation` is the repeatable elevation-evidence gate after `make run-routing-app-elevation`. It reruns the live route-quality checks and adds a requirement that the returned route summary includes non-null `elevationGainMeters`.
 - `make run-routing-app` is the supported local navigation-verification flow. Its first run is heavier because it downloads about 150 MB of Schleswig-Holstein OSM data and imports the GraphHopper cache before route previews can succeed.
+- `make run-routing-app-elevation` is intentionally heavier than `make run-routing-app` because GraphHopper must also download and cache SRTM elevation tiles and build a separate elevation-enabled graph import before climb data becomes available.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` remains the intended whole-state live-map configuration once you are ready to build and use the broader tile dataset locally.
 
 ## Agent workflow
@@ -65,4 +71,4 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - `review` audits the full workspace and produces structured findings without changing roadmap progress. Extra tokens may only add focus and must never narrow the review to a commit range or patch subset.
 - `make show` runs the deterministic shell workspace summary through `scripts/show-workspace-summary.sh`.
 
-The repository now supports a real self-hosted planning flow, live route-quality evidence against Schleswig-Holstein data, and a browser-verified navigation loop. Remaining roadmap work is focused on broader hardening rather than on core routing or planning scaffolding.
+The repository now supports a real self-hosted planning flow, live route-quality evidence against Schleswig-Holstein data, a browser-verified navigation loop, and an explicit elevation-capable local routing workflow.

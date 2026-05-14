@@ -10,10 +10,15 @@ to, because GraphHopper itself does not publish an official Docker image.
 
 - `make run-routing-app` is the supported local workflow for route-preview and
   navigation verification.
+- `make run-routing-app-elevation` is the supported heavier local workflow when
+  you need real elevation gain in the routed preview summary.
 - `scripts/ensure-routing-data.sh` downloads
   `data/osm/schleswig-holstein-latest.osm.pbf` when it is missing.
 - GraphHopper then imports that extract into `data/graphhopper/cache` on the
   first routing-capable boot and reuses the cache later.
+- The elevation-capable flow keeps a separate import under
+  `data/graphhopper/cache-elevation` and caches downloaded SRTM tiles under
+  `data/graphhopper/elevation` so the lighter default stack stays unchanged.
 
 ## Config notes
 
@@ -24,3 +29,6 @@ to, because GraphHopper itself does not publish an official Docker image.
 - The supported local workflow currently leaves `GRAPHHOPPER_HAS_ELEVATION`
   disabled, so the API reports elevation gain as unavailable instead of
   overstating a 2D route import as real climb data.
+- `config-elevation.yml` turns on GraphHopper's SRTM elevation provider for the
+  explicit elevation-capable boot while keeping the original default config and
+  graph cache intact.
