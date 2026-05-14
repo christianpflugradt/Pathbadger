@@ -21,8 +21,8 @@ Pathbadger uses a self-hosted, Docker-based architecture that keeps the final de
 ## Current state
 
 - The repository now has a supported local stack that can show real self-hosted cartography, generate a routed preview, and start a browser-verified navigation session.
-- Core route planning, surface summaries, navigation progress, live geolocation updates, speed metrics, and follow-position behavior are implemented in the current web and api apps.
-- Remaining architecture work is concentrated on route-quality proof, browser-local planning persistence, and hardening concerns such as energy behavior and placeholder cleanup.
+- Core route planning, surface summaries, live route-quality guardrails, navigation progress, live geolocation updates, speed metrics, and follow-position behavior are implemented in the current web and api apps.
+- Remaining architecture work is now concentrated on broader hardening concerns such as energy behavior, mobile/PWA caveats, and placeholder cleanup rather than on first-pass routing proof.
 
 ## Design guardrails
 

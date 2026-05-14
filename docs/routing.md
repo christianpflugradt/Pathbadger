@@ -19,10 +19,40 @@ The core product differentiator is route quality, not generic shortest-path outp
 
 ## Current state
 
-The repository now implements a first GraphHopper-backed routed-preview loop end to end:
+The repository now implements a GraphHopper-backed routed-preview loop end to end:
 
 - planning requests reach the api boundary from the web app
 - the api scores routed candidates and returns warnings, summary data, geometry, and instructions
-- the supported `make run-routing-app` flow can start a real navigation session from that preview in the browser
+- legality and Schleswig-Holstein region guardrails reject unsupported routed candidates before they are presented as acceptable previews
+- the supported `make run-routing-app` flow can start a real navigation session from that preview in the browser, and `npm run test:live-route-quality` now captures repeatable live evidence through the frontend proxy
 
-Remaining routing work is focused on route-quality proof against live Schleswig-Holstein data, broader hardening, and optional later capabilities such as elevation-capable previews.
+## Supported live route-quality evidence
+
+Use this repo-native flow when you need to prove that route quality still holds on live Schleswig-Holstein data:
+
+1. Run `npm run verify`.
+2. Run `make run-routing-app`.
+3. Run `npm run test:live-route-quality`.
+4. Capture the JSON evidence from that command alongside any manual browser screenshots.
+
+`npm run test:live-route-quality` runs three live checks against `http://127.0.0.1:5173/api/routes/generate` through the supported frontend proxy:
+
+- a geometry-backed preview still returns instructions whose first and last instruction coordinates match the returned route geometry
+- the same preview reports a distance delta and surface percentages that stay internally honest, including warning codes when distance tolerance or unknown-surface coverage require them
+- an out-of-region Berlin request fails explicitly with `request_points_out_of_supported_region` instead of pretending that the Schleswig-Holstein-only product scope is supported
+
+## Browser walkthrough
+
+When you want a human-readable local browser walkthrough in addition to the command output:
+
+1. Open `http://localhost:5173/` after `make run-routing-app` finishes.
+2. Keep the default Bad Bramstedt starter area, choose `Running / walking`, `8.0 km`, and `Mixed`, then generate a preview.
+3. Capture the rendered route line plus the summary and warnings area.
+
+Evidence to capture by outcome:
+
+- Acceptable: status is `success`, the route line is visible, warnings are empty, the summary distance and surface percentages are visible, and the navigation handoff exposes real instructions.
+- Partial: status is `partial`, the route line is still visible, warnings explain the limitation honestly, and the summary plus instruction preview still remain available instead of disappearing behind a silent failure.
+- Failed: status is `failed`, `summary` and `geometry` are absent, and the visible warning or the proxied JSON response names the blocking reason explicitly. Use `npm run test:live-route-quality` for the deterministic out-of-region failure capture if the current map-centered browser request does not naturally produce a failed preview.
+
+Remaining routing work is now limited to later optional capabilities such as elevation-capable previews plus broader hardening outside the routing-core scope.

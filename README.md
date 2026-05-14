@@ -33,8 +33,9 @@ This repository is initialized for an agent-driven workflow with five recurring 
 4. Run `npm run test:browser-smoke` to exercise the browser smoke fixture suite.
 5. Use `make run-app` to start the local app stack when you want to open it in the browser.
 6. Use `make run-routing-app` when you need a real routed preview and navigation start in the browser.
-7. Use `make show` when you want the deterministic workspace summary without the agent.
-8. Read the active epic and backlog in `.agent/`.
+7. Run `npm run test:live-route-quality` after `make run-routing-app` when you need repeatable live route-quality evidence through the supported frontend proxy.
+8. Use `make show` when you want the deterministic workspace summary without the agent.
+9. Read the active epic and backlog in `.agent/`.
 
 ## Docker notes
 
@@ -53,6 +54,7 @@ This repository is initialized for an agent-driven workflow with five recurring 
 - Absolute browser values for `PUBLIC_API_BASE_URL` are intentionally unsupported in the current topology. Keep it same-origin through the frontend proxy, for example `/api`.
 - Do not reintroduce direct browser calls to `api`, `tileserver`, or `graphhopper`, and do not add client-side CORS dependencies for those services. In the supported topology they are internal-only backends behind the frontend proxy.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` is the browser-level gate for map work. It passes only when the planning map uses a real self-hosted style contract and the page can reach tile-backed map assets without silently falling back.
+- `npm run test:live-route-quality` is the live routing-quality gate for routing work after `make run-routing-app`. It proves route geometry, instruction alignment, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure handling against the supported local stack.
 - `make run-routing-app` is the supported local navigation-verification flow. Its first run is heavier because it downloads about 150 MB of Schleswig-Holstein OSM data and imports the GraphHopper cache before route previews can succeed.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` remains the intended whole-state live-map configuration once you are ready to build and use the broader tile dataset locally.
 
@@ -65,4 +67,4 @@ This repository is initialized for an agent-driven workflow with five recurring 
 - `show` reports a brief workspace summary with open item count, incomplete epic count, unfixed finding count, and overall roadmap progress from `.agent/roadmap.yaml`.
 - `make show` runs the same deterministic shell summary through `scripts/show-workspace-summary.sh`.
 
-The repository now supports a real self-hosted planning flow and a first browser-verified navigation loop. Remaining roadmap work is focused on route-quality proof, browser-local planning persistence, and broader hardening rather than on basic scaffolding.
+The repository now supports a real self-hosted planning flow, live route-quality evidence against Schleswig-Holstein data, and a browser-verified navigation loop. Remaining roadmap work is focused on broader hardening rather than on core routing or planning scaffolding.

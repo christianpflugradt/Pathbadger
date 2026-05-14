@@ -8,10 +8,11 @@
 4. `npm run test:browser-smoke` to run the stable fixture-backed browser smoke suite
 5. `make run-app` when you want the local app stack in the browser
 6. `make run-routing-app` when you need a real routed preview and navigation start in the browser
-7. `make stopp-app` when you want to stop either local app stack again
-8. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
-9. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
-10. `make show` when you want the deterministic workspace summary without relying on agent-side interpretation
+7. `npm run test:live-route-quality` after `make run-routing-app` when you need repeatable live evidence for distance-fit, instruction, surface-summary, and out-of-region honesty
+8. `make stopp-app` when you want to stop either local app stack again
+9. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
+10. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
+11. `make show` when you want the deterministic workspace summary without relying on agent-side interpretation
 
 `npm run compose:test` validates both the default compose graph and the `maps`
 profile configuration, builds the `api`, `web`, and `tileserver` services,
@@ -23,6 +24,7 @@ The Make targets split the lighter planning boot from the heavier routing boot:
 
 - `make run-app`: generate the selected ignored map dataset if needed, then `docker compose up -d --build`
 - `make run-routing-app`: generate map data, download the Schleswig-Holstein routing extract if needed, boot `docker compose --profile maps up -d --build`, and wait until `/routes/generate` can return a real preview with geometry
+- `npm run test:live-route-quality`: hit the frontend-proxied `/api/routes/generate` contract with supported live requests and fail if route geometry, instruction honesty, distance-fit honesty, surface-summary honesty, or explicit out-of-region failure behavior drift
 - `make stopp-app`: `docker compose down --remove-orphans`
 - `make rebuild-app`: stop the current stack, regenerate missing map data if needed, rebuild the default services, and recreate them so the browser sees the latest local changes
 - `make rebuild-routing-app`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack, and wait for routed-preview readiness again
@@ -99,6 +101,13 @@ default supported app flow.
 - Navigation-map work also requires the routing-capable local flow because a real browser session cannot enter navigation until `/routes/generate` returns geometry.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` is the intended whole-state live-map configuration once the broader dataset is prepared.
 - Map-centered `implement`, `fix`, and `review` work should cite this smoke output alongside any manual browser evidence instead of relying only on unit tests or fixture responses.
+
+## Live route-quality evidence
+
+- `npm run test:live-route-quality` is the supported repeatable evidence command after `make run-routing-app`.
+- It proves three live behaviors through the frontend proxy: geometry-backed preview instructions line up with the route, distance and surface summaries stay internally honest, and out-of-region requests fail explicitly.
+- Keep the command output together with any browser screenshots when route-quality work changes scoring, legality, region, warning, or instruction behavior.
+- For manual browser capture, use the default Bad Bramstedt starter area, generate an `8.0 km` `Running / walking` `Mixed` preview, and record whether the outcome is `success`, `partial`, or `failed` along with the visible warnings, summary, and instruction state.
 
 ## Agent command behavior
 

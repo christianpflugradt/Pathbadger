@@ -1,7 +1,7 @@
 id: ITEM-0034
 type: qa
 priority: P1
-status: open
+status: done
 scope: qa
 origin: refine
 parent_epic: EPIC-0013
@@ -18,6 +18,10 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: `docs/routing.md` and `.agent/roadmap.yaml` both still describe live route-quality proof as unfinished even though every routing-core backlog item is currently marked done."
   - "2026-05-14 refine: the supported flow already proves routed previews can start a browser navigation session, so the next gap is durable evidence about route quality rather than another placeholder integration."
+  - "2026-05-14 implement: added `scripts/live-route-quality-check.mjs` plus `npm run test:live-route-quality` so the repo has a repeatable frontend-proxied live evidence command for geometry-backed instructions, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior after `make run-routing-app`."
+  - "2026-05-14 implement: updated `docs/routing.md`, `docs/operations.md`, `scripts/README.md`, `README.md`, and `docs/architecture.md` to document the supported local route-quality walkthrough, the evidence to capture for acceptable, partial, and failed outcomes, and the command path that backs routing-core completion with live Schleswig-Holstein proof."
+  - "2026-05-14 implement: updated `.agent/roadmap.yaml` and `EPIC-0013` so routing-core now closes against repeatable supported-local evidence instead of implying that mocked GraphHopper coverage is sufficient on its own."
+  - "2026-05-14 implement: verified the item with `npm run verify`, `make run-routing-app`, and `npm run test:live-route-quality`, which returned geometry-backed partial-preview evidence with 48 instructions, internally consistent 15.08 km / 7080 m distance reporting, honest surface percentages totaling 99.9%, and an explicit Berlin out-of-region failure."
 created_at: 2026-05-14T12:05:00+02:00
-updated_at: 2026-05-14T12:05:00+02:00
-closed_at: null
+updated_at: 2026-05-14T14:44:34+02:00
+closed_at: 2026-05-14T14:44:34+02:00
