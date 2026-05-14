@@ -1,0 +1,22 @@
+id: FINDING-0008
+status: open
+severity: high
+category: product_gap
+title: Supported hero status still labels navigation as later work
+evidence:
+  - "`apps/web/src/App.tsx` renders the hero status pill as `Navigation later` whenever `isNavigationActive` is false, even though the same screen already exposes real navigation runtime controls and a `Start navigation` entry point once a routed preview exists."
+  - "During this review's supported local browser pass on `make run-routing-app`, the live hero status pills read `Planning state active` and `Navigation later` on `http://localhost:5173/`."
+  - "The roadmap marks both the `navigation` and `hardening` phases done, and there is no open backlog item that tracks a temporary `Navigation later` label as an intentional placeholder state."
+impact: The first status summary on the supported planner still tells users that navigation is future work even though navigation is already implemented in the current product, leaving stale placeholder messaging in a done flow and undermining trust in the supported local experience.
+recommendation: Replace the stale hero pill with copy that reflects the real pre-navigation state, and add lightweight UI coverage so completed navigation surfaces cannot regress back to `later` placeholder language.
+acceptance_criteria:
+  - The hero status no longer labels navigation as later work when navigation is already implemented but simply inactive.
+  - The replacement copy matches the real supported state before a route is started, such as navigation waiting for a usable preview or navigation being available after preview generation.
+  - UI coverage fails if the supported hero status regresses to `Navigation later`.
+verification:
+  - npm run verify
+  - make run-routing-app
+  - manual browser walkthrough at http://localhost:5173/
+created_at: 2026-05-14T17:12:32+02:00
+updated_at: 2026-05-14T17:12:32+02:00
+closed_at: null

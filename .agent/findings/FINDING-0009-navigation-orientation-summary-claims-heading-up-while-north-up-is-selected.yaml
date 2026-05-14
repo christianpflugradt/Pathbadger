@@ -1,0 +1,22 @@
+id: FINDING-0009
+status: open
+severity: medium
+category: correctness
+title: Navigation orientation summary claims heading-up while North up is selected
+evidence:
+  - "`apps/web/src/navigation-orientation-state.ts` does not pass the selected orientation mode into `getNavigationOrientationHelperCopy()`, so the helper copy falls through to heading-up-specific messages even when `North up` is the active mode."
+  - "In this review's supported browser session on `http://localhost:5173/`, the `navigation-orientation-mode-north_up` option had the selected class while `navigation-orientation-summary` still read `Heading-up is armed. Once navigation starts, Pathbadger will rotate the map only after the browser reports a fresh current position and heading.`"
+  - "The existing orientation tests assert the default `statusLabel` but do not cover the helper summary copy, so `npm run verify` stays green while the live default guidance contradicts the selected mode."
+impact: The navigation card misdescribes the default conservative orientation mode, making users think heading-based rotation is already armed when the supported default is still north-up, and weakening the product's promise of honest runtime guidance.
+recommendation: Make the orientation helper copy branch on the selected mode so north-up states describe north-up behavior, then add focused tests for the default helper summary and the other guarded fallback branches.
+acceptance_criteria:
+  - When `North up` is selected, the orientation summary describes north-up behavior instead of heading-up arming or fallback copy.
+  - The live browser state for the default orientation selection and the rendered helper summary agree with each other.
+  - Orientation tests fail if the helper summary regresses to heading-up copy while `North up` is selected.
+verification:
+  - npm run verify
+  - make run-routing-app
+  - manual browser walkthrough at http://localhost:5173/
+created_at: 2026-05-14T17:12:32+02:00
+updated_at: 2026-05-14T17:12:32+02:00
+closed_at: null
