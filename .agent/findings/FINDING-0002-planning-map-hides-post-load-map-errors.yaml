@@ -1,5 +1,5 @@
 id: FINDING-0002
-status: open
+status: done
 severity: medium
 category: correctness
 title: Planning map keeps reporting ready after post-load tile or source errors
@@ -15,5 +15,5 @@ verification:
   - npm run test:browser-smoke
   - npm test
 created_at: 2026-05-14T10:13:01Z
-updated_at: 2026-05-14T10:13:01Z
-closed_at: null
+updated_at: 2026-05-14T10:47:28Z
+closed_at: 2026-05-14T10:47:28Z

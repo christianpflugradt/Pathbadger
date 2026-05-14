@@ -94,7 +94,7 @@ default supported app flow.
 
 ## Browser smoke
 
-- `npm run test:browser-smoke` runs a fixture-backed Playwright smoke that proves the repo can distinguish four outcomes: a healthy self-hosted map, unreachable style JSON, missing tile data, and an unintended fallback path.
+- `npm run test:browser-smoke` runs a fixture-backed Playwright smoke that proves the repo can distinguish five outcomes: a healthy self-hosted map, unreachable style JSON, missing tile data, post-load map runtime errors, and an unintended fallback path.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` points that same smoke at the live local app and expects a passing real-map result.
 - Navigation-map work also requires the routing-capable local flow because a real browser session cannot enter navigation until `/routes/generate` returns geometry.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` is the intended whole-state live-map configuration once the broader dataset is prepared.

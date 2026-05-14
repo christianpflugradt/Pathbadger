@@ -68,6 +68,7 @@ console.log(
 async function runFixtureSuite(options) {
   const scenarios = [
     { id: "healthy-self-hosted-map", expectedCause: SELF_HOSTED_PASS_CAUSE },
+    { id: "post-load-map-runtime-error", expectedCause: "map_runtime_error" },
     { id: "unreachable-style-json", expectedCause: "unreachable_style_json" },
     { id: "missing-tile-data", expectedCause: "missing_tile_data" },
     { id: "undeclared-fallback", expectedCause: "undeclared_fallback" },
@@ -141,21 +142,16 @@ async function inspectPlanningMapTarget(options) {
 
     await mapSection.waitFor({ state: "visible", timeout: options.timeoutMs });
 
-    const mapLoadState = await waitForSettledLoadState({
+    await waitForSettledLoadState({
       locator: mapSection,
       timeoutMs: options.timeoutMs,
     });
-    const mapHeading = await readLocatorText(
-      page.getByTestId("planning-map-heading"),
-    );
-    const mapBody = await readLocatorText(
-      page.getByTestId("planning-map-body"),
-    );
-    const rawStyleUrl =
-      (await mapSection.getAttribute("data-map-style-url")) ??
-      (await readLocatorText(page.getByTestId("planning-map-style")));
+    const initialDiagnostics = await readPlanningMapDiagnostics({
+      locator: mapSection,
+      page,
+    });
     const styleUrlResult = resolveAndClassifyStyleUrl(
-      rawStyleUrl,
+      initialDiagnostics.styleUrl,
       options.appUrl,
     );
 
@@ -166,9 +162,9 @@ async function inspectPlanningMapTarget(options) {
         detail: styleUrlResult.detail,
         expectedCause: options.expectedCause ?? null,
         label: options.label,
-        mapBody,
-        mapHeading,
-        mapLoadState,
+        mapBody: initialDiagnostics.mapBody,
+        mapHeading: initialDiagnostics.mapHeading,
+        mapLoadState: initialDiagnostics.mapLoadState,
         styleUrl: styleUrlResult.styleUrl,
         tileRequestFailures: [],
         tileRequestSuccesses: [],
@@ -186,9 +182,9 @@ async function inspectPlanningMapTarget(options) {
         detail: styleDocumentResult.detail,
         expectedCause: options.expectedCause ?? null,
         label: options.label,
-        mapBody,
-        mapHeading,
-        mapLoadState,
+        mapBody: initialDiagnostics.mapBody,
+        mapHeading: initialDiagnostics.mapHeading,
+        mapLoadState: initialDiagnostics.mapLoadState,
         styleUrl: styleUrlResult.styleUrl,
         tileRequestFailures: [],
         tileRequestSuccesses: [],
@@ -208,9 +204,9 @@ async function inspectPlanningMapTarget(options) {
         detail: styleAudit.detail,
         expectedCause: options.expectedCause ?? null,
         label: options.label,
-        mapBody,
-        mapHeading,
-        mapLoadState,
+        mapBody: initialDiagnostics.mapBody,
+        mapHeading: initialDiagnostics.mapHeading,
+        mapLoadState: initialDiagnostics.mapLoadState,
         styleUrl: styleUrlResult.styleUrl,
         tileRequestFailures: [],
         tileRequestSuccesses: [],
@@ -219,6 +215,10 @@ async function inspectPlanningMapTarget(options) {
 
     await page.waitForTimeout(NETWORK_SETTLE_DELAY_MS);
 
+    const settledDiagnostics = await readPlanningMapDiagnostics({
+      locator: mapSection,
+      page,
+    });
     const tileRequestSummary = summarizeTileRequests({
       networkEvents,
       requestMatchers: styleAudit.requestMatchers,
@@ -232,26 +232,25 @@ async function inspectPlanningMapTarget(options) {
         detail: `Observed ${tileRequestSummary.failures.length} failed tile-stack request(s).`,
         expectedCause: options.expectedCause ?? null,
         label: options.label,
-        mapBody,
-        mapHeading,
-        mapLoadState,
+        mapBody: settledDiagnostics.mapBody,
+        mapHeading: settledDiagnostics.mapHeading,
+        mapLoadState: settledDiagnostics.mapLoadState,
         styleUrl: styleUrlResult.styleUrl,
         tileRequestFailures: tileRequestSummary.failures,
         tileRequestSuccesses: tileRequestSummary.successes,
       });
     }
 
-    if (mapLoadState !== "ready") {
+    if (settledDiagnostics.mapLoadState !== "ready") {
       return buildFailureOutcome({
         appUrl: options.appUrl,
         cause: "map_runtime_error",
-        detail:
-          "The planning map never reached the ready state even though the style document was reachable.",
+        detail: getMapRuntimeErrorDetail(settledDiagnostics),
         expectedCause: options.expectedCause ?? null,
         label: options.label,
-        mapBody,
-        mapHeading,
-        mapLoadState,
+        mapBody: settledDiagnostics.mapBody,
+        mapHeading: settledDiagnostics.mapHeading,
+        mapLoadState: settledDiagnostics.mapLoadState,
         styleUrl: styleUrlResult.styleUrl,
         tileRequestFailures: tileRequestSummary.failures,
         tileRequestSuccesses: tileRequestSummary.successes,
@@ -266,9 +265,9 @@ async function inspectPlanningMapTarget(options) {
           "No successful tile-stack request was observed after the style document loaded.",
         expectedCause: options.expectedCause ?? null,
         label: options.label,
-        mapBody,
-        mapHeading,
-        mapLoadState,
+        mapBody: settledDiagnostics.mapBody,
+        mapHeading: settledDiagnostics.mapHeading,
+        mapLoadState: settledDiagnostics.mapLoadState,
         styleUrl: styleUrlResult.styleUrl,
         tileRequestFailures: tileRequestSummary.failures,
         tileRequestSuccesses: tileRequestSummary.successes,
@@ -281,9 +280,9 @@ async function inspectPlanningMapTarget(options) {
       detail: `Observed ${tileRequestSummary.successes.length} successful tile-stack request(s).`,
       expectedCause: options.expectedCause ?? null,
       label: options.label,
-      mapBody,
-      mapHeading,
-      mapLoadState,
+      mapBody: settledDiagnostics.mapBody,
+      mapHeading: settledDiagnostics.mapHeading,
+      mapLoadState: settledDiagnostics.mapLoadState,
       ok: true,
       styleUrl: styleUrlResult.styleUrl,
       tileRequestFailures: tileRequestSummary.failures,
@@ -344,6 +343,30 @@ async function waitForSettledLoadState(options) {
   return (
     (await options.locator.getAttribute("data-map-load-state")) ?? "loading"
   );
+}
+
+async function readPlanningMapDiagnostics(options) {
+  return {
+    mapBody: await readLocatorText(
+      options.page.getByTestId("planning-map-body"),
+    ),
+    mapHeading: await readLocatorText(
+      options.page.getByTestId("planning-map-heading"),
+    ),
+    mapLoadState:
+      (await options.locator.getAttribute("data-map-load-state")) ?? "unknown",
+    styleUrl:
+      (await options.locator.getAttribute("data-map-style-url")) ??
+      (await readLocatorText(options.page.getByTestId("planning-map-style"))),
+  };
+}
+
+function getMapRuntimeErrorDetail(diagnostics) {
+  if (diagnostics.mapBody) {
+    return `The planning map reported a runtime error after the style document loaded: ${diagnostics.mapBody}`;
+  }
+
+  return "The planning map reported a runtime error after the style document loaded.";
 }
 
 function resolveAndClassifyStyleUrl(rawStyleUrl, appUrl) {
@@ -658,7 +681,7 @@ Usage:
 
 Without --app-url, the command runs a fixture-backed suite that proves the smoke
 can distinguish a healthy self-hosted map from unreachable style JSON, missing
-tile data, and proxy-bypassing fallback paths.`);
+tile data, post-load map runtime errors, and proxy-bypassing fallback paths.`);
 }
 
 async function readLocatorText(locator) {
@@ -720,6 +743,22 @@ async function createFixtureScenario(id) {
     };
   }
 
+  if (id === "post-load-map-runtime-error") {
+    scenario.runtimeErrorAfterReady = true;
+    scenario.runtimeErrorBody =
+      "The style document loaded, but a later tile or source error forced the planning map out of the ready state.";
+    scenario.runtimeErrorHeading = "Self-hosted map unavailable";
+    scenario.styleDocument = {
+      sources: {
+        base: {
+          tiles: ["/tiles/basic/0/0/0.pbf"],
+          type: "vector",
+        },
+      },
+      version: 8,
+    };
+  }
+
   if (id === "unreachable-style-json") {
     scenario.appState = "error";
     scenario.appStatusBody =
@@ -751,6 +790,9 @@ async function createFixtureScenario(id) {
           : "/styles/basic/style.json";
       const html = renderFixturePage({
         loadState: scenario.appState,
+        runtimeErrorAfterReady: scenario.runtimeErrorAfterReady ?? false,
+        runtimeErrorBody: scenario.runtimeErrorBody ?? "",
+        runtimeErrorHeading: scenario.runtimeErrorHeading ?? "",
         statusBody: scenario.appStatusBody,
         statusHeading: scenario.appStatusHeading,
         styleUrl,
@@ -812,6 +854,23 @@ function renderFixturePage(options) {
     <script>
       window.addEventListener("load", () => {
         fetch("/tiles/basic/0/0/0.pbf").catch(() => {})
+        if (${options.runtimeErrorAfterReady ? "true" : "false"}) {
+          window.setTimeout(() => {
+            const mapSection = document.querySelector('[data-testid="planning-map"]')
+            const mapHeading = document.querySelector('[data-testid="planning-map-heading"]')
+            const mapBody = document.querySelector('[data-testid="planning-map-body"]')
+
+            mapSection?.setAttribute("data-map-load-state", "error")
+
+            if (mapHeading) {
+              mapHeading.textContent = ${JSON.stringify(options.runtimeErrorHeading)}
+            }
+
+            if (mapBody) {
+              mapBody.textContent = ${JSON.stringify(options.runtimeErrorBody)}
+            }
+          }, 100)
+        }
       })
     </script>
   </body>

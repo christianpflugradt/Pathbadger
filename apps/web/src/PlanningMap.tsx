@@ -7,6 +7,11 @@ import type {
 import maplibregl from "maplibre-gl";
 
 import type { NavigationFollowMode } from "./navigation-follow-state";
+import {
+  getMapErrorMessage,
+  getNextPlanningMapLoadStateOnError,
+  type MapLoadState,
+} from "./planning-map-runtime";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -30,8 +35,6 @@ type PlanningMapProps = {
   startPointLabel: string;
   styleUrl: string;
 };
-
-type MapLoadState = "loading" | "ready" | "error";
 
 const DEFAULT_ZOOM = 11.5;
 const ROUTE_PREVIEW_SOURCE_ID = "route-preview";
@@ -107,7 +110,7 @@ export function PlanningMap({
       setErrorMessage(null);
     };
     const handleError = (event: { error?: unknown }) => {
-      setLoadState((current) => (current === "ready" ? current : "error"));
+      setLoadState((current) => getNextPlanningMapLoadStateOnError(current));
       setErrorMessage(
         (current) => current ?? getMapErrorMessage(event.error, styleUrl),
       );
@@ -571,18 +574,6 @@ function emptyRoutePreviewCollection() {
     type: "FeatureCollection" as const,
     features: [],
   };
-}
-
-function getMapErrorMessage(error: unknown, styleUrl: string) {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  if (typeof error === "string" && error.trim()) {
-    return error;
-  }
-
-  return `Could not load the self-hosted style at ${styleUrl}. Check that the tile stack is running and the style URL is reachable.`;
 }
 
 function trimStyleUrl(styleUrl: string) {
