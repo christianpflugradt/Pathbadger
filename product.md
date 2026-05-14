@@ -942,10 +942,9 @@ For product behavior, prefer visible honest feedback over silent failure:
 
 ## 11. Agent operating model
 
-The agent must operate the repository through five primary commands:
+The agent must operate the repository through four primary commands:
 
 ```text
-show
 refine
 implement
 fix
@@ -955,7 +954,6 @@ review
 The agent may also perform initial repository setup from this document. During initial setup, it must not commit.
 
 After the repository is connected to a remote Git repository by the user, every subsequent `refine`, `implement`, `fix`, and `review` command must end with a successful commit and push unless explicitly instructed otherwise or technically impossible.
-The read-only `show` command must not modify files, commit, or push.
 
 ### 11.1 Initial setup command
 

@@ -1,7 +1,7 @@
 # Scripts
 
 - `verify.sh`: lint, typecheck, test, and format checks
-- `show-workspace-summary.sh`: deterministic workspace summary for `show` and `make show`
+- `show-workspace-summary.sh`: deterministic workspace summary for `make show`
 - `test-compose.sh`: docker compose validation plus runtime smoke for the `api`, `web`, and `tileserver` services
 - `browser-smoke.mjs`: fixture-backed Playwright smoke plus live-app map contract checks
 - `live-route-quality-check.mjs`: frontend-proxied live route-quality evidence checks for geometry, instruction honesty, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure handling after `make run-routing-app`

@@ -2,9 +2,8 @@
 
 Pathbadger is a self-hosted trail-first route planning and navigation project for spontaneous running and cycling routes in Schleswig-Holstein.
 
-This repository is initialized for an agent-driven workflow with five recurring commands:
+This repository is initialized for an agent-driven workflow with four recurring repo task commands:
 
-- `show`
 - `refine`
 - `implement`
 - `fix`
@@ -34,7 +33,7 @@ This repository is initialized for an agent-driven workflow with five recurring 
 5. Use `make run-app` to start the local app stack when you want to open it in the browser.
 6. Use `make run-routing-app` when you need a real routed preview and navigation start in the browser.
 7. Run `npm run test:live-route-quality` after `make run-routing-app` when you need repeatable live route-quality evidence through the supported frontend proxy.
-8. Use `make show` when you want the deterministic workspace summary without the agent.
+8. Use `make show` when you want the deterministic workspace summary.
 9. Read the active epic and backlog in `.agent/`.
 
 ## Docker notes
@@ -64,7 +63,6 @@ This repository is initialized for an agent-driven workflow with five recurring 
 - `implement` must implement exactly one actionable backlog item.
 - `fix` must resolve exactly one open finding from `.agent/findings/`.
 - `review` audits the full workspace and produces structured findings without changing roadmap progress. Extra tokens may only add focus and must never narrow the review to a commit range or patch subset.
-- `show` reports a brief workspace summary with open item count, incomplete epic count, unfixed finding count, and overall roadmap progress from `.agent/roadmap.yaml`.
-- `make show` runs the same deterministic shell summary through `scripts/show-workspace-summary.sh`.
+- `make show` runs the deterministic shell workspace summary through `scripts/show-workspace-summary.sh`.
 
 The repository now supports a real self-hosted planning flow, live route-quality evidence against Schleswig-Holstein data, and a browser-verified navigation loop. Remaining roadmap work is focused on broader hardening rather than on core routing or planning scaffolding.

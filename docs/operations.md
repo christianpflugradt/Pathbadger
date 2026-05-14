@@ -12,7 +12,7 @@
 8. `make stopp-app` when you want to stop either local app stack again
 9. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
 10. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
-11. `make show` when you want the deterministic workspace summary without relying on agent-side interpretation
+11. `make show` when you want the deterministic workspace summary
 
 `npm run compose:test` validates both the default compose graph and the `maps`
 profile configuration, builds the `api`, `web`, and `tileserver` services,
@@ -118,7 +118,6 @@ default supported app flow.
 - Any repo task that changes files must stage and create a git commit before reporting completion unless the user explicitly says not to commit yet.
 - `review` always audits the whole workspace. Focus hints such as `review security` or `review architecture` may change emphasis, but they must not reduce scope.
 - `review <number>` is not a supported shorthand for commit-count review and must never be interpreted that way.
-- `show` reports a brief workspace summary from `.agent/roadmap.yaml`, `.agent/epics/`, `.agent/backlog/`, and `.agent/findings/` without changing files
-- `make show` is the deterministic shell entrypoint for that same summary and delegates to `scripts/show-workspace-summary.sh`
+- `make show` is the deterministic shell entrypoint for the workspace summary and delegates to `scripts/show-workspace-summary.sh`
 
 `docs/product.md` remains the original vision reference. The live operational contract is stored in `.agent/*.yaml`.

@@ -13,9 +13,8 @@ source ~/.zprofile >/dev/null 2>&1; source ~/.zshrc >/dev/null 2>&1; rtk <comman
 
 Do not report missing `npm`, `node`, or `rtk` until that bootstrap step has been attempted in the current shell.
 
-This repository also defines five primary agent commands that must be interpreted as repo tasks, not generic natural-language requests:
+This repository also defines four primary agent commands that must be interpreted as repo tasks, not generic natural-language requests:
 
-- `show`
 - `refine`
 - `implement`
 - `fix`
@@ -30,15 +29,6 @@ Any extra tokens after `implement` or `fix` are optional focus hints only and mu
 When the user says `review`, or `review` followed by extra tokens, the agent must still perform a whole-workspace audit.
 Any extra tokens after `review` are optional focus hints only and must never narrow the audit to a commit, diff, or file subset.
 Never interpret `review <number>` as "review the latest N commits" or any other commit-limited review mode.
-
-When the user says exactly `show`, do not ask what they want to inspect. Read the current workspace state and reply briefly with:
-
-- open backlog item count from `.agent/backlog/*` where `status != done`
-- incomplete epic count from `.agent/epics/*` where `status != done`
-- unfixed finding count from `.agent/findings/*` where `status` is neither `done` nor `accepted_risk`
-- overall roadmap progress percent from `.agent/roadmap.yaml` `roadmap.overall_progress_percent`
-
-`show` is read-only. It must not modify files, commit, or push.
 
 Use `make show` after the shell bootstrap step when you want the deterministic repo-native summary output. `make show` delegates to `scripts/show-workspace-summary.sh`.
 </INSTRUCTIONS>
