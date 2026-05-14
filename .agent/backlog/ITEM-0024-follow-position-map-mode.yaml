@@ -15,10 +15,14 @@ verification:
   - npm run lint
   - npm run typecheck
   - npm run verify
+  - make run-app
+  - supported local browser check that navigation follows the live current position by default, pauses follow after a manual pan, and lets the user explicitly recenter
 implementation_notes:
   - "2026-05-13 refine: the map already shows a current-position marker during active navigation, but follow-position behavior and a manual-pan escape model are still absent."
   - "2026-05-13 refine: blocked behind the real-map usability correction, because follow-position behavior is secondary until the supported local boot delivers real cartography and the workflow can prove it."
   - "2026-05-14 implement: Unblocked now that EPIC-0011 is complete and active navigation consumes live browser geolocation through `ITEM-0022`."
+  - "2026-05-14 refine: `apps/web/src/App.tsx` now always passes the live navigation position as `center`, and `apps/web/src/PlanningMap.tsx` immediately `easeTo(...)`s every center change, so manual map pans cannot meaningfully break follow-position yet."
+  - "2026-05-14 refine: the smallest next slice is to add explicit follow-position state in the web app, detect user-initiated navigation-map movement without re-enabling planning clicks, and expose a clear recenter action while keeping the map north-up by default."
 created_at: 2026-05-13T21:06:33+02:00
-updated_at: 2026-05-14T09:05:23+02:00
+updated_at: 2026-05-14T09:16:42+02:00
 closed_at: null

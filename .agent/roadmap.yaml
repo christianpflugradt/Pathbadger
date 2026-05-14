@@ -106,4 +106,4 @@ roadmap:
     - the supported local boot now shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` is the heavier whole-state configuration for broader live-map use
     - routing-core and route-generation now reach an honest preview loop with surface-aware summaries and instruction data, but live GraphHopper route quality against a prepared Schleswig-Holstein graph is still proven mostly through mocked coverage
     - active navigation now follows live browser geolocation in the frontend, but browser-level proof still depends on obtaining a usable routed preview and a real device or browser geolocation feed during manual verification
-    - follow-position map behavior with manual pan escape is the next navigation polish on top of the newly-live GPS feed and speed metrics
+    - "`ITEM-0024` is now the remaining navigation epic slice: the map still recenters unconditionally on each live GPS position update, so manual pan escape plus an explicit recenter control are the next planned behavior change on top of the live feed and speed metrics"
