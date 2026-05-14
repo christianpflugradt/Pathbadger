@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 93
+  overall_progress_percent: 100
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -80,8 +80,8 @@ roadmap:
       target_outcome: mobile-friendly outdoor navigation with local progress calculations
     - id: hardening
       title: QA, energy behavior, security, docs, operations
-      status: active
-      progress_percent: 90
+      status: done
+      progress_percent: 100
       target_outcome: stable self-hosted operation with honest warnings, browser-local persistence, and conservative battery behavior
   current_epic: EPIC-0014
   completed_summary:
@@ -113,12 +113,12 @@ roadmap:
     - active navigation now follows the live current position by default, pauses map follow after a real user pan, and lets the user explicitly recenter onto the newest GPS fix without leaving north-up mode
     - the supported navigation card and docs now surface iPhone/PWA runtime caveats explicitly, covering permission, HTTPS, background behavior, Wake Lock variability, and the screen-on active-app expectation instead of hiding those browser limits
     - active navigation now distinguishes high-confidence live GPS fixes from noisy or stale `ready` updates, downgrades progress and route-deviation cues to approximate guidance when confidence is reduced, and avoids escalating a hard off-route warning until a tighter browser fix arrives
+    - navigation now exposes `Normal GPS` and `Battery saver` runtime modes, letting the supported browser flow relax geolocation urgency to reduce live-update churn while surfacing the precision and freshness tradeoff explicitly in the UI and docs
     - the planner now persists one remembered default start in browser-local storage, keeps that mode unavailable until something real has been saved, and restores the saved default honestly after a browser reload
     - the planner now persists the most recent non-GPS planning origin in browser-local storage, keeps `Last used start` disabled until a real route request seeds it, and restores that stored origin honestly after a browser reload
     - the planner now restores both activity and surface selections from browser-local storage, saves each change immediately, and warns honestly when browser-local persistence cannot be used
     - the supported planner now removes the orphaned `Place search later` control and keeps pass-through planning explicitly centered on live map clicks while documenting local place search as later scope
     - the routing core now includes legality and Schleswig-Holstein region guardrails plus `npm run test:live-route-quality`, a repeatable frontend-proxied live evidence command that proves first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior on `make run-routing-app`
   remaining_summary:
-    - the supported local boot already shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` remains the heavier whole-state configuration for broader live-map use
-    - active navigation follows live browser geolocation in the frontend, and the supported `make run-routing-app` flow can start a real navigation session from browser-generated route previews, but live preview elevation stays honestly unknown while the local GraphHopper boot keeps elevation support disabled
-    - the active `EPIC-0014` hardening slice now targets a first battery-saver navigation mode on top of the supported self-hosted boot
+    - the scoped MVP backlog is complete for the supported self-hosted browser flow, so future work would be additive scope rather than required completion work
+    - the app still documents real browser and PWA limits honestly, including HTTPS, background throttling, Wake Lock variability, and the expectation that the screen stays on and the app remains active during supported navigation

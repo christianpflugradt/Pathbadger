@@ -50,6 +50,13 @@ import {
   getNavigationRuntimeCaveats,
   getNavigationRuntimeCaveatSummary,
 } from "./navigation-runtime-caveats";
+import {
+  getNavigationRuntimeModeLabel,
+  getNavigationRuntimeModeOptions,
+  getNavigationRuntimeModePositionOptions,
+  getNavigationRuntimeModeSummary,
+} from "./navigation-runtime-mode";
+import type { NavigationRuntimeMode } from "./navigation-runtime-mode";
 import { PlanningMap } from "./PlanningMap";
 import {
   getBrowserLocalStorage,
@@ -205,6 +212,8 @@ export function App() {
     useState<RouteGenerateResponse | null>(null);
   const [navigationSession, setNavigationSession] =
     useState<NavigationSession | null>(null);
+  const [navigationRuntimeMode, setNavigationRuntimeMode] =
+    useState<NavigationRuntimeMode>("normal");
   const [navigationFollowMode, setNavigationFollowMode] =
     useState<NavigationFollowMode>("follow_position");
   const [navigationManualCenter, setNavigationManualCenter] =
@@ -227,9 +236,20 @@ export function App() {
   const isNavigationActive = navigationSession !== null;
   const isBrowserGeolocationEnabled =
     startPointMode === "current_position" || isNavigationActive;
+  const navigationRuntimeModeOptions = getNavigationRuntimeModeOptions();
+  const browserGeolocationPositionOptions = isNavigationActive
+    ? getNavigationRuntimeModePositionOptions(navigationRuntimeMode)
+    : DEFAULT_BROWSER_GEOLOCATION_OPTIONS;
   const browserGeolocation = useBrowserGeolocation({
     enabled: isBrowserGeolocationEnabled,
-    positionOptions: DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
+    positionOptions: browserGeolocationPositionOptions,
+  });
+  const navigationRuntimeModeLabel = getNavigationRuntimeModeLabel(
+    navigationRuntimeMode,
+  );
+  const navigationRuntimeModeSummary = getNavigationRuntimeModeSummary({
+    isNavigationActive,
+    mode: navigationRuntimeMode,
   });
   const rememberedDefaultOptionDetail = getRememberedDefaultOptionDetail({
     savedDefaultStart,
@@ -1353,6 +1373,44 @@ export function App() {
               data-testid="navigation-runtime-caveats"
             >
               <div className="section-heading">
+                <h3>Navigation runtime mode</h3>
+                <p>
+                  Choose whether live navigation should favor fresher GPS fixes
+                  or lower browser geolocation churn.
+                </p>
+              </div>
+              <div
+                className="option-grid"
+                data-testid="navigation-runtime-mode"
+              >
+                {navigationRuntimeModeOptions.map((option) => (
+                  <button
+                    key={option.mode}
+                    type="button"
+                    data-testid={`navigation-runtime-mode-${option.mode}`}
+                    className={`option-card${
+                      navigationRuntimeMode === option.mode
+                        ? " option-card--selected"
+                        : ""
+                    }`}
+                    onClick={() => setNavigationRuntimeMode(option.mode)}
+                  >
+                    <span className="option-title">{option.label}</span>
+                    <span className="option-detail">{option.detail}</span>
+                  </button>
+                ))}
+              </div>
+              <p
+                className={`helper-copy ${
+                  navigationRuntimeMode === "battery_saver"
+                    ? "helper-copy--warning"
+                    : "helper-copy--active"
+                }`}
+                data-testid="navigation-runtime-mode-summary"
+              >
+                {navigationRuntimeModeSummary}
+              </p>
+              <div className="section-heading">
                 <h3>Browser runtime caveats</h3>
                 <p>{getNavigationRuntimeCaveatSummary()}</p>
               </div>
@@ -1398,6 +1456,15 @@ export function App() {
                     className={`status-pill ${navigationFollowStatusPillClassName}`}
                   >
                     {navigationFollowStatusLabel}
+                  </span>
+                  <span
+                    className={`status-pill ${
+                      navigationRuntimeMode === "battery_saver"
+                        ? "status-pill--warning"
+                        : "status-pill--active"
+                    }`}
+                  >
+                    {navigationRuntimeModeLabel}
                   </span>
                   <span className="status-pill">
                     {navigationSession.routeStatus === "partial"
@@ -1507,6 +1574,10 @@ export function App() {
                       <div className="preview-stat">
                         <span>Map follow</span>
                         <strong>{navigationFollowStatusLabel}</strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Runtime mode</span>
+                        <strong>{navigationRuntimeModeLabel}</strong>
                       </div>
                       <div className="preview-stat">
                         <span>Completed</span>
@@ -1634,6 +1705,10 @@ export function App() {
                         <span>Map follow</span>
                         <strong>{navigationFollowStatusLabel}</strong>
                       </div>
+                      <div className="preview-stat">
+                        <span>Runtime mode</span>
+                        <strong>{navigationRuntimeModeLabel}</strong>
+                      </div>
                     </div>
                     <ul className="handoff-list">
                       <li>
@@ -1725,6 +1800,10 @@ export function App() {
                     <strong>
                       {navigableRoutePreview.instructions?.length ?? 0}
                     </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Runtime mode</span>
+                    <strong>{navigationRuntimeModeLabel}</strong>
                   </div>
                 </div>
                 <p className="helper-copy">

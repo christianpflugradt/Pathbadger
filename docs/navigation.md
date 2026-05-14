@@ -27,6 +27,7 @@ The navigation runtime is now implemented for the supported local browser flow:
 - progress, next instruction, off-route warnings, and speed metrics stay local in the frontend
 - map follow stays enabled by default, pauses after a manual pan, and can be explicitly recentered
 - low-confidence or stale live GPS fixes now stay conservative, so off-route and progress cues become approximate until a tighter browser update arrives
+- navigation now exposes `Normal GPS` and `Battery saver` runtime modes, with saver mode relaxing browser geolocation to lower live-update churn at the cost of older or rougher fixes
 
 ## Browser and PWA caveats
 
@@ -40,4 +41,4 @@ The supported navigation flow is still browser-first rather than native:
 
 The MVP is still expected to be useful with the screen on and the app active.
 
-Remaining navigation-adjacent work is now mostly hardening: battery-aware behavior, GPS-noise conservatism, and optional later navigation modes.
+The scoped navigation hardening backlog is now complete for the supported browser flow. Future work would be net-new runtime modes or broader platform experiments rather than required MVP completion work.

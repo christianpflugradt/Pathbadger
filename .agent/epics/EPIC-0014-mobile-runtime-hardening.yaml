@@ -1,5 +1,5 @@
 id: EPIC-0014
-status: open
+status: done
 phase: hardening
 title: Harden mobile navigation runtime behavior
 objective: turn the first working browser navigation loop into a more trustworthy iPhone-friendly runtime by handling noisy GPS fixes conservatively, surfacing PWA caveats honestly, and adding a simple battery-saver path that reduces wasteful live-navigation work
@@ -12,5 +12,5 @@ items:
   - ITEM-0036
   - ITEM-0037
 created_at: 2026-05-14T14:46:58+02:00
-updated_at: 2026-05-14T14:46:58+02:00
-closed_at: null
+updated_at: 2026-05-14T15:52:42+02:00
+closed_at: 2026-05-14T15:52:42+02:00

@@ -1,7 +1,7 @@
 id: ITEM-0037
 type: feature
 priority: P2
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0014
@@ -17,6 +17,10 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: `apps/web/src/browser-geolocation.ts` currently hardcodes one `enableHighAccuracy` / `maximumAge` / `timeout` configuration, and the product spec still calls out a later battery-saver setting as the preferred honest path instead of pretending the default runtime is already optimized."
   - "2026-05-14 refine: `docs/product.md` section 10 and 20B.2 both emphasize avoiding excessive GPS update work and map animation churn, making a focused frontend-only saver mode a better next slice than broader architectural changes."
+  - "2026-05-14 implement: added `apps/web/src/navigation-runtime-mode.ts` plus deterministic unit coverage so the web runtime now exposes explicit `Normal GPS` and `Battery saver` navigation presets with honest copy about their tradeoffs."
+  - "2026-05-14 implement: updated `App.tsx` to let the navigation card switch runtime modes live, reuse the default high-accuracy browser watch outside navigation, and apply a less aggressive geolocation policy during active battery-saver navigation."
+  - "2026-05-14 implement: updated `docs/navigation.md` so the supported browser flow documents what battery saver changes and why its progress or off-route cues may stay approximate for longer."
+  - "2026-05-14 implement: verified the item with focused web tests, `npm run verify`, and the supported `make run-app` browser walkthrough showing the battery-saver control and summary in the live app."
 created_at: 2026-05-14T14:46:58+02:00
-updated_at: 2026-05-14T14:46:58+02:00
-closed_at: null
+updated_at: 2026-05-14T15:52:42+02:00
+closed_at: 2026-05-14T15:52:42+02:00

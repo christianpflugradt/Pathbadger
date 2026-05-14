@@ -111,6 +111,30 @@ describe("subscribeToBrowserGeolocation", () => {
     expect(geolocation.clearWatch).toHaveBeenCalledWith(41);
   });
 
+  it("passes custom watch options through to the browser geolocation API", () => {
+    const geolocation: BrowserGeolocationApi = {
+      clearWatch: vi.fn(),
+      watchPosition: vi.fn(() => 12),
+    };
+    const positionOptions = {
+      enableHighAccuracy: false,
+      maximumAge: 60_000,
+      timeout: 30_000,
+    } satisfies PositionOptions;
+
+    subscribeToBrowserGeolocation({
+      geolocation,
+      onChange: vi.fn(),
+      positionOptions,
+    });
+
+    expect(geolocation.watchPosition).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.any(Function),
+      positionOptions,
+    );
+  });
+
   it("surfaces a denied state from browser permission errors", () => {
     let errorCallback: WatchErrorCallback | null = null;
     const geolocation: BrowserGeolocationApi = {
