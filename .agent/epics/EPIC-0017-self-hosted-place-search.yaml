@@ -1,5 +1,5 @@
 id: EPIC-0017
-status: open
+status: done
 phase: post-mvp-place-search
 title: Add self-hosted place search support
 objective: extend the supported planner beyond map-click-only waypoint discovery by adding a same-origin self-hosted place-search path for start and pass-through selection, without introducing third-party browser dependencies or misleading placeholder behavior
@@ -11,5 +11,5 @@ items:
   - ITEM-0041
   - ITEM-0042
 created_at: 2026-05-14T19:59:37+02:00
-updated_at: 2026-05-14T20:17:56+02:00
-closed_at: null
+updated_at: 2026-05-14T20:49:22+02:00
+closed_at: 2026-05-14T20:49:22+02:00

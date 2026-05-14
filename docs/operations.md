@@ -103,7 +103,7 @@ default supported app flow.
 
 ## Place search
 
-- `GET /api/places/search?query=...&limit=...` is the supported same-origin place-search boundary for later planner work.
+- `GET /api/places/search?query=...&limit=...` is the supported same-origin place-search boundary for planner searches, searched starts, and searched pass-through picks.
 - `PLACE_SEARCH_PROVIDER_URL=http://nominatim:8080` is the api-side environment hook for a self-hosted Nominatim-compatible provider on the Docker internal network. The api app appends `/search` automatically when the configured base URL does not already include it.
 - When `PLACE_SEARCH_PROVIDER_URL` is unset, blank, unreachable, or returns malformed data, the boundary responds with `status: "unavailable"` plus an explicit message instead of inventing search results.
 - When a configured provider returns no matches, the boundary responds with `status: "empty"` and an explicit no-results message.

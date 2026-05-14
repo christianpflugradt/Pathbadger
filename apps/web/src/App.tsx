@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   DEFAULT_DISTANCE_TOLERANCE_METERS,
+  DEFAULT_PLACE_SEARCH_LIMIT,
   activityOptions,
   surfacePreferenceOptions,
 } from "@pathbadger/shared";
 import type {
   Activity,
   Coordinate,
+  PlaceSearchResponse,
+  PlaceSearchResult,
   RouteGeometry,
   RouteGenerateRequest,
   RouteGenerateResponse,
@@ -81,6 +84,19 @@ import {
   getSurfacePreferenceSectionCopy,
   getTargetDistanceSectionCopy,
 } from "./planning-section-copy";
+import {
+  createMapPassThroughPoint,
+  createMapStartSelection,
+  createSearchPassThroughPoint,
+  createSearchStartSelection,
+  getPassThroughPointSourceCopy,
+  getPlaceSearchFeedbackClassName,
+  getPlaceSearchFeedbackCopy,
+  getPlaceSearchRegionGuardrailCopy,
+  type PlannerMapStartSelection,
+  type PlannerPassThroughPoint,
+} from "./planning-place-search-state";
+import { searchLocalPlaces } from "./place-search-client";
 import { requestRoutePreview } from "./route-preview-client";
 import {
   getRouteSurfaceSummaryCards,
@@ -94,12 +110,6 @@ type StartPointMode =
   | "saved_default"
   | "last_used";
 type MapInteractionMode = "idle" | "add_pass_through";
-type PassThroughPoint = {
-  id: string;
-  label: string;
-  coordinate: Coordinate;
-  source: "map";
-};
 type NavigationSession = {
   instructions: RouteInstruction[];
   routeGeometry: RouteGeometry;
@@ -131,8 +141,8 @@ const startPointCatalog: Record<
     detail: "Fastest option once location permission is granted.",
   },
   map_point: {
-    label: "Map-selected point",
-    detail: "Live map clicks set the planning start.",
+    label: "Planner-selected point",
+    detail: "Live map clicks or local search results set the planning start.",
   },
   saved_default: {
     label: "Remembered default",
@@ -185,9 +195,10 @@ export function App() {
   const [rememberedDefaultSaveError, setRememberedDefaultSaveError] = useState<
     string | null
   >(null);
-  const [mapSelectedStart, setMapSelectedStart] = useState<Coordinate>(
-    DEFAULT_MAP_SELECTED_START_COORDINATE,
-  );
+  const [mapSelectedStart, setMapSelectedStart] =
+    useState<PlannerMapStartSelection>(() =>
+      createMapStartSelection(DEFAULT_MAP_SELECTED_START_COORDINATE),
+    );
   const [mapInteractionMode, setMapInteractionMode] =
     useState<MapInteractionMode>("idle");
   const [activity, setActivity] = useState<Activity>(
@@ -212,8 +223,15 @@ export function App() {
     useState(false);
   const [targetDistanceKm, setTargetDistanceKm] = useState(12);
   const [passThroughPoints, setPassThroughPoints] = useState<
-    PassThroughPoint[]
+    PlannerPassThroughPoint[]
   >([]);
+  const [placeSearchQuery, setPlaceSearchQuery] = useState("");
+  const [placeSearchResponse, setPlaceSearchResponse] =
+    useState<PlaceSearchResponse | null>(null);
+  const [placeSearchRequestError, setPlaceSearchRequestError] = useState<
+    string | null
+  >(null);
+  const [isRequestingPlaceSearch, setIsRequestingPlaceSearch] = useState(false);
   const [previewCandidateIndex, setPreviewCandidateIndex] = useState(1);
   const [routePreview, setRoutePreview] =
     useState<RouteGenerateResponse | null>(null);
@@ -241,7 +259,9 @@ export function App() {
   const [routePreviewRequestError, setRoutePreviewRequestError] = useState<
     string | null
   >(null);
+  const latestPlaceSearchRequestIdRef = useRef(0);
   const latestRoutePreviewRequestIdRef = useRef(0);
+  const nextPassThroughPointIdRef = useRef(0);
   const isNavigationActive = navigationSession !== null;
   const isBrowserGeolocationEnabled =
     startPointMode === "current_position" || isNavigationActive;
@@ -281,17 +301,21 @@ export function App() {
     },
     map_point: {
       ...startPointCatalog.map_point,
-      coordinate: mapSelectedStart,
+      detail:
+        mapSelectedStart.source === "search" && mapSelectedStart.label
+          ? `Currently set from local search: ${mapSelectedStart.label}.`
+          : startPointCatalog.map_point.detail,
+      coordinate: mapSelectedStart.coordinate,
     },
     saved_default: {
       ...startPointCatalog.saved_default,
-      coordinate: savedDefaultStart ?? mapSelectedStart,
+      coordinate: savedDefaultStart ?? mapSelectedStart.coordinate,
       detail: rememberedDefaultOptionDetail,
       disabled: savedDefaultStart === null,
     },
     last_used: {
       ...startPointCatalog.last_used,
-      coordinate: lastUsedStart ?? mapSelectedStart,
+      coordinate: lastUsedStart ?? mapSelectedStart.coordinate,
       detail: lastUsedStartOptionDetail,
       disabled: lastUsedStart === null,
     },
@@ -301,7 +325,10 @@ export function App() {
     startPointMode === "map_point"
       ? {
           ...startPointOptions.map_point,
-          detail: "Click the live map to set the route origin.",
+          detail:
+            mapSelectedStart.source === "search" && mapSelectedStart.label
+              ? "Choose another local result or click the live map to replace this searched origin."
+              : "Click the live map to set the route origin.",
         }
       : startPointOptions[startPointMode];
   const canSaveRememberedDefault = startPointMode !== "current_position";
@@ -523,6 +550,32 @@ export function App() {
     persistenceFailed: surfacePreferenceSaveFailed,
     storageAvailable: isBrowserLocalStorageAvailable,
   });
+  const placeSearchFeedbackClassName = getPlaceSearchFeedbackClassName({
+    errorMessage: placeSearchRequestError,
+    isLoading: isRequestingPlaceSearch,
+    regionName: webRuntimeConfig.regionName,
+    response: placeSearchResponse,
+  });
+  const placeSearchFeedbackCopy = getPlaceSearchFeedbackCopy({
+    errorMessage: placeSearchRequestError,
+    isLoading: isRequestingPlaceSearch,
+    regionName: webRuntimeConfig.regionName,
+    response: placeSearchResponse,
+  });
+  const placeSearchResults =
+    placeSearchResponse?.status === "success"
+      ? placeSearchResponse.results
+      : [];
+  const placeSearchStatusLabel = getPlaceSearchStatusLabel({
+    errorMessage: placeSearchRequestError,
+    isLoading: isRequestingPlaceSearch,
+    response: placeSearchResponse,
+  });
+  const placeSearchStatusPillClassName = getPlaceSearchStatusPillClassName({
+    errorMessage: placeSearchRequestError,
+    isLoading: isRequestingPlaceSearch,
+    response: placeSearchResponse,
+  });
 
   useEffect(() => {
     if (!navigationSession) {
@@ -577,16 +630,13 @@ export function App() {
   function handleMapSelection(coordinate: Coordinate) {
     if (isAwaitingPassThroughPoint) {
       setPassThroughPoints((current) => {
-        const nextIndex = current.length + 1;
-
         return [
           ...current,
-          {
-            id: `map-waypoint-${nextIndex}`,
-            label: `Map waypoint ${nextIndex}`,
+          createMapPassThroughPoint({
             coordinate,
-            source: "map",
-          },
+            id: createPassThroughPointId("map"),
+            index: current.length + 1,
+          }),
         ];
       });
       setMapInteractionMode("idle");
@@ -594,7 +644,7 @@ export function App() {
     }
 
     if (startPointMode === "map_point") {
-      setMapSelectedStart(coordinate);
+      setMapSelectedStart(createMapStartSelection(coordinate));
     }
   }
 
@@ -602,6 +652,77 @@ export function App() {
     setMapInteractionMode((current) =>
       current === "add_pass_through" ? "idle" : "add_pass_through",
     );
+  }
+
+  function handlePlaceSearchQueryKeyDown(
+    event: KeyboardEvent<HTMLInputElement>,
+  ) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    void requestPlaceSearch();
+  }
+
+  async function requestPlaceSearch() {
+    const query = placeSearchQuery.trim();
+
+    if (query.length < 2) {
+      setPlaceSearchResponse(null);
+      setPlaceSearchRequestError(
+        "Enter at least two characters to search local places.",
+      );
+      return;
+    }
+
+    const nextRequestId = latestPlaceSearchRequestIdRef.current + 1;
+
+    latestPlaceSearchRequestIdRef.current = nextRequestId;
+    setPlaceSearchRequestError(null);
+    setPlaceSearchResponse(null);
+    setIsRequestingPlaceSearch(true);
+
+    try {
+      const searchResponse = await searchLocalPlaces({
+        apiBaseUrl: webRuntimeConfig.apiBaseUrl,
+        limit: DEFAULT_PLACE_SEARCH_LIMIT,
+        query,
+      });
+
+      if (latestPlaceSearchRequestIdRef.current !== nextRequestId) {
+        return;
+      }
+
+      setPlaceSearchResponse(searchResponse);
+    } catch (error) {
+      if (latestPlaceSearchRequestIdRef.current !== nextRequestId) {
+        return;
+      }
+
+      setPlaceSearchRequestError(getPlaceSearchErrorMessage(error));
+    } finally {
+      if (latestPlaceSearchRequestIdRef.current === nextRequestId) {
+        setIsRequestingPlaceSearch(false);
+      }
+    }
+  }
+
+  function applySearchResultAsStartPoint(result: PlaceSearchResult) {
+    setMapInteractionMode("idle");
+    setMapSelectedStart(createSearchStartSelection(result));
+    setStartPointMode("map_point");
+  }
+
+  function addSearchResultAsPassThroughPoint(result: PlaceSearchResult) {
+    setMapInteractionMode("idle");
+    setPassThroughPoints((current) => [
+      ...current,
+      createSearchPassThroughPoint({
+        id: createPassThroughPointId("search"),
+        result,
+      }),
+    ]);
   }
 
   function handleActivityChange(nextActivity: Activity) {
@@ -671,6 +792,12 @@ export function App() {
     setPassThroughPoints((current) =>
       current.filter((point) => point.id !== id),
     );
+  }
+
+  function createPassThroughPointId(source: "map" | "search") {
+    nextPassThroughPointIdRef.current += 1;
+
+    return `${source}-waypoint-${nextPassThroughPointIdRef.current}`;
   }
 
   async function submitRoutePreviewRequest(options: {
@@ -885,9 +1012,26 @@ export function App() {
               ) : null}
               {startPointMode === "map_point" ? (
                 <p className="helper-copy">
-                  Map-selected start:{" "}
-                  <code>{formatCoordinate(mapSelectedStart)}</code>. Click the
-                  planning map to move it.
+                  {mapSelectedStart.source === "search" &&
+                  mapSelectedStart.label ? (
+                    <>
+                      Search-selected start:{" "}
+                      <strong>{mapSelectedStart.label}</strong> at{" "}
+                      <code>
+                        {formatCoordinate(mapSelectedStart.coordinate)}
+                      </code>
+                      . Click the planning map or choose another local result to
+                      replace it.
+                    </>
+                  ) : (
+                    <>
+                      Map-selected start:{" "}
+                      <code>
+                        {formatCoordinate(mapSelectedStart.coordinate)}
+                      </code>
+                      . Click the planning map to move it.
+                    </>
+                  )}
                 </p>
               ) : null}
               {startPointMode === "saved_default" && savedDefaultStart ? (
@@ -924,6 +1068,109 @@ export function App() {
                   {rememberedDefaultHelperCopy}
                 </p>
               </div>
+            </section>
+
+            <section className="form-section">
+              <div className="section-heading">
+                <h3>Local place search</h3>
+                <p>
+                  Search the supported same-origin local place boundary, then
+                  apply a match as the route start or another pass-through
+                  point.
+                </p>
+              </div>
+              <div className="status-row">
+                <span className="status-pill status-pill--active">
+                  Same-origin only
+                </span>
+                <span
+                  className={`status-pill${
+                    placeSearchStatusPillClassName
+                      ? ` ${placeSearchStatusPillClassName}`
+                      : ""
+                  }`}
+                  data-testid="place-search-status"
+                >
+                  {placeSearchStatusLabel}
+                </span>
+              </div>
+              <div className="place-search-controls">
+                <label className="search-input">
+                  <span>Place, street, or trailhead</span>
+                  <input
+                    type="search"
+                    value={placeSearchQuery}
+                    placeholder="Bad Bramstedt"
+                    onChange={(event) =>
+                      setPlaceSearchQuery(event.target.value)
+                    }
+                    onKeyDown={handlePlaceSearchQueryKeyDown}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className={`button ${
+                    isRequestingPlaceSearch
+                      ? "button--secondary"
+                      : "button--primary"
+                  }`}
+                  onClick={() => {
+                    void requestPlaceSearch();
+                  }}
+                >
+                  {isRequestingPlaceSearch ? "Searching..." : "Search places"}
+                </button>
+              </div>
+              <p className="contract-line">
+                Search API:{" "}
+                <code>{webRuntimeConfig.apiBaseUrl}/places/search</code>
+              </p>
+              <p className="helper-copy helper-copy--warning">
+                {getPlaceSearchRegionGuardrailCopy(webRuntimeConfig.regionName)}
+              </p>
+              <p
+                className={`helper-copy${
+                  placeSearchFeedbackClassName
+                    ? ` ${placeSearchFeedbackClassName}`
+                    : ""
+                }`}
+                data-testid="place-search-feedback"
+              >
+                {placeSearchFeedbackCopy}
+              </p>
+              {placeSearchResults.length > 0 ? (
+                <ul
+                  className="search-results"
+                  data-testid="place-search-results"
+                >
+                  {placeSearchResults.map((result) => (
+                    <li key={result.id} className="search-result-item">
+                      <div>
+                        <strong>{result.label}</strong>
+                        <span>{formatCoordinate(result.coordinate)}</span>
+                      </div>
+                      <div className="search-result-actions">
+                        <button
+                          type="button"
+                          className="mini-action"
+                          onClick={() => applySearchResultAsStartPoint(result)}
+                        >
+                          Use as start
+                        </button>
+                        <button
+                          type="button"
+                          className="mini-action"
+                          onClick={() =>
+                            addSearchResultAsPassThroughPoint(result)
+                          }
+                        >
+                          Add pass-through
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </section>
 
             <section className="form-section">
@@ -1021,9 +1268,8 @@ export function App() {
               <div className="section-heading">
                 <h3>Pass-through points</h3>
                 <p>
-                  Pass-through waypoints now come from live map clicks. Local
-                  place search remains later scope and is not part of the
-                  supported planner yet.
+                  Pass-through waypoints can come from a live map click or from
+                  a supported local place-search result.
                 </p>
               </div>
               <div className="button-row">
@@ -1044,7 +1290,7 @@ export function App() {
               <p className="helper-copy">
                 {isAwaitingPassThroughPoint
                   ? `Click the planning map to add pass-through point ${passThroughPoints.length + 1}.`
-                  : "Each pass-through point is created from a real map click and can still be removed from the list. Local place search stays future scope for now."}
+                  : "Each pass-through point stays explicit about whether it came from a map click or a local place-search result, and each one can still be removed from the list."}
               </p>
               {passThroughPoints.length > 0 ? (
                 <ul className="pass-through-list">
@@ -1053,6 +1299,7 @@ export function App() {
                       <div>
                         <strong>{point.label}</strong>
                         <span>
+                          {getPassThroughPointSourceCopy(point.source)} ·{" "}
                           {point.coordinate.lat.toFixed(4)},{" "}
                           {point.coordinate.lon.toFixed(4)}
                         </span>
@@ -1069,8 +1316,8 @@ export function App() {
                 </ul>
               ) : (
                 <p className="empty-state">
-                  No required pass-through points yet. The route can stay fully
-                  spontaneous.
+                  No required pass-through points yet. Add one from the map or a
+                  local place-search result when you want to anchor the route.
                 </p>
               )}
             </section>
@@ -2043,6 +2290,68 @@ function getErrorMessage(error: unknown) {
   }
 
   return "Route preview request failed before the planner received a usable response.";
+}
+
+function getPlaceSearchErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "Local place search failed before the planner received a usable response.";
+}
+
+function getPlaceSearchStatusLabel(options: {
+  errorMessage: string | null;
+  isLoading: boolean;
+  response: PlaceSearchResponse | null;
+}) {
+  if (options.errorMessage) {
+    return "Search request failed";
+  }
+
+  if (options.isLoading) {
+    return "Searching local places";
+  }
+
+  if (!options.response) {
+    return "Search ready";
+  }
+
+  switch (options.response.status) {
+    case "success":
+      return "Matches ready";
+    case "empty":
+      return "No local matches";
+    case "unavailable":
+      return "Local search unavailable";
+  }
+}
+
+function getPlaceSearchStatusPillClassName(options: {
+  errorMessage: string | null;
+  isLoading: boolean;
+  response: PlaceSearchResponse | null;
+}) {
+  if (options.errorMessage) {
+    return "status-pill--error";
+  }
+
+  if (options.isLoading) {
+    return "status-pill--warning";
+  }
+
+  if (!options.response) {
+    return "status-pill--active";
+  }
+
+  switch (options.response.status) {
+    case "success":
+      return "status-pill--active";
+    case "empty":
+      return "status-pill--warning";
+    case "unavailable":
+      return "status-pill--warning";
+  }
 }
 
 function getRouteStatusClass(status: RouteGenerateResponse["status"]) {
