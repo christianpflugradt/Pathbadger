@@ -42,7 +42,7 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - Only `web` is intended to be internet facing in the compose topology. Browser traffic for route previews, map styles, and tile data must stay same-origin through the frontend proxy, while `api`, `tileserver`, and `graphhopper` stay on the Docker internal network.
 - `graphhopper` now stays behind the explicit routing-capable local flow instead of the default map-only boot, while the `tileserver` continues to boot in the default app flow.
 - `npm run compose:test` now builds and starts `api`, `web`, and `tileserver`, checks the api `/health` endpoint, verifies the tile style endpoint from inside the stack, and tears everything down again.
-- `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default map-only compose workflow for local app startup, shutdown, and forced rebuilds.
+- `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default map-only compose workflow for local app startup, shutdown, and forced rebuilds, while `make stopp-app` also tears down the routing-capable profile if it is running.
 - `make run-routing-app` and `make rebuild-routing-app` start the same local app plus GraphHopper through the `maps` profile and wait until the API can return a real routed preview with geometry.
 - `make run-app` and `make rebuild-app` call `scripts/ensure-map-data.sh`, which generates the selected ignored map dataset under `data/tiles/` when it is missing.
 - `make run-routing-app` also calls `scripts/ensure-routing-data.sh`, which downloads `data/osm/schleswig-holstein-latest.osm.pbf` on first use and then lets GraphHopper import it into `data/graphhopper/cache`.

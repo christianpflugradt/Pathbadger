@@ -25,7 +25,7 @@ The Make targets split the lighter planning boot from the heavier routing boot:
 - `make run-app`: generate the selected ignored map dataset if needed, then `docker compose up -d --build`
 - `make run-routing-app`: generate map data, download the Schleswig-Holstein routing extract if needed, boot `docker compose --profile maps up -d --build`, and wait until `/routes/generate` can return a real preview with geometry
 - `npm run test:live-route-quality`: hit the frontend-proxied `/api/routes/generate` contract with supported live requests and fail if route geometry, first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, or explicit out-of-region failure behavior drift
-- `make stopp-app`: `docker compose down --remove-orphans`
+- `make stopp-app`: `docker compose --profile maps down --remove-orphans`, so the same stop command fully tears down both the default stack and the routing-capable stack
 - `make rebuild-app`: stop the current stack, regenerate missing map data if needed, rebuild the default services, and recreate them so the browser sees the latest local changes
 - `make rebuild-routing-app`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack, and wait for routed-preview readiness again
 
