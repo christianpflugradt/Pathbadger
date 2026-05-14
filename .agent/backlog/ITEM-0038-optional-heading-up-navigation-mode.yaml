@@ -1,0 +1,23 @@
+id: ITEM-0038
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0015
+title: Add an optional heading-up navigation mode
+summary: Introduce a heading-aware navigation map mode that rotates the map only when browser heading data is trustworthy, while keeping north-up as the default and exposing honest fallback copy when heading support is weak or battery saver is active.
+acceptance_criteria:
+  - navigation exposes an explicit heading-up mode alongside the current north-up behavior
+  - heading-up rotates the live navigation map only when the browser provides a usable heading signal, and the UI falls back honestly when that signal is unavailable or too weak to trust
+  - the execution UI keeps an explicit north indicator or equivalent orientation cue so map direction remains understandable in both north-up and heading-up modes
+verification:
+  - npm run verify
+  - supported local browser walkthrough showing the heading-up control plus either active rotated-map behavior or honest fallback copy when heading data is unavailable
+implementation_notes:
+  - "2026-05-14 refine: `apps/web/src/browser-geolocation.ts` already normalizes `headingDegrees`, but nothing in the current navigation UI or `PlanningMap.tsx` consumes that signal, so the app remains north-up only even though the product brief calls out optional heading-up behavior."
+  - "2026-05-14 refine: `docs/product.md` sections 4.2, 9.3, and 10 all treat heading-up as additive later scope and explicitly warn about energy and stability costs, which makes a guarded optional mode a better next slice than broader rerouting or place-search work."
+  - "2026-05-14 refine: the new battery-saver runtime mode should remain able to decline or soften heading-up behavior rather than pretending that reduced-GPS operation has native-grade orientation fidelity."
+created_at: 2026-05-14T16:02:15+02:00
+updated_at: 2026-05-14T16:02:15+02:00
+closed_at: null

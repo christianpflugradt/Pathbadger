@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 100
+  overall_progress_percent: 95
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -83,7 +83,12 @@ roadmap:
       status: done
       progress_percent: 100
       target_outcome: stable self-hosted operation with honest warnings, browser-local persistence, and conservative battery behavior
-  current_epic: EPIC-0014
+    - id: post-mvp-navigation-polish
+      title: Optional navigation orientation and trip cues
+      status: active
+      progress_percent: 0
+      target_outcome: additive post-MVP navigation polish such as optional heading-aware map behavior and feasible remaining-time estimates without compromising the stable self-hosted browser flow
+  current_epic: EPIC-0015
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -119,6 +124,8 @@ roadmap:
     - the planner now restores both activity and surface selections from browser-local storage, saves each change immediately, and warns honestly when browser-local persistence cannot be used
     - the supported planner now removes the orphaned `Place search later` control and keeps pass-through planning explicitly centered on live map clicks while documenting local place search as later scope
     - the routing core now includes legality and Schleswig-Holstein region guardrails plus `npm run test:live-route-quality`, a repeatable frontend-proxied live evidence command that proves first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior on `make run-routing-app`
+    - the scoped MVP backlog for the supported self-hosted browser flow is complete, so any newly opened work is additive post-MVP scope rather than a missing required capability
   remaining_summary:
-    - the scoped MVP backlog is complete for the supported self-hosted browser flow, so future work would be additive scope rather than required completion work
-    - the app still documents real browser and PWA limits honestly, including HTTPS, background throttling, Wake Lock variability, and the expectation that the screen stays on and the app remains active during supported navigation
+    - the active `EPIC-0015` now targets optional navigation polish, starting with a heading-up map mode that reuses existing browser heading data when trustworthy and falls back honestly when heading support or runtime conditions are weak
+    - a follow-up navigation ETA slice can reuse the current remaining-distance and speed calculations to surface estimated remaining time only when live browser evidence is strong enough to justify it
+    - broader additive ideas such as self-hosted place search, elevation-capable previews, and rerouting remain intentionally deferred until this smaller navigation-polish line is proven

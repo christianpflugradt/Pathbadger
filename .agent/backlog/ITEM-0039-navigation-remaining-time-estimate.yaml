@@ -1,0 +1,23 @@
+id: ITEM-0039
+type: feature
+priority: P2
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0015
+title: Surface estimated remaining time when navigation data is good enough
+summary: Combine the existing remaining-distance and speed metrics into an explicit estimated remaining time readout during navigation, while keeping the estimate unavailable when live speed or progress evidence is too weak to justify it.
+acceptance_criteria:
+  - the navigation session surfaces estimated remaining time when current or average speed plus route-progress data support a defensible estimate
+  - the execution UI keeps the estimate explicitly unavailable when speed or route-progress data is too sparse, stale, or low-confidence
+  - tests cover representative estimate-available and estimate-unavailable scenarios without relying on ad hoc live GPS behavior
+verification:
+  - npm run verify
+  - supported local browser walkthrough showing estimated remaining time visible or honestly unavailable in navigation
+implementation_notes:
+  - "2026-05-14 refine: `apps/web/src/navigation-session.ts` already computes `remainingDistanceMeters`, and `apps/web/src/navigation-speed-state.ts` already derives current and average speed, but `App.tsx` does not yet combine them into the estimated remaining time called out in the product brief."
+  - "2026-05-14 refine: `docs/product.md` section 4.2 describes estimated remaining time as part of the route-execution state when feasible, making this a grounded follow-up that reuses current local navigation calculations instead of demanding a new backend dependency."
+  - "2026-05-14 refine: low-confidence or stale GPS handling is already explicit in the navigation UI, so this estimate should key off the same honesty rules rather than manufacturing a precise ETA from weak browser data."
+created_at: 2026-05-14T16:02:15+02:00
+updated_at: 2026-05-14T16:02:15+02:00
+closed_at: null

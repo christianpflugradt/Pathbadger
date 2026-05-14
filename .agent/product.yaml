@@ -46,10 +46,12 @@ product:
       - route_line_visible
       - current_position_visible
       - follow_position_default_behavior
+      - north_indicator_or_compass_indicator
       - next_instruction_and_distance
       - completed_remaining_total_km
       - progress_percent
       - current_and_average_speed
+      - estimated_remaining_time_when_feasible
       - off_route_warning
       - north_up_mode
       - optional_heading_up_later
@@ -58,7 +60,6 @@ product:
       - local_storage_for_surface_preference
       - local_storage_for_default_start
       - local_storage_for_last_start
-      - local_storage_for_navigation_mode
       - battery_mode_later
     diagnostics:
       - hard_failure_when_required_map_style_unavailable

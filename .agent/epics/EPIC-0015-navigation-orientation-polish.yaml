@@ -1,0 +1,15 @@
+id: EPIC-0015
+status: open
+phase: post-mvp-navigation-polish
+title: Add optional navigation orientation and trip-cue polish
+objective: build on the stable browser navigation loop with optional heading-aware map behavior and richer trip cues, while keeping north-up as the default and preserving the current honest runtime limits
+success_criteria:
+  - navigation can optionally switch into a heading-aware map mode when the browser provides trustworthy heading data, without breaking the north-up default or pretending the feature works when heading support is weak
+  - navigation can surface estimated remaining time only when existing route-progress and speed data make the estimate defensible, and remains explicit when that estimate is unavailable
+  - the additive navigation polish respects the supported browser runtime caveats and battery-saver tradeoffs instead of imitating native turn-by-turn behavior
+items:
+  - ITEM-0038
+  - ITEM-0039
+created_at: 2026-05-14T16:02:15+02:00
+updated_at: 2026-05-14T16:02:15+02:00
+closed_at: null
