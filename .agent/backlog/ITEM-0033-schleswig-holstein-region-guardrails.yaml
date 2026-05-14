@@ -1,0 +1,23 @@
+id: ITEM-0033
+type: feature
+priority: P1
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0013
+title: Enforce Schleswig-Holstein route-region guardrails
+summary: Add explicit region validation so supported planning requests and routed previews do not silently wander outside the declared Schleswig-Holstein product boundary.
+acceptance_criteria:
+  - requests with unsupported starts or pass-through points outside the product region fail or warn explicitly before pretending the route is supported
+  - routed preview handling detects when a returned route leaves the supported region and surfaces an honest warning or rejection path
+  - automated coverage uses a deterministic region fixture so the guardrail behavior is stable without relying on live network calls
+verification:
+  - npm run verify
+  - make run-routing-app
+  - supported local route-preview check that an in-region request still succeeds while an out-of-region fixture path fails honestly
+implementation_notes:
+  - "2026-05-14 refine: the current product contract restricts Pathbadger to Schleswig-Holstein, but the implemented code currently exposes that region only as display copy in `apps/web/src/config.ts`, `apps/web/src/App.tsx`, and the api health payload."
+  - "2026-05-14 refine: `docs/product.md` lists `out_of_region_warning_or_rejection` as a diagnostics requirement, but no active backlog item now tracks that behavior."
+created_at: 2026-05-14T12:05:00+02:00
+updated_at: 2026-05-14T12:05:00+02:00
+closed_at: null

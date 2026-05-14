@@ -1,0 +1,23 @@
+id: ITEM-0032
+type: feature
+priority: P0
+status: open
+scope: api
+origin: refine
+parent_epic: EPIC-0013
+title: Reject routed candidates with known legality violations
+summary: Extend GraphHopper candidate normalization and scoring so Pathbadger does not present obviously unsuitable routed previews as acceptable results when road-class or access evidence contradicts the requested activity.
+acceptance_criteria:
+  - routed candidate normalization captures enough road-class or access detail to detect motorway, trunk, private, or explicit no-access segments when GraphHopper provides that evidence
+  - candidate scoring or selection rejects unsuitable routed candidates instead of returning them as successful previews for running, walking, or cycling
+  - automated coverage proves that known unsuitable candidates are rejected or surfaced through an honest failed or warning path
+verification:
+  - npm run verify
+  - make run-routing-app
+  - supported local route-preview sanity check that normal legal requests still return a routed preview after the guardrails land
+implementation_notes:
+  - "2026-05-14 refine: `apps/api/src/routing/graphhopper-adapter.ts` currently requests only `surface`, `road_class`, and `distance` path details, so `apps/api/src/routing/routed-candidate-scoring.ts` never hard-rejects routed candidates with known unsuitable access or road-class evidence."
+  - "2026-05-14 refine: `docs/product.md` section 20A.2 says MVP candidates must be rejected when known they use motorway or trunk roads unsuitable for the activity, violate explicit access restrictions, or otherwise surface illegal routing evidence."
+created_at: 2026-05-14T12:05:00+02:00
+updated_at: 2026-05-14T12:05:00+02:00
+closed_at: null

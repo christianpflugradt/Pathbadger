@@ -1,0 +1,16 @@
+id: EPIC-0013
+status: open
+phase: routing-core
+title: Prove live route quality and guardrails
+objective: close the remaining route-quality gap between the mocked GraphHopper preview loop and a supported Schleswig-Holstein routing flow by adding explicit legality and region guardrails plus repeatable live verification evidence
+success_criteria:
+  - routed candidates are rejected or downgraded when known road-class or access evidence makes them unsuitable for the requested activity
+  - supported route requests stay inside the Schleswig-Holstein product region or fail with an explicit warning path
+  - routing-core completion is backed by repeatable supported-local evidence instead of mocked adapter coverage alone
+items:
+  - ITEM-0032
+  - ITEM-0033
+  - ITEM-0034
+created_at: 2026-05-14T12:05:00+02:00
+updated_at: 2026-05-14T12:05:00+02:00
+closed_at: null

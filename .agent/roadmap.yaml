@@ -60,8 +60,8 @@ roadmap:
       target_outcome: verified npm-only monorepo foundation with agent workflow and reproducible checks
     - id: routing-core
       title: Self-hosted GraphHopper routing for Schleswig-Holstein
-      status: planned
-      progress_percent: 70
+      status: active
+      progress_percent: 75
       target_outcome: GraphHopper-backed routing adapter with legal request handling and mocked tests
     - id: map-ui
       title: MapLibre map UI and route display
@@ -80,10 +80,10 @@ roadmap:
       target_outcome: mobile-friendly outdoor navigation with local progress calculations
     - id: hardening
       title: QA, energy behavior, security, docs, operations
-      status: active
-      progress_percent: 75
+      status: planned
+      progress_percent: 70
       target_outcome: stable self-hosted operation with honest warnings, browser-local persistence, and conservative battery behavior
-  current_epic: null
+  current_epic: EPIC-0013
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -116,7 +116,7 @@ roadmap:
     - the planner now restores both activity and surface selections from browser-local storage, saves each change immediately, and warns honestly when browser-local persistence cannot be used
     - the supported planner now removes the orphaned `Place search later` control and keeps pass-through planning explicitly centered on live map clicks while documenting local place search as later scope
   remaining_summary:
-    - the supported local boot now shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` is the heavier whole-state configuration for broader live-map use
-    - routing-core and route-generation now reach an honest preview loop with surface-aware summaries and instruction data, but live GraphHopper route quality against a prepared Schleswig-Holstein graph is still proven mostly through mocked coverage
-    - active navigation now follows live browser geolocation in the frontend, and the supported `make run-routing-app` flow can start a real navigation session from browser-generated route previews, but live preview elevation stays honestly unknown while the local GraphHopper boot keeps elevation support disabled
-    - future backlog work now shifts away from the completed local-planning-persistence epic and toward broader live-route quality proof, energy behavior, and operational polish on top of the supported self-hosted boot
+    - the active `EPIC-0013` routing-core follow-up reopens live route-quality work around legality guardrails, Schleswig-Holstein region enforcement, and supported local proof for the GraphHopper-backed preview loop
+    - the supported local boot already shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` remains the heavier whole-state configuration for broader live-map use
+    - active navigation follows live browser geolocation in the frontend, and the supported `make run-routing-app` flow can start a real navigation session from browser-generated route previews, but live preview elevation stays honestly unknown while the local GraphHopper boot keeps elevation support disabled
+    - once the reopened routing-core proof epic is closed, the next hardening slice should focus on GPS-noise conservatism, mobile/PWA runtime caveats, and broader energy-behavior polish on top of the supported self-hosted boot
