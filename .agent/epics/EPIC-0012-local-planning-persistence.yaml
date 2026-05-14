@@ -1,0 +1,17 @@
+id: EPIC-0012
+status: open
+phase: hardening
+title: Replace fake planning memory with honest browser-local persistence
+objective: align the planning controls with the single-user self-hosted product model by replacing hard-coded remembered-start placeholders with real browser-local state, persisting the highest-value planning preferences, and removing the orphaned disabled place-search affordance from the supported UI
+success_criteria:
+  - remembered default and last-used starts are backed by browser-local storage instead of hard-coded placeholder coordinates
+  - core planning preferences survive a browser reload without adding any new backend dependency
+  - supported planning UI no longer exposes disabled or fake persistence controls without a tracked exit path
+items:
+  - ITEM-0028
+  - ITEM-0029
+  - ITEM-0030
+  - ITEM-0031
+created_at: 2026-05-14T10:40:22+02:00
+updated_at: 2026-05-14T10:40:22+02:00
+closed_at: null

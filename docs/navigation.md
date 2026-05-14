@@ -18,6 +18,13 @@ Navigation is the second major product state after route planning.
 - treat heading-up mode as optional later work
 - surface uncertainty or GPS inaccuracy honestly instead of pretending precision
 
-## Initialization note
+## Current state
 
-The navigation runtime is intentionally not implemented yet. The roadmap starts at 0% product progress even though the repository can now support navigation-focused backlog items.
+The navigation runtime is now implemented for the supported local browser flow:
+
+- a routed preview can start navigation
+- live browser geolocation drives current-position updates
+- progress, next instruction, off-route warnings, and speed metrics stay local in the frontend
+- map follow stays enabled by default, pauses after a manual pan, and can be explicitly recentered
+
+Remaining navigation-adjacent work is now mostly hardening: battery-aware behavior, GPS-noise conservatism, and optional later navigation modes.

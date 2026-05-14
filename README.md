@@ -16,12 +16,12 @@ This repository is initialized for an agent-driven workflow with four recurring 
 
 ## Workspace layout
 
-- `apps/api`: Fastify API scaffold
-- `apps/web`: React + Vite web scaffold
+- `apps/api`: Fastify API for route preview generation and GraphHopper-backed routing orchestration
+- `apps/web`: React + Vite web app for live planning and first-pass navigation
 - `packages/shared`: shared domain types and schemas
 - `packages/geo`: geospatial utilities and tests
-- `services/graphhopper`: self-hosted GraphHopper configuration placeholders
-- `services/tileserver`: self-hosted tile server configuration placeholders
+- `services/graphhopper`: self-hosted GraphHopper configuration and compose runtime
+- `services/tileserver`: self-hosted tile server configuration and compose runtime
 - `.agent`: agent operating model, roadmap, epic, backlog, findings, and review state
 
 ## Getting started
@@ -58,4 +58,4 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - `review` audits the workspace and produces structured findings without changing roadmap progress.
 - `show` reports a brief workspace summary with open item count, incomplete epic count, and overall roadmap progress from `.agent/roadmap.yaml`.
 
-The initial setup intentionally focuses on durable scaffolding, not product completeness. The roadmap and metrics start at 0% product progress even though the repository framework is now in place.
+The repository now supports a real self-hosted planning flow and a first browser-verified navigation loop. Remaining roadmap work is focused on route-quality proof, browser-local planning persistence, and broader hardening rather than on basic scaffolding.

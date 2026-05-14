@@ -1,0 +1,23 @@
+id: ITEM-0031
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0012
+title: Remove the orphaned place-search placeholder from the planner
+summary: Replace the disabled `Place search later` affordance with honest supported copy so the planner no longer advertises an unavailable control without a completed exit path.
+acceptance_criteria:
+  - the supported planning UI no longer shows a disabled `Place search later` button
+  - any remaining mention of local place search is clearly documented as future scope instead of pretending an inactive control exists
+  - the planning actions remain understandable after the placeholder affordance is removed
+verification:
+  - npm run verify
+  - make run-app
+  - supported local browser check that the planning controls no longer show the disabled place-search placeholder
+implementation_notes:
+  - "2026-05-14 refine: `apps/web/src/App.tsx` currently renders a disabled `Place search later` button in the supported planner, which is a visible placeholder without an open exit item."
+  - "2026-05-14 refine: local geocoding and place search remain explicitly later product scope, so the smallest honest fix is to remove the orphaned placeholder affordance rather than smuggling an unfinished control through the supported flow."
+created_at: 2026-05-14T10:40:22+02:00
+updated_at: 2026-05-14T10:40:22+02:00
+closed_at: null

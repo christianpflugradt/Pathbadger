@@ -1,0 +1,23 @@
+id: ITEM-0030
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0012
+title: Persist core planning preferences locally
+summary: Use browser-local storage for the highest-value planning preferences so activity and surface selections survive reloads in the single-user supported flow.
+acceptance_criteria:
+  - selected activity persists across browser reloads
+  - selected surface preference persists across browser reloads
+  - storage failures leave the planner usable and surface honest fallback behavior instead of crashing
+verification:
+  - npm run verify
+  - make run-app
+  - supported local browser reload check that activity and surface selections are restored from local storage
+implementation_notes:
+  - "2026-05-14 refine: `docs/adr/ADR-0006-browser-local-storage.md` explicitly calls out lightweight local persistence for defaults such as last start point and surface preferences, but the current planner still resets activity and surface state on each reload."
+  - "2026-05-14 refine: this item extends the same local-storage boundary as the remembered-start work without expanding into multi-device or server-backed persistence."
+created_at: 2026-05-14T10:40:22+02:00
+updated_at: 2026-05-14T10:40:22+02:00
+closed_at: null

@@ -1,6 +1,6 @@
 # Architecture
 
-Pathbadger starts with a self-hosted, Docker-based architecture that keeps the final deployment shape visible from day one without pretending the routing stack is already complete.
+Pathbadger uses a self-hosted, Docker-based architecture that keeps the final deployment shape visible while still leaving room for honest route-quality and hardening work.
 
 ## Approved baseline
 
@@ -13,20 +13,20 @@ Pathbadger starts with a self-hosted, Docker-based architecture that keeps the f
 
 ## Service model
 
-- `web`: mobile-friendly frontend shell
-- `api`: Fastify service boundary for routing and analysis
-- `graphhopper`: self-hosted routing engine placeholder
-- `tileserver`: self-hosted map tile placeholder
+- `web`: mobile-friendly planning and navigation frontend
+- `api`: Fastify service boundary for route preview generation and routing orchestration
+- `graphhopper`: self-hosted routing engine for the supported routing-capable local flow
+- `tileserver`: self-hosted vector-tile and style service for the supported planning flow
 
 ## Current state
 
-- The repository skeleton, hooks, verification scripts, and agent metadata are present.
-- API and web entrypoints exist as scaffolds only.
-- Routing-core behavior, map rendering, and navigation calculations remain future work.
+- The repository now has a supported local stack that can show real self-hosted cartography, generate a routed preview, and start a browser-verified navigation session.
+- Core route planning, surface summaries, navigation progress, live geolocation updates, speed metrics, and follow-position behavior are implemented in the current web and api apps.
+- Remaining architecture work is concentrated on route-quality proof, browser-local planning persistence, and hardening concerns such as energy behavior and placeholder cleanup.
 
 ## Design guardrails
 
 - Keep product logic in TypeScript packages, not in ad hoc scripts.
 - Keep routing/scoring logic centralized and testable.
-- Keep active navigation calculations local on the client when implemented.
+- Keep active navigation calculations local on the client.
 - Keep self-hosted service assumptions explicit in code and docs.

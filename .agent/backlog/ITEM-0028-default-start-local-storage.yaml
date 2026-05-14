@@ -1,0 +1,23 @@
+id: ITEM-0028
+type: feature
+priority: P0
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0012
+title: Persist one remembered default start locally
+summary: Replace the fake `Remembered default` start mode with a real browser-local saved start that the user can explicitly set and reuse after reloads.
+acceptance_criteria:
+  - the planner can save the current non-GPS start point as the remembered default without inventing a backend dependency
+  - "`Remembered default` no longer resolves to a hard-coded coordinate when no default has been saved yet"
+  - a saved default start survives a browser reload and is available again in the supported local app flow
+verification:
+  - npm run verify
+  - make run-app
+  - supported local browser reload check that saving a default start persists it and restores it honestly after refresh
+implementation_notes:
+  - "2026-05-14 refine: `apps/web/src/App.tsx` currently exposes `saved_default` in the start-point catalog, but it is still backed by a hard-coded coordinate instead of the browser-local storage strategy accepted in `docs/adr/ADR-0006-browser-local-storage.md`."
+  - "2026-05-14 refine: this is the highest-priority planning-state gap because the UI already advertises a remembered default capability as if it exists."
+created_at: 2026-05-14T10:40:22+02:00
+updated_at: 2026-05-14T10:40:22+02:00
+closed_at: null
