@@ -326,106 +326,58 @@ export function PlanningMap({
               : loadState === "ready"
                 ? "Planning map is live"
                 : "Loading self-hosted map";
+  const statusEyebrow =
+    loadState === "error"
+      ? "Map status"
+      : isNavigationActive
+        ? "Navigation"
+        : routeGeometry
+          ? "Route preview"
+          : "Planning map";
   const statusBody =
     loadState === "error"
       ? errorMessage
       : isNavigationActive
         ? routeGeometry
           ? navigationFollowMode === "manual_pan"
-            ? "Navigation is active, but map follow is paused after a manual pan. The live current-position marker and progress state still update locally until you recenter."
-            : "Route-following mode is active. The map stays centered on the current-position marker while progress state updates locally from the routed geometry."
+            ? "Map follow is paused after a manual pan. Recenter when you want the live position centered again."
+            : "Live route-following mode is active."
           : "Navigation mode is active, but the current route geometry is unavailable."
         : isAwaitingPassThroughPoint
-          ? `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
+          ? `Tap the map to add pass-through point ${passThroughPoints.length + 1}.`
           : isMapStartActive
-            ? "Map-selected start mode is active. Each map click updates the route origin and request preview immediately."
+            ? "Tap the map to move the start point."
             : routeGeometry
-              ? "The latest backend preview returned route geometry, and the live map is now drawing that line alongside the planning markers."
+              ? "The generated route is visible on the map."
               : loadState === "ready"
-                ? "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
+                ? "Open route settings only when you need them."
                 : "Connecting to the configured style document before route overlays and point selection are added.";
-  const statusFacts =
-    loadState === "ready"
-      ? isNavigationActive
+  const statusChips =
+    loadState === "error"
+      ? [
+          regionName,
+          centerLabel,
+          formatCoordinate(center),
+          getStyleLabel(styleUrl),
+        ]
+      : isNavigationActive
         ? [
-            {
-              label: "Interaction",
-              value: interactionLabel,
-            },
-            {
-              label: "Follow mode",
-              value:
-                navigationFollowMode === "manual_pan"
-                  ? "Paused after pan"
-                  : "Centered on position",
-            },
-            {
-              label: "Orientation",
-              value: navigationOrientationLabel,
-            },
-            {
-              label: "Waypoints",
-              value: String(passThroughPoints.length),
-            },
-            {
-              label: "Route line",
-              value: routeGeometry
-                ? `${routeGeometry.coordinates.length} points`
-                : "Not available",
-            },
+            interactionLabel,
+            navigationFollowMode === "manual_pan"
+              ? "Follow paused"
+              : "Following position",
+            navigationOrientationLabel,
+            `${passThroughPoints.length} waypoint${
+              passThroughPoints.length === 1 ? "" : "s"
+            }`,
           ]
         : [
-            {
-              label: "Interaction",
-              value: interactionLabel,
-            },
-            {
-              label: "Waypoints",
-              value: String(passThroughPoints.length),
-            },
-            {
-              label: "Route line",
-              value: routeGeometry
-                ? `${routeGeometry.coordinates.length} points`
-                : "Not available",
-            },
-          ]
-      : [
-          {
-            label: "Region",
-            value: regionName,
-          },
-          {
-            label: "Center",
-            value: centerLabel,
-          },
-          {
-            label: "Coordinate",
-            value: formatCoordinate(center),
-          },
-          {
-            label: "Interaction",
-            value: interactionLabel,
-          },
-          {
-            label: "Waypoints",
-            value: String(passThroughPoints.length),
-          },
-          {
-            label: "Route line",
-            value: routeGeometry
-              ? `${routeGeometry.coordinates.length} points`
-              : "Not available",
-          },
-          {
-            label: "Style",
-            value: (
-              <code data-testid="planning-map-style">
-                {getStyleLabel(styleUrl)}
-              </code>
-            ),
-          },
-        ];
+            interactionLabel,
+            `${passThroughPoints.length} waypoint${
+              passThroughPoints.length === 1 ? "" : "s"
+            }`,
+            routeGeometry ? "Route line visible" : "No route line",
+          ];
 
   return (
     <section
@@ -447,17 +399,16 @@ export function PlanningMap({
     >
       <div ref={containerRef} className="planning-map__canvas" />
       <div className="planning-map__status" role="status" aria-live="polite">
-        <p className="map-label">Live MapLibre surface</p>
+        <p className="map-label">{statusEyebrow}</p>
         <h3 data-testid="planning-map-heading">{statusHeading}</h3>
         <p data-testid="planning-map-body">{statusBody}</p>
-        <dl className="planning-map__facts">
-          {statusFacts.map((fact) => (
-            <div key={fact.label}>
-              <dt>{fact.label}</dt>
-              <dd>{fact.value}</dd>
-            </div>
+        <div className="planning-map__chips">
+          {statusChips.map((chip) => (
+            <span key={chip} className="planning-map__chip">
+              {chip}
+            </span>
           ))}
-        </dl>
+        </div>
       </div>
     </section>
   );
