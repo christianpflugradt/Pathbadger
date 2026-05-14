@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DEFAULT_DISTANCE_TOLERANCE_METERS,
   activityOptions,
@@ -29,6 +29,12 @@ import {
   getNavigationTrackingStatusLabel,
   getNavigationTrackingStatusPillClassName,
 } from "./navigation-tracking-state";
+import {
+  createNavigationSpeedBaseline,
+  formatNavigationSpeedKmh,
+  getNavigationSpeedHelperCopy,
+  getNavigationSpeedMetrics,
+} from "./navigation-speed-state";
 import { PlanningMap } from "./PlanningMap";
 import { requestRoutePreview } from "./route-preview-client";
 import {
@@ -126,6 +132,10 @@ export function App() {
     useState<RouteGenerateResponse | null>(null);
   const [navigationSession, setNavigationSession] =
     useState<NavigationSession | null>(null);
+  const [navigationSpeedBaseline, setNavigationSpeedBaseline] = useState<{
+    completedDistanceMeters: number;
+    timestampMs: number;
+  } | null>(null);
   const [lastSubmittedRequest, setLastSubmittedRequest] =
     useState<RouteGenerateRequest | null>(null);
   const [lastSubmittedSeed, setLastSubmittedSeed] = useState<string | null>(
@@ -220,6 +230,23 @@ export function App() {
         })
       : null;
   const navigationHasTrackedPosition = navigationSnapshot !== null;
+  const navigationSpeedMetrics =
+    navigationTrackedPosition && navigationSnapshot
+      ? getNavigationSpeedMetrics({
+          baseline: navigationSpeedBaseline,
+          hasFreshPosition: navigationHasFreshPosition,
+          position: navigationTrackedPosition,
+          snapshot: navigationSnapshot,
+        })
+      : null;
+  const navigationSpeedHelperCopy = navigationSpeedMetrics
+    ? getNavigationSpeedHelperCopy({
+        averageSpeedKmh: navigationSpeedMetrics.averageSpeedKmh,
+        baseline: navigationSpeedBaseline,
+        currentSpeedKmh: navigationSpeedMetrics.currentSpeedKmh,
+        hasFreshPosition: navigationHasFreshPosition,
+      })
+    : null;
   const navigationTrackingStatusPillClassName =
     getNavigationTrackingStatusPillClassName({
       browserGeolocation,
@@ -267,6 +294,33 @@ export function App() {
     getCurrentPositionStatusPillClassName(browserGeolocation);
   const currentPositionHelperClassName =
     getCurrentPositionHelperClassName(browserGeolocation);
+
+  useEffect(() => {
+    if (!navigationSession) {
+      setNavigationSpeedBaseline(null);
+      return;
+    }
+
+    if (
+      navigationSpeedBaseline ||
+      !navigationTrackedPosition ||
+      !navigationSnapshot
+    ) {
+      return;
+    }
+
+    setNavigationSpeedBaseline(
+      createNavigationSpeedBaseline({
+        position: navigationTrackedPosition,
+        snapshot: navigationSnapshot,
+      }),
+    );
+  }, [
+    navigationSession,
+    navigationSpeedBaseline,
+    navigationTrackedPosition,
+    navigationSnapshot,
+  ]);
 
   function handleStartPointModeChange(mode: StartPointMode) {
     setStartPointMode(mode);
@@ -1126,6 +1180,22 @@ export function App() {
                           )}
                         </strong>
                       </div>
+                      <div className="preview-stat">
+                        <span>Current speed</span>
+                        <strong>
+                          {formatNavigationSpeedKmh(
+                            navigationSpeedMetrics?.currentSpeedKmh ?? null,
+                          )}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Average speed</span>
+                        <strong>
+                          {formatNavigationSpeedKmh(
+                            navigationSpeedMetrics?.averageSpeedKmh ?? null,
+                          )}
+                        </strong>
+                      </div>
                       {navigationTrackedPosition ? (
                         <div className="preview-stat">
                           <span>GPS timestamp</span>
@@ -1137,6 +1207,9 @@ export function App() {
                         </div>
                       ) : null}
                     </div>
+                    {navigationSpeedHelperCopy ? (
+                      <p className="helper-copy">{navigationSpeedHelperCopy}</p>
+                    ) : null}
                   </>
                 ) : (
                   <>

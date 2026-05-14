@@ -1,7 +1,7 @@
 id: ITEM-0023
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0010
@@ -19,6 +19,9 @@ implementation_notes:
   - "2026-05-13 refine: the execution UI now covers progress, next instruction, and off-route warning, but current speed and average speed are still missing from the MVP navigation contract."
   - "2026-05-13 refine: blocked behind the real-map usability correction, because speed polish should not outrank restoring a usable self-hosted map and browser-verifiable core planning flow."
   - "2026-05-14 implement: Unblocked now that EPIC-0011 is complete and active navigation consumes live browser geolocation through `ITEM-0022`."
+  - "2026-05-14 implement: Added `apps/web/src/navigation-speed-state.ts` so the navigation UI can derive a timestamped average speed baseline from the first tracked GPS fix, convert browser speed samples into km/h, and keep stale instantaneous speed readings honest when the GPS feed is no longer fresh."
+  - "2026-05-14 implement: Updated `apps/web/src/App.tsx` to show current speed and average speed inside the navigation execution grid, plus explicit helper copy when the browser does not provide stable speed data or when average speed still lacks enough timestamped route progress."
+  - "2026-05-14 implement: Added focused coverage in `apps/web/src/navigation-speed-state.test.ts` for timestamp-based average speed calculation, stale-fix current-speed suppression, and null-speed fallback behavior, then verified with `npm run verify` and a supported local browser reload at `http://localhost:5173`."
 created_at: 2026-05-13T21:06:33+02:00
-updated_at: 2026-05-14T09:05:23+02:00
-closed_at: null
+updated_at: 2026-05-14T09:12:46+02:00
+closed_at: 2026-05-14T09:12:46+02:00
