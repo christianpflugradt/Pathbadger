@@ -55,6 +55,10 @@ import {
   getRememberedDefaultHelperCopy,
   getRememberedDefaultOptionDetail,
 } from "./planning-start-point-state";
+import {
+  getSurfacePreferenceSectionCopy,
+  getTargetDistanceSectionCopy,
+} from "./planning-section-copy";
 import { requestRoutePreview } from "./route-preview-client";
 import {
   getRouteSurfaceSummaryCards,
@@ -877,9 +881,7 @@ export function App() {
             <section className="form-section">
               <div className="section-heading">
                 <h3>Target distance</h3>
-                <p>
-                  Distance stays in kilometers, with tolerance handled later.
-                </p>
+                <p>{getTargetDistanceSectionCopy()}</p>
               </div>
               <div className="distance-controls">
                 <label className="distance-input">
@@ -912,9 +914,7 @@ export function App() {
             <section className="form-section">
               <div className="section-heading">
                 <h3>Surface preference</h3>
-                <p>
-                  Scoring comes later, but the preference is already explicit.
-                </p>
+                <p>{getSurfacePreferenceSectionCopy()}</p>
               </div>
               <div className="segmented-grid segmented-grid--surface">
                 {surfacePreferenceOptions.map((option) => (

@@ -1,5 +1,5 @@
 id: FINDING-0005
-status: open
+status: done
 severity: high
 category: product_gap
 title: Planner helper copy still describes completed routing behavior as later work
@@ -15,3 +15,5 @@ acceptance_criteria:
 verification:
   - npm run verify
 created_at: 2026-05-14T12:55:27Z
+updated_at: 2026-05-14T13:08:39Z
+closed_at: 2026-05-14T13:08:39Z
