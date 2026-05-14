@@ -46,7 +46,9 @@ import { PlanningMap } from "./PlanningMap";
 import {
   getBrowserLocalStorage,
   loadStoredCoordinate,
+  loadStoredStringValue,
   saveStoredCoordinate,
+  saveStoredStringValue,
 } from "./planning-local-storage";
 import {
   getLastUsedStartOptionDetail,
@@ -130,8 +132,10 @@ const routeStatusLabels: Record<RouteGenerateResponse["status"], string> = {
   partial: "Preview needs review",
   failed: "Preview unavailable",
 };
+const ACTIVITY_STORAGE_KEY = "pathbadger.activityPreference";
 const SAVED_DEFAULT_START_STORAGE_KEY = "pathbadger.savedDefaultStart";
 const LAST_USED_START_STORAGE_KEY = "pathbadger.lastUsedStart";
+const SURFACE_PREFERENCE_STORAGE_KEY = "pathbadger.surfacePreference";
 const ignoreMapSelection: (coordinate: Coordinate) => void = () => {};
 
 export function App() {
@@ -160,9 +164,26 @@ export function App() {
   );
   const [mapInteractionMode, setMapInteractionMode] =
     useState<MapInteractionMode>("idle");
-  const [activity, setActivity] = useState<Activity>("running_walking");
-  const [surfacePreference, setSurfacePreference] =
-    useState<SurfacePreference>("trail");
+  const [activity, setActivity] = useState<Activity>(
+    () =>
+      loadStoredStringValue({
+        allowedValues: activityOptions,
+        key: ACTIVITY_STORAGE_KEY,
+        storage: browserLocalStorage,
+      }) ?? "running_walking",
+  );
+  const [activityPreferenceSaveFailed, setActivityPreferenceSaveFailed] =
+    useState(false);
+  const [surfacePreference, setSurfacePreference] = useState<SurfacePreference>(
+    () =>
+      loadStoredStringValue({
+        allowedValues: surfacePreferenceOptions,
+        key: SURFACE_PREFERENCE_STORAGE_KEY,
+        storage: browserLocalStorage,
+      }) ?? "trail",
+  );
+  const [surfacePreferenceSaveFailed, setSurfacePreferenceSaveFailed] =
+    useState(false);
   const [targetDistanceKm, setTargetDistanceKm] = useState(12);
   const [passThroughPoints, setPassThroughPoints] = useState<
     PassThroughPoint[]
@@ -395,6 +416,27 @@ export function App() {
         savedDefaultStart,
         storageAvailable: isBrowserLocalStorageAvailable,
       });
+  const activityPreferenceHelperClassName =
+    getPlanningPreferenceHelperClassName({
+      persistenceFailed: activityPreferenceSaveFailed,
+      storageAvailable: isBrowserLocalStorageAvailable,
+    });
+  const activityPreferenceHelperCopy = getPlanningPreferenceHelperCopy({
+    name: "Activity preference",
+    persistenceFailed: activityPreferenceSaveFailed,
+    storageAvailable: isBrowserLocalStorageAvailable,
+  });
+  const surfacePreferenceHelperClassName = getPlanningPreferenceHelperClassName(
+    {
+      persistenceFailed: surfacePreferenceSaveFailed,
+      storageAvailable: isBrowserLocalStorageAvailable,
+    },
+  );
+  const surfacePreferenceHelperCopy = getPlanningPreferenceHelperCopy({
+    name: "Surface preference",
+    persistenceFailed: surfacePreferenceSaveFailed,
+    storageAvailable: isBrowserLocalStorageAvailable,
+  });
 
   useEffect(() => {
     if (!navigationSession) {
@@ -473,6 +515,30 @@ export function App() {
   function togglePassThroughPointSelection() {
     setMapInteractionMode((current) =>
       current === "add_pass_through" ? "idle" : "add_pass_through",
+    );
+  }
+
+  function handleActivityChange(nextActivity: Activity) {
+    setActivity(nextActivity);
+    setActivityPreferenceSaveFailed(
+      !saveStoredStringValue({
+        key: ACTIVITY_STORAGE_KEY,
+        storage: browserLocalStorage,
+        value: nextActivity,
+      }),
+    );
+  }
+
+  function handleSurfacePreferenceChange(
+    nextSurfacePreference: SurfacePreference,
+  ) {
+    setSurfacePreference(nextSurfacePreference);
+    setSurfacePreferenceSaveFailed(
+      !saveStoredStringValue({
+        key: SURFACE_PREFERENCE_STORAGE_KEY,
+        storage: browserLocalStorage,
+        value: nextSurfacePreference,
+      }),
     );
   }
 
@@ -790,15 +856,22 @@ export function App() {
                   <button
                     key={option}
                     type="button"
+                    data-testid={`activity-option-${option}`}
                     className={`segment${
                       activity === option ? " segment--selected" : ""
                     }`}
-                    onClick={() => setActivity(option)}
+                    onClick={() => handleActivityChange(option)}
                   >
                     {activityLabels[option]}
                   </button>
                 ))}
               </div>
+              <p
+                className={`helper-copy ${activityPreferenceHelperClassName}`}
+                data-testid="activity-preference-status"
+              >
+                {activityPreferenceHelperCopy}
+              </p>
             </section>
 
             <section className="form-section">
@@ -848,15 +921,22 @@ export function App() {
                   <button
                     key={option}
                     type="button"
+                    data-testid={`surface-preference-option-${option}`}
                     className={`segment${
                       surfacePreference === option ? " segment--selected" : ""
                     }`}
-                    onClick={() => setSurfacePreference(option)}
+                    onClick={() => handleSurfacePreferenceChange(option)}
                   >
                     {surfaceLabels[option]}
                   </button>
                 ))}
               </div>
+              <p
+                className={`helper-copy ${surfacePreferenceHelperClassName}`}
+                data-testid="surface-preference-status"
+              >
+                {surfacePreferenceHelperCopy}
+              </p>
             </section>
 
             <section className="form-section">
@@ -1805,6 +1885,27 @@ function getNavigationMapMarkerLabel(options: {
   }
 
   return `${prefix} ${options.navigationSnapshot.progressPercent}%`;
+}
+
+function getPlanningPreferenceHelperClassName(options: {
+  persistenceFailed: boolean;
+  storageAvailable: boolean;
+}) {
+  return !options.storageAvailable || options.persistenceFailed
+    ? "helper-copy--warning"
+    : "helper-copy--active";
+}
+
+function getPlanningPreferenceHelperCopy(options: {
+  name: string;
+  persistenceFailed: boolean;
+  storageAvailable: boolean;
+}) {
+  if (!options.storageAvailable || options.persistenceFailed) {
+    return `Browser local storage could not be used, so ${options.name.toLowerCase()} will reset on reload in this browser.`;
+  }
+
+  return `${options.name} is saved in this browser after each change.`;
 }
 
 function serializeComparablePlanningRequest(request: RouteGenerateRequest) {

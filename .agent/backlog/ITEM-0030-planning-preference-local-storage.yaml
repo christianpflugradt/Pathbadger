@@ -1,7 +1,7 @@
 id: ITEM-0030
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0012
@@ -19,5 +19,5 @@ implementation_notes:
   - "2026-05-14 refine: `docs/adr/ADR-0006-browser-local-storage.md` explicitly calls out lightweight local persistence for defaults such as last start point and surface preferences, but the current planner still resets activity and surface state on each reload."
   - "2026-05-14 refine: this item extends the same local-storage boundary as the remembered-start work without expanding into multi-device or server-backed persistence."
 created_at: 2026-05-14T10:40:22+02:00
-updated_at: 2026-05-14T10:40:22+02:00
-closed_at: null
+updated_at: 2026-05-14T11:13:56+02:00
+closed_at: 2026-05-14T11:13:56+02:00

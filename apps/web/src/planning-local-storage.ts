@@ -40,6 +40,30 @@ export function loadStoredCoordinate(options: {
   }
 }
 
+export function loadStoredStringValue<T extends string>(options: {
+  allowedValues: readonly T[];
+  key: string;
+  storage: BrowserStorageLike | null;
+}) {
+  if (!options.storage) {
+    return null;
+  }
+
+  try {
+    const rawValue = options.storage.getItem(options.key);
+
+    if (rawValue === null) {
+      return null;
+    }
+
+    return options.allowedValues.includes(rawValue as T)
+      ? (rawValue as T)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function saveStoredCoordinate(options: {
   coordinate: Coordinate;
   key: string;
@@ -51,6 +75,23 @@ export function saveStoredCoordinate(options: {
 
   try {
     options.storage.setItem(options.key, JSON.stringify(options.coordinate));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function saveStoredStringValue(options: {
+  key: string;
+  storage: BrowserStorageLike | null;
+  value: string;
+}) {
+  if (!options.storage) {
+    return false;
+  }
+
+  try {
+    options.storage.setItem(options.key, options.value);
     return true;
   } catch {
     return false;
