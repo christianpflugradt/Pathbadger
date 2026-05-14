@@ -99,7 +99,8 @@ default supported app flow.
 - `implement` changes exactly one backlog item
 - `fix` resolves exactly one open finding from `.agent/findings/`
 - `review` compares the current state with `.agent` specs and [docs/product.md](/Users/cpf/Workspace/personal/Pathbadger/docs/product.md), then persists any confirmed defects as finding files
-- `review 1` through `review 5` focus the audit on functionality, ui, security, quality, or reliability
+- `review` always audits the whole workspace. Focus hints such as `review security` or `review architecture` may change emphasis, but they must not reduce scope.
+- `review <number>` is not a supported shorthand for commit-count review and must never be interpreted that way.
 - `show` reports a brief workspace summary from `.agent/roadmap.yaml`, `.agent/epics/`, and `.agent/backlog/` without changing files
 
 `docs/product.md` remains the original vision reference. The live operational contract is stored in `.agent/*.yaml`.

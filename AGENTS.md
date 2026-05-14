@@ -20,6 +20,10 @@ This repository also defines four primary agent commands that must be interprete
 - `implement`
 - `review`
 
+When the user says `review`, or `review` followed by extra tokens, the agent must still perform a whole-workspace audit.
+Any extra tokens after `review` are optional focus hints only and must never narrow the audit to a commit, diff, or file subset.
+Never interpret `review <number>` as "review the latest N commits" or any other commit-limited review mode.
+
 When the user says exactly `show`, do not ask what they want to inspect. Read the current workspace state and reply briefly with:
 
 - open backlog item count from `.agent/backlog/*` where `status != done`

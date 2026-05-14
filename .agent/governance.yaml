@@ -54,6 +54,8 @@ governance:
     implement_exactly_one_item: true
     implement_must_block_on_unplanned_placeholder_need: true
     review_does_not_update_roadmap: true
+    review_scope_is_full_workspace: true
+    review_focus_hints_do_not_limit_scope: true
     review_must_raise_a_blocking_defect_for_fallback_only_core_map_states: true
     review_must_raise_a_defect_for_undeclared_user_visible_fallbacks: true
     review_must_flag_orphaned_or_done_state_placeholders: true

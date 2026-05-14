@@ -1057,16 +1057,17 @@ Purpose: audit the whole workspace and produce findings.
 `review` must:
 
 1. Inspect the full workspace.
-2. Compare implementation against product and architecture specs.
-3. Check quality, security, maintainability, and consistency.
-4. Look for dead code, duplication, weak tests, config drift, missing docs, and security issues.
-5. Run static checks if available.
-6. Optionally run tests and Docker Compose verification if appropriate.
-7. Produce findings as structured items under `.agent/findings/`.
-8. Do not modify roadmap progress.
-9. Do not change product scope.
-10. Do not close or create epics unless explicitly part of review metadata, not roadmap state.
-11. Commit and push review findings.
+2. Treat any extra tokens after `review` as optional emphasis hints only, never as permission to narrow the audit to a commit, diff, or file subset.
+3. Compare implementation against product and architecture specs.
+4. Check quality, security, maintainability, and consistency.
+5. Look for dead code, duplication, weak tests, config drift, missing docs, and security issues.
+6. Run static checks if available.
+7. Optionally run tests and Docker Compose verification if appropriate.
+8. Produce findings as structured items under `.agent/findings/`.
+9. Do not modify roadmap progress.
+10. Do not change product scope.
+11. Do not close or create epics unless explicitly part of review metadata, not roadmap state.
+12. Commit and push review findings.
 
 `review` is the correction mechanism when implementation quality is poor or when the agent previously marked something complete incorrectly.
 
@@ -2367,7 +2368,9 @@ review architecture
 refine roadmap
 ```
 
-But the plain three commands must remain sufficient.
+These variants may change emphasis, but they must not reduce scope. For example, `review security` is still a whole-workspace review with a security emphasis, and `review 1` is not a supported shorthand for "review one commit".
+
+But the plain commands must remain sufficient.
 
 ## 24. Expected first several iterations
 

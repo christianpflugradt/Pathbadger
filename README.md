@@ -55,7 +55,7 @@ This repository is initialized for an agent-driven workflow with four recurring 
 
 - `refine` updates planning state only.
 - `implement` must implement exactly one actionable backlog item or finding.
-- `review` audits the workspace and produces structured findings without changing roadmap progress.
+- `review` audits the full workspace and produces structured findings without changing roadmap progress. Extra tokens may only add focus and must never narrow the review to a commit range or patch subset.
 - `show` reports a brief workspace summary with open item count, incomplete epic count, and overall roadmap progress from `.agent/roadmap.yaml`.
 
 The repository now supports a real self-hosted planning flow and a first browser-verified navigation loop. Remaining roadmap work is focused on route-quality proof, browser-local planning persistence, and broader hardening rather than on basic scaffolding.

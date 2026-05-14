@@ -73,18 +73,24 @@ commands:
       - commit_and_push_when_remote_available
   review:
     purpose: workspace_audit_and_findings_only
+    scope: full_workspace_only
+    extra_tokens_are_focus_hints_only: true
     compares_against:
       - .agent/*.yaml
       - docs/product.md
     must:
+      - inspect_full_workspace_even_when_focus_hint_is_present
       - collect_browser_or_runtime_evidence_for_core_map_journeys
       - create_high_or_critical_findings_when_supported_local_boot_uses_only_placeholder_or_fallback_cartography
       - create_findings_for_undeclared_user_visible_fallbacks
       - scan_for_user_visible_placeholders_and_verify_linked_exit_items
       - create_high_findings_for_orphaned_placeholders_or_done_state_placeholders
+      - never_treat_numeric_review_suffix_as_commit_count
     must_not:
       - update_roadmap_progress
       - create_scope_expansion_without_evidence
+      - reinterpret_review_as_commit_or_diff_limited_audit
+      - treat_numeric_suffix_as_commit_count_or_patch_limit
   show:
     purpose: brief_workspace_summary_only
     reads:
