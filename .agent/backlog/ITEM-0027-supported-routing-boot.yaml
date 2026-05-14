@@ -1,7 +1,7 @@
 id: ITEM-0027
 type: feature
 priority: P0
-status: open
+status: done
 scope: docker
 origin: refine
 parent_epic: EPIC-0010
@@ -20,6 +20,9 @@ implementation_notes:
   - "2026-05-14 refine: `make run-app` currently wraps `scripts/dev-up.sh`, which only brings up the default compose services. In `docker-compose.yml`, `graphhopper` still lives behind the `maps` profile."
   - "2026-05-14 refine: `apps/web/src/App.tsx` only enables `startNavigation` after a successful or partial preview with geometry, so the default supported boot cannot reach the navigation state that `ITEM-0024` must verify in a real browser."
   - "2026-05-14 refine: the smallest honest next step is to expose and document a supported routing-capable local workflow rather than inventing a fixture-only navigation shortcut inside the user-facing app."
+  - "2026-05-14 implement: Added `scripts/ensure-routing-data.sh`, `make run-routing-app`, and `make rebuild-routing-app`, and taught `scripts/dev-up.sh --with-routing` to boot the `maps` profile and wait until `/routes/generate` returns real geometry before reporting the stack ready."
+  - "2026-05-14 implement: Replaced the broken `graphhopper/graphhopper` image reference with the community image linked from GraphHopper's upstream README, expanded `services/graphhopper/config.yml` with the required `foot` and `bike` profiles plus encoded values, and aligned the adapter with the live `/route` endpoint."
+  - "2026-05-14 implement: Kept the supported local flow honest by defaulting `GRAPHHOPPER_HAS_ELEVATION=false`, so live routed previews now hand off cleanly into navigation while the UI surfaces unknown elevation instead of inventing climb data from a 2D response."
 created_at: 2026-05-14T09:30:06+02:00
-updated_at: 2026-05-14T09:30:06+02:00
-closed_at: null
+updated_at: 2026-05-14T10:08:02+02:00
+closed_at: 2026-05-14T10:08:02+02:00

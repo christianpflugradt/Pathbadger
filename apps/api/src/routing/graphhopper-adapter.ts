@@ -11,7 +11,7 @@ import type {
 } from "@pathbadger/shared";
 import { z } from "zod";
 
-const GRAPHHOPPER_ROUTE_PATH = "/api/1/route";
+const GRAPHHOPPER_ROUTE_PATH = "/route";
 const graphHopperTextPathDetailSchema = z.tuple([
   z.number().int().nonnegative(),
   z.number().int().nonnegative(),
@@ -87,6 +87,7 @@ export interface RoutingEngineAdapter {
 export interface CreateGraphHopperAdapterOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
+  hasElevation?: boolean;
 }
 
 export class GraphHopperUnavailableError extends Error {
@@ -113,6 +114,7 @@ export function createGraphHopperAdapter(
   options: CreateGraphHopperAdapterOptions,
 ): RoutingEngineAdapter {
   const fetchImpl = options.fetchImpl ?? fetch;
+  const hasElevation = options.hasElevation ?? true;
 
   return {
     async getRoute(request: GraphHopperRouteRequest) {
@@ -157,7 +159,7 @@ export function createGraphHopperAdapter(
       return {
         distanceMeters: path.distance,
         durationMs: path.time ?? null,
-        elevationGainMeters: path.ascend ?? null,
+        elevationGainMeters: hasElevation ? (path.ascend ?? null) : null,
         geometry: path.points,
         instructions: normalizeRouteInstructions(path),
         surfaceDetails: normalizeRouteSurfaceDetails(path),
@@ -175,11 +177,13 @@ export function createGraphHopperAdapterFromEnv(
     return createGraphHopperAdapter({
       baseUrl,
       fetchImpl,
+      hasElevation: hasGraphHopperElevationSupport(),
     });
   }
 
   return createGraphHopperAdapter({
     baseUrl,
+    hasElevation: hasGraphHopperElevationSupport(),
   });
 }
 
@@ -193,7 +197,6 @@ function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
   url.searchParams.set("profile", toGraphHopperProfile(request.activity));
   url.searchParams.set("points_encoded", "false");
   url.searchParams.set("instructions", "true");
-  url.searchParams.set("elevation", "true");
   url.searchParams.append("details", "surface");
   url.searchParams.append("details", "road_class");
   url.searchParams.append("details", "distance");
@@ -371,6 +374,10 @@ function mapInstructionType(sign: number, isFirstInstruction: boolean) {
     default:
       return `instruction_${sign}`;
   }
+}
+
+function hasGraphHopperElevationSupport() {
+  return (process.env.GRAPHHOPPER_HAS_ELEVATION ?? "false") === "true";
 }
 
 function normalizeInstructionText(text: string, instructionType: string) {

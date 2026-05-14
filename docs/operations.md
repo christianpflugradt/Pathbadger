@@ -7,19 +7,23 @@
 3. `npm run compose:test`
 4. `npm run test:browser-smoke` to run the stable fixture-backed browser smoke suite
 5. `make run-app` when you want the local app stack in the browser
-6. `make stopp-app` when you want to stop that stack again
-7. `make rebuild-app` when you want to rebuild and recreate the local app stack
+6. `make run-routing-app` when you need a real routed preview and navigation start in the browser
+7. `make stopp-app` when you want to stop either local app stack again
+8. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
+9. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
 
-`npm run compose:test` validates the compose file, builds the `api`, `web`, and
-`tileserver` services, waits for them to stay running, verifies the api
-`/health` response and the tile style endpoint from inside the stack, and then
-tears the stack down.
+`npm run compose:test` validates both the default compose graph and the `maps`
+profile configuration, builds the `api`, `web`, and `tileserver` services,
+waits for them to stay running, verifies the api `/health` response and the tile
+style endpoint from inside the stack, and then tears the stack down.
 
-The Make targets wrap the default compose flow:
+The Make targets split the lighter planning boot from the heavier routing boot:
 
 - `make run-app`: generate the selected ignored map dataset if needed, then `docker compose up -d --build`
+- `make run-routing-app`: generate map data, download the Schleswig-Holstein routing extract if needed, boot `docker compose --profile maps up -d --build`, and wait until `/routes/generate` can return a real preview with geometry
 - `make stopp-app`: `docker compose down --remove-orphans`
 - `make rebuild-app`: stop the current stack, regenerate missing map data if needed, rebuild the default services, and recreate them so the browser sees the latest local changes
+- `make rebuild-routing-app`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack, and wait for routed-preview readiness again
 
 ## Package manager policy
 
@@ -42,8 +46,14 @@ local tile service:
 - `bad-bramstedt-50km.geojson` for the default starter map
 - `schleswig-holstein-basemap.geojson` for the broader live map
 
-`graphhopper` remains behind the `maps` profile for later routing-data work.
-The default supported app flow now includes the tile service directly.
+`data/osm/` now also holds the downloaded Schleswig-Holstein routing extract that
+the routing-capable boot reuses:
+
+- `schleswig-holstein-latest.osm.pbf` for GraphHopper import
+
+`graphhopper` stays out of the default map-only app flow and only boots through
+the explicit routing-capable workflow. The tile service remains part of the
+default supported app flow.
 
 ## Tile data scope
 
@@ -54,6 +64,19 @@ The default supported app flow now includes the tile service directly.
   file used by either scope.
 - `scripts/ensure-map-data.sh` generates the selected dataset into `data/tiles/`
   when it is missing.
+
+## Routing data
+
+- `scripts/ensure-routing-data.sh` downloads the Schleswig-Holstein OSM extract
+  into `data/osm/` when it is missing.
+- `PATHBADGER_ROUTING_DATA_URL=https://...` overrides the download source when
+  you need to mirror or pin the extract elsewhere.
+- `GRAPHHOPPER_HAS_ELEVATION=false` remains the supported default for this local
+  flow, so live routed previews keep elevation gain unavailable instead of
+  pretending the 2D GraphHopper response contains real climb data.
+- The first `make run-routing-app` is significantly heavier than `make run-app`
+  because GraphHopper must import the extract into `data/graphhopper/cache`
+  before route previews can succeed.
 
 ## Tile style contract
 
@@ -66,14 +89,17 @@ The default supported app flow now includes the tile service directly.
 
 - `npm run test:browser-smoke` runs a fixture-backed Playwright smoke that proves the repo can distinguish four outcomes: a healthy self-hosted map, unreachable style JSON, missing tile data, and an unintended fallback path.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` points that same smoke at the live local app and expects a passing real-map result.
+- Navigation-map work also requires the routing-capable local flow because a real browser session cannot enter navigation until `/routes/generate` returns geometry.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` is the intended whole-state live-map configuration once the broader dataset is prepared.
-- Map-centered `implement` and `review` work should cite this smoke output alongside any manual browser evidence instead of relying only on unit tests or fixture responses.
+- Map-centered `implement`, `fix`, and `review` work should cite this smoke output alongside any manual browser evidence instead of relying only on unit tests or fixture responses.
 
 ## Agent command behavior
 
 - `refine` updates `.agent` planning state only
-- `implement` changes exactly one backlog item or finding
-- `review` compares the current state with `.agent` specs and [docs/product.md](/Users/cpf/Workspace/personal/Pathbadger/docs/product.md)
+- `implement` changes exactly one backlog item
+- `fix` resolves exactly one open finding from `.agent/findings/`
+- `review` compares the current state with `.agent` specs and [docs/product.md](/Users/cpf/Workspace/personal/Pathbadger/docs/product.md), then persists any confirmed defects as finding files
+- `review 1` through `review 5` focus the audit on functionality, ui, security, quality, or reliability
 - `show` reports a brief workspace summary from `.agent/roadmap.yaml`, `.agent/epics/`, and `.agent/backlog/` without changing files
 
 `docs/product.md` remains the original vision reference. The live operational contract is stored in `.agent/*.yaml`.

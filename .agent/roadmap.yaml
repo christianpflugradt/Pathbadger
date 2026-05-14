@@ -44,7 +44,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 74
+  overall_progress_percent: 77
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -69,7 +69,7 @@ roadmap:
     - id: navigation
       title: GPS route following and navigation metrics
       status: active
-      progress_percent: 60
+      progress_percent: 75
       target_outcome: mobile-friendly outdoor navigation with local progress calculations
     - id: hardening
       title: QA, energy behavior, security, docs, operations
@@ -102,8 +102,9 @@ roadmap:
     - the web app can now start a first local navigation session from a routed preview, compute progress locally, show next-instruction cues, and surface conservative off-route warnings without backend polling
     - active navigation now consumes live browser geolocation when it is available, retains the last real GPS fix during later feed failures, and surfaces explicit blocked/error GPS states instead of inventing a synthetic current-position fallback
     - the execution UI now surfaces current speed and timestamp-based average speed in km/h when browser geolocation data supports them, while keeping null or stale speed readings explicitly unavailable
+    - the repo now ships a supported GraphHopper-backed local boot through `make run-routing-app`, reusing downloaded Schleswig-Holstein routing data plus cached graph imports and proving in a real browser that a routed preview can start a navigation session
   remaining_summary:
     - the supported local boot now shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` is the heavier whole-state configuration for broader live-map use
     - routing-core and route-generation now reach an honest preview loop with surface-aware summaries and instruction data, but live GraphHopper route quality against a prepared Schleswig-Holstein graph is still proven mostly through mocked coverage
-    - active navigation now follows live browser geolocation in the frontend, but the default supported local boot still stops at `api`, `web`, and `tileserver`, so browser-level proof of route execution lacks a supported routed-preview entry path while `graphhopper` remains behind the `maps` profile
-    - "`ITEM-0027` now comes before `ITEM-0024`: first expose and document a supported routing-capable local boot that can start a real navigation session, then add manual-pan follow escape plus an explicit recenter control on top of that honest browser path"
+    - active navigation now follows live browser geolocation in the frontend, and the supported `make run-routing-app` flow can start a real navigation session from browser-generated route previews, but live preview elevation stays honestly unknown while the local GraphHopper boot keeps elevation support disabled
+    - "`ITEM-0024` is now the remaining navigation epic slice again: the map still recenters unconditionally on each live GPS position update, so manual pan escape plus an explicit recenter control are the next planned behavior change on top of the live feed, supported boot, and speed metrics"

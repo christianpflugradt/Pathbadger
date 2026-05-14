@@ -128,7 +128,7 @@ describe("createGraphHopperAdapter", () => {
     const url = new URL(requestUrl as string);
 
     expect(url.origin).toBe("http://graphhopper:8989");
-    expect(url.pathname).toBe("/api/1/route");
+    expect(url.pathname).toBe("/route");
     expect(url.searchParams.getAll("point")).toEqual([
       "54.3233,10.1228",
       "54.332,10.141",
@@ -136,7 +136,6 @@ describe("createGraphHopperAdapter", () => {
     expect(url.searchParams.get("profile")).toBe("bike");
     expect(url.searchParams.get("points_encoded")).toBe("false");
     expect(url.searchParams.get("instructions")).toBe("true");
-    expect(url.searchParams.get("elevation")).toBe("true");
     expect(url.searchParams.getAll("details")).toEqual([
       "surface",
       "road_class",
@@ -193,6 +192,51 @@ describe("createGraphHopperAdapter", () => {
           roadClass: null,
         },
       ],
+    });
+  });
+
+  it("keeps elevation gain unavailable when the adapter is configured without elevation support", async () => {
+    const adapter = createGraphHopperAdapter({
+      baseUrl: "http://graphhopper:8989",
+      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            paths: [
+              {
+                distance: 8_640,
+                time: 1_920_000,
+                ascend: 64,
+                points: {
+                  type: "LineString",
+                  coordinates: [
+                    [10.1228, 54.3233],
+                    [10.141, 54.332],
+                  ],
+                },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+      ),
+      hasElevation: false,
+    });
+
+    await expect(
+      adapter.getRoute({
+        activity: "running_walking",
+        points: [
+          { lat: 54.3233, lon: 10.1228 },
+          { lat: 54.332, lon: 10.141 },
+        ],
+      }),
+    ).resolves.toMatchObject({
+      elevationGainMeters: null,
     });
   });
 

@@ -90,6 +90,9 @@ trap cleanup EXIT
 docker compose config >/dev/null
 echo "docker compose configuration is valid."
 
+docker compose --profile maps config >/dev/null
+echo "docker compose maps-profile configuration is valid."
+
 docker compose up -d --build api web tileserver
 
 wait_for_running_service "api"
