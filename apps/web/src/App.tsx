@@ -27,6 +27,7 @@ import {
   getNavigationFollowModeStatusPillClassName,
 } from "./navigation-follow-state";
 import type { NavigationFollowMode } from "./navigation-follow-state";
+import { getNavigationHeroStatus } from "./navigation-hero-status";
 import {
   getNavigationGpsConfidenceState,
   getNavigationGpsGuardrailPreviewCopy,
@@ -456,6 +457,11 @@ export function App() {
     !isRequestingRoutePreview &&
     routePreviewRequestError === null &&
     !isRoutePreviewStale;
+  const navigationHeroStatus = getNavigationHeroStatus({
+    canStartNavigation,
+    isNavigationActive,
+    isRoutePreviewStale,
+  });
   const mapCenter =
     isNavigationActive &&
     !isNavigationFollowingPosition &&
@@ -776,13 +782,9 @@ export function App() {
               Planning state active
             </span>
             <span
-              className={`status-pill${
-                isNavigationActive ? " status-pill--active" : ""
-              }`}
+              className={`status-pill ${navigationHeroStatus.statusPillClassName}`}
             >
-              {isNavigationActive
-                ? "Navigation session live"
-                : "Navigation later"}
+              {navigationHeroStatus.label}
             </span>
           </div>
           <p>
