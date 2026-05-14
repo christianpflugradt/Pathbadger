@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 86
+  overall_progress_percent: 89
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -81,7 +81,7 @@ roadmap:
     - id: hardening
       title: QA, energy behavior, security, docs, operations
       status: active
-      progress_percent: 70
+      progress_percent: 80
       target_outcome: stable self-hosted operation with honest warnings, browser-local persistence, and conservative battery behavior
   current_epic: EPIC-0014
   completed_summary:
@@ -111,6 +111,7 @@ roadmap:
     - the execution UI now surfaces current speed and timestamp-based average speed in km/h when browser geolocation data supports them, while keeping null or stale speed readings explicitly unavailable
     - the repo now ships a supported GraphHopper-backed local boot through `make run-routing-app`, reusing downloaded Schleswig-Holstein routing data plus cached graph imports and proving in a real browser that a routed preview can start a navigation session
     - active navigation now follows the live current position by default, pauses map follow after a real user pan, and lets the user explicitly recenter onto the newest GPS fix without leaving north-up mode
+    - the supported navigation card and docs now surface iPhone/PWA runtime caveats explicitly, covering permission, HTTPS, background behavior, Wake Lock variability, and the screen-on active-app expectation instead of hiding those browser limits
     - the planner now persists one remembered default start in browser-local storage, keeps that mode unavailable until something real has been saved, and restores the saved default honestly after a browser reload
     - the planner now persists the most recent non-GPS planning origin in browser-local storage, keeps `Last used start` disabled until a real route request seeds it, and restores that stored origin honestly after a browser reload
     - the planner now restores both activity and surface selections from browser-local storage, saves each change immediately, and warns honestly when browser-local persistence cannot be used
@@ -119,4 +120,4 @@ roadmap:
   remaining_summary:
     - the supported local boot already shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` remains the heavier whole-state configuration for broader live-map use
     - active navigation follows live browser geolocation in the frontend, and the supported `make run-routing-app` flow can start a real navigation session from browser-generated route previews, but live preview elevation stays honestly unknown while the local GraphHopper boot keeps elevation support disabled
-    - the active `EPIC-0014` hardening slice now targets GPS-noise conservatism, iPhone/PWA runtime caveat surfacing, and a first battery-saver navigation mode on top of the supported self-hosted boot
+    - the active `EPIC-0014` hardening slice now targets GPS-noise conservatism and a first battery-saver navigation mode on top of the supported self-hosted boot

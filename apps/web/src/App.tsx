@@ -42,6 +42,10 @@ import {
   getNavigationSpeedHelperCopy,
   getNavigationSpeedMetrics,
 } from "./navigation-speed-state";
+import {
+  getNavigationRuntimeCaveats,
+  getNavigationRuntimeCaveatSummary,
+} from "./navigation-runtime-caveats";
 import { PlanningMap } from "./PlanningMap";
 import {
   getBrowserLocalStorage,
@@ -1320,6 +1324,23 @@ export function App() {
                     ? "Ready to start"
                     : "Waiting for preview"}
               </span>
+            </div>
+            <div
+              className="navigation-runtime-caveats"
+              data-testid="navigation-runtime-caveats"
+            >
+              <div className="section-heading">
+                <h3>Browser runtime caveats</h3>
+                <p>{getNavigationRuntimeCaveatSummary()}</p>
+              </div>
+              <ul className="warning-list">
+                {getNavigationRuntimeCaveats().map((caveat) => (
+                  <li key={caveat.id}>
+                    <strong>{caveat.title}</strong>
+                    <span>{caveat.body}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
             {isNavigationActive && navigationSession ? (
               <>

@@ -27,4 +27,16 @@ The navigation runtime is now implemented for the supported local browser flow:
 - progress, next instruction, off-route warnings, and speed metrics stay local in the frontend
 - map follow stays enabled by default, pauses after a manual pan, and can be explicitly recentered
 
+## Browser and PWA caveats
+
+The supported navigation flow is still browser-first rather than native:
+
+- browser geolocation permission must be granted before live route following can work
+- local development can use `http://localhost`, but deployed geolocation should be served over HTTPS
+- iPhone browsers and installed PWAs may throttle or pause updates after the app loses focus or the screen locks
+- Wake Lock behavior varies by browser, so the app must not pretend it can always keep the device awake
+- installed PWAs still inherit browser permission, background, and integration limits rather than behaving like a native app
+
+The MVP is still expected to be useful with the screen on and the app active.
+
 Remaining navigation-adjacent work is now mostly hardening: battery-aware behavior, GPS-noise conservatism, and optional later navigation modes.

@@ -1,7 +1,7 @@
 id: ITEM-0036
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0014
@@ -17,6 +17,10 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: `docs/product.md` section 20B.3 requires documenting iPhone/PWA caveats explicitly, but the implemented app currently focuses on permission-denied and unavailable GPS states without surfacing the broader runtime caveats anywhere user-visible."
   - "2026-05-14 refine: `README.md`, `docs/operations.md`, and the web runtime copy now cover live route-quality evidence, so the next honest-doc/runtime gap is mobile browser caveat surfacing rather than another backend integration."
+  - "2026-05-14 implement: added `apps/web/src/navigation-runtime-caveats.ts` plus unit coverage so the app has one maintained source of truth for permission, HTTPS, background, Wake Lock, and PWA caveat copy."
+  - "2026-05-14 implement: updated `apps/web/src/App.tsx` to surface a visible `Browser runtime caveats` section directly inside the supported navigation card before users blame browser limits on the app."
+  - "2026-05-14 implement: updated `docs/navigation.md` so the supported browser navigation flow documents the same iPhone/PWA caveats and the screen-on, app-active expectation."
+  - "2026-05-14 implement: verified the item with `npm run verify` and the supported `make run-app` browser flow, confirming the `Browser runtime caveats` section is visible in the live app at `http://localhost:5173`."
 created_at: 2026-05-14T14:46:58+02:00
-updated_at: 2026-05-14T14:46:58+02:00
-closed_at: null
+updated_at: 2026-05-14T15:27:05+02:00
+closed_at: 2026-05-14T15:27:05+02:00
