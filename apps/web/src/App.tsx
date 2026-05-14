@@ -20,6 +20,13 @@ import {
   useBrowserGeolocation,
 } from "./browser-geolocation";
 import { webRuntimeConfig } from "./config";
+import {
+  getNavigationFollowModeActionLabel,
+  getNavigationFollowModeHelperCopy,
+  getNavigationFollowModeLabel,
+  getNavigationFollowModeStatusPillClassName,
+} from "./navigation-follow-state";
+import type { NavigationFollowMode } from "./navigation-follow-state";
 import { createNavigationSnapshot } from "./navigation-session";
 import {
   getNavigationTrackingBannerClassName,
@@ -132,6 +139,10 @@ export function App() {
     useState<RouteGenerateResponse | null>(null);
   const [navigationSession, setNavigationSession] =
     useState<NavigationSession | null>(null);
+  const [navigationFollowMode, setNavigationFollowMode] =
+    useState<NavigationFollowMode>("follow_position");
+  const [navigationManualCenter, setNavigationManualCenter] =
+    useState<Coordinate | null>(null);
   const [navigationSpeedBaseline, setNavigationSpeedBaseline] = useState<{
     completedDistanceMeters: number;
     timestampMs: number;
@@ -274,18 +285,42 @@ export function App() {
     hasFreshPosition: navigationHasFreshPosition,
     hasTrackedPosition: navigationHasTrackedPosition,
   });
+  const isNavigationFollowingPosition =
+    navigationFollowMode === "follow_position";
+  const navigationFollowStatusLabel =
+    getNavigationFollowModeLabel(navigationFollowMode);
+  const navigationFollowStatusPillClassName =
+    getNavigationFollowModeStatusPillClassName(navigationFollowMode);
+  const navigationFollowHelperCopy = getNavigationFollowModeHelperCopy({
+    hasFreshPosition: navigationHasFreshPosition,
+    hasTrackedPosition: navigationHasTrackedPosition,
+    mode: navigationFollowMode,
+  });
+  const navigationFollowActionLabel = getNavigationFollowModeActionLabel({
+    hasTrackedPosition: navigationHasTrackedPosition,
+    mode: navigationFollowMode,
+  });
   const canStartNavigation =
     navigableRoutePreview !== null &&
     !isRequestingRoutePreview &&
     routePreviewRequestError === null &&
     !isRoutePreviewStale;
   const mapCenter =
-    navigationSnapshot?.currentPosition ?? startPoint.coordinate;
-  const mapCenterLabel = navigationSnapshot
-    ? navigationHasFreshPosition
-      ? "Live GPS position"
-      : "Last known GPS position"
-    : startPoint.label;
+    isNavigationActive &&
+    !isNavigationFollowingPosition &&
+    navigationManualCenter
+      ? navigationManualCenter
+      : (navigationSnapshot?.currentPosition ?? startPoint.coordinate);
+  const mapCenterLabel =
+    isNavigationActive &&
+    !isNavigationFollowingPosition &&
+    navigationManualCenter
+      ? "Manual map view"
+      : navigationSnapshot
+        ? navigationHasFreshPosition
+          ? "Live GPS position"
+          : "Last known GPS position"
+        : startPoint.label;
   const mapRouteGeometry =
     navigationSession?.routeGeometry ?? routePreview?.geometry ?? null;
   const mapRouteStatus =
@@ -360,6 +395,20 @@ export function App() {
     );
   }
 
+  function handleNavigationManualPan(center: Coordinate) {
+    setNavigationFollowMode("manual_pan");
+    setNavigationManualCenter(center);
+  }
+
+  function handleNavigationViewportChange(center: Coordinate) {
+    setNavigationManualCenter(center);
+  }
+
+  function recenterNavigationMap() {
+    setNavigationFollowMode("follow_position");
+    setNavigationManualCenter(null);
+  }
+
   function removePassThroughPoint(id: string) {
     setPassThroughPoints((current) =>
       current.filter((point) => point.id !== id),
@@ -429,6 +478,8 @@ export function App() {
       return;
     }
 
+    setNavigationFollowMode("follow_position");
+    setNavigationManualCenter(null);
     setNavigationSession({
       instructions: navigableRoutePreview.instructions ?? [],
       routeGeometry: navigableRoutePreview.geometry,
@@ -438,6 +489,8 @@ export function App() {
   }
 
   function stopNavigation() {
+    setNavigationFollowMode("follow_position");
+    setNavigationManualCenter(null);
     setNavigationSession(null);
   }
 
@@ -803,9 +856,14 @@ export function App() {
               }
               isNavigationActive={isNavigationActive}
               interactionMode={isNavigationActive ? "idle" : mapInteractionMode}
+              navigationFollowMode={
+                isNavigationActive ? navigationFollowMode : null
+              }
+              onNavigationManualPan={handleNavigationManualPan}
               onMapSelect={
                 isNavigationActive ? ignoreMapSelection : handleMapSelection
               }
+              onNavigationViewportChange={handleNavigationViewportChange}
               passThroughPoints={passThroughPoints}
               regionName={webRuntimeConfig.regionName}
               routeGeometry={mapRouteGeometry}
@@ -1031,7 +1089,7 @@ export function App() {
                     : "Waiting for preview"}
               </span>
             </div>
-            {navigationSnapshot && navigationSession ? (
+            {isNavigationActive && navigationSession ? (
               <>
                 <p className="panel-copy">
                   {getNavigationTrackingPanelCopy({
@@ -1049,6 +1107,11 @@ export function App() {
                     }`}
                   >
                     {navigationTrackingStatusLabel}
+                  </span>
+                  <span
+                    className={`status-pill ${navigationFollowStatusPillClassName}`}
+                  >
+                    {navigationFollowStatusLabel}
                   </span>
                   <span className="status-pill">
                     {navigationSession.routeStatus === "partial"
@@ -1141,6 +1204,10 @@ export function App() {
                         </strong>
                       </div>
                       <div className="preview-stat">
+                        <span>Map follow</span>
+                        <strong>{navigationFollowStatusLabel}</strong>
+                      </div>
+                      <div className="preview-stat">
                         <span>Completed</span>
                         <strong>
                           {formatDistanceKilometers(
@@ -1210,6 +1277,15 @@ export function App() {
                     {navigationSpeedHelperCopy ? (
                       <p className="helper-copy">{navigationSpeedHelperCopy}</p>
                     ) : null}
+                    <p
+                      className={`helper-copy ${
+                        isNavigationFollowingPosition
+                          ? "helper-copy--active"
+                          : "helper-copy--warning"
+                      }`}
+                    >
+                      {navigationFollowHelperCopy}
+                    </p>
                   </>
                 ) : (
                   <>
@@ -1237,6 +1313,10 @@ export function App() {
                         <span>Instructions</span>
                         <strong>{navigationSession.instructions.length}</strong>
                       </div>
+                      <div className="preview-stat">
+                        <span>Map follow</span>
+                        <strong>{navigationFollowStatusLabel}</strong>
+                      </div>
                     </div>
                     <ul className="handoff-list">
                       <li>
@@ -1253,6 +1333,15 @@ export function App() {
                         this state persists.
                       </li>
                     </ul>
+                    <p
+                      className={`helper-copy ${
+                        isNavigationFollowingPosition
+                          ? "helper-copy--active"
+                          : "helper-copy--warning"
+                      }`}
+                    >
+                      {navigationFollowHelperCopy}
+                    </p>
                   </>
                 )}
                 {navigationSnapshot ? (
@@ -1263,6 +1352,15 @@ export function App() {
                   </p>
                 ) : null}
                 <div className="button-row">
+                  {navigationFollowActionLabel ? (
+                    <button
+                      type="button"
+                      className="button button--primary"
+                      onClick={recenterNavigationMap}
+                    >
+                      {navigationFollowActionLabel}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="button button--secondary"

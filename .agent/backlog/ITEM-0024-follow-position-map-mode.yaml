@@ -1,7 +1,7 @@
 id: ITEM-0024
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0010
@@ -15,7 +15,7 @@ verification:
   - npm run lint
   - npm run typecheck
   - npm run verify
-  - make run-app
+  - make run-routing-app
   - supported local browser check that navigation follows the live current position by default, pauses follow after a manual pan, and lets the user explicitly recenter
 implementation_notes:
   - "2026-05-13 refine: the map already shows a current-position marker during active navigation, but follow-position behavior and a manual-pan escape model are still absent."
@@ -24,6 +24,8 @@ implementation_notes:
   - "2026-05-14 refine: `apps/web/src/App.tsx` now always passes the live navigation position as `center`, and `apps/web/src/PlanningMap.tsx` immediately `easeTo(...)`s every center change, so manual map pans cannot meaningfully break follow-position yet."
   - "2026-05-14 refine: the smallest next slice is to add explicit follow-position state in the web app, detect user-initiated navigation-map movement without re-enabling planning clicks, and expose a clear recenter action while keeping the map north-up by default."
   - "2026-05-14 refine: `make run-app` still boots only `api`, `web`, and `tileserver` while `graphhopper` remains behind the `maps` profile, so the supported local browser flow cannot generate the routed preview required to enter navigation. `ITEM-0027` now restores that live-routing boot path before this UI behavior change can be claimed complete."
+  - "2026-05-14 implement: Added explicit follow-position state in `apps/web/src/App.tsx`, wired `apps/web/src/PlanningMap.tsx` to stop auto-centering after real drag gestures, and exposed an explicit recenter action plus follow-mode UI so live GPS updates and manual map exploration are both honest."
+  - "2026-05-14 implement: Verified in a supported local browser flow against `make run-routing-app` by starting a real navigation session, observing auto-follow recenter on a new GPS fix, panning the map to pause follow, confirming a later GPS fix did not recenter, and then using `Recenter map` to resume live follow."
 created_at: 2026-05-13T21:06:33+02:00
-updated_at: 2026-05-14T09:30:06+02:00
-closed_at: null
+updated_at: 2026-05-14T10:32:03+02:00
+closed_at: 2026-05-14T10:32:03+02:00

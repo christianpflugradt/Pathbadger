@@ -1,10 +1,10 @@
 state:
   initialized: true
   current_command: null
-  current_epic: EPIC-0010
-  current_item: ITEM-0024
+  current_epic: null
+  current_item: null
   last_refine: 2026-05-14T09:30:06+02:00
-  last_implement: 2026-05-14T10:08:02+02:00
+  last_implement: 2026-05-14T10:32:03+02:00
   last_review: null
   remote_connected: true
   require_commit_and_push_after_initial_setup: true

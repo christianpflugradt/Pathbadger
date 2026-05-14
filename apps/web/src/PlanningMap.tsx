@@ -6,6 +6,8 @@ import type {
 } from "@pathbadger/shared";
 import maplibregl from "maplibre-gl";
 
+import type { NavigationFollowMode } from "./navigation-follow-state";
+
 import "maplibre-gl/dist/maplibre-gl.css";
 
 type PlanningMapProps = {
@@ -16,7 +18,10 @@ type PlanningMapProps = {
   isMapStartActive: boolean;
   isNavigationActive: boolean;
   interactionMode: "idle" | "add_pass_through";
+  navigationFollowMode: NavigationFollowMode | null;
+  onNavigationManualPan: (center: Coordinate) => void;
   onMapSelect: (coordinate: Coordinate) => void;
+  onNavigationViewportChange: (center: Coordinate) => void;
   passThroughPoints: Array<{ coordinate: Coordinate; label: string }>;
   regionName: string;
   routeGeometry: RouteGeometry | null;
@@ -41,7 +46,10 @@ export function PlanningMap({
   isMapStartActive,
   isNavigationActive,
   interactionMode,
+  navigationFollowMode,
+  onNavigationManualPan,
   onMapSelect,
+  onNavigationViewportChange,
   passThroughPoints,
   regionName,
   routeGeometry,
@@ -126,12 +134,16 @@ export function PlanningMap({
       return;
     }
 
+    if (isNavigationActive && navigationFollowMode === "manual_pan") {
+      return;
+    }
+
     map.easeTo({
       center: [center.lon, center.lat],
       duration: 0,
       zoom: map.getZoom() || DEFAULT_ZOOM,
     });
-  }, [center.lat, center.lon]);
+  }, [center.lat, center.lon, isNavigationActive, navigationFollowMode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -173,6 +185,34 @@ export function PlanningMap({
       map.getCanvas().style.cursor = "";
     };
   }, [interactionMode, isMapStartActive, isNavigationActive, styleUrl]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map || !isNavigationActive) {
+      return;
+    }
+
+    const handleDragStart = () => {
+      onNavigationManualPan(getCoordinateFromLngLat(map.getCenter()));
+    };
+    const handleDragEnd = () => {
+      onNavigationViewportChange(getCoordinateFromLngLat(map.getCenter()));
+    };
+
+    map.on("dragstart", handleDragStart);
+    map.on("dragend", handleDragEnd);
+
+    return () => {
+      map.off("dragstart", handleDragStart);
+      map.off("dragend", handleDragEnd);
+    };
+  }, [
+    isNavigationActive,
+    onNavigationManualPan,
+    onNavigationViewportChange,
+    styleUrl,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -252,7 +292,9 @@ export function PlanningMap({
   const interactionLabel = isAwaitingPassThroughPoint
     ? "Add pass-through"
     : isNavigationActive
-      ? "Follow route"
+      ? navigationFollowMode === "manual_pan"
+        ? "Manual map view"
+        : "Follow current position"
       : isMapStartActive
         ? "Move start point"
         : "Preview only";
@@ -275,7 +317,9 @@ export function PlanningMap({
       ? errorMessage
       : isNavigationActive
         ? routeGeometry
-          ? "Route-following mode is active. The current-position marker and progress state are now driven locally from the routed geometry while planning edits stay paused."
+          ? navigationFollowMode === "manual_pan"
+            ? "Navigation is active, but map follow is paused after a manual pan. The live current-position marker and progress state still update locally until you recenter."
+            : "Route-following mode is active. The map stays centered on the current-position marker while progress state updates locally from the routed geometry."
           : "Navigation mode is active, but the current route geometry is unavailable."
         : isAwaitingPassThroughPoint
           ? `The next map click will append pass-through point ${passThroughPoints.length + 1} and keep the existing list intact.`
@@ -288,22 +332,46 @@ export function PlanningMap({
                 : "Connecting to the configured style document before route overlays and point selection are added.";
   const statusFacts =
     loadState === "ready"
-      ? [
-          {
-            label: "Interaction",
-            value: interactionLabel,
-          },
-          {
-            label: "Waypoints",
-            value: String(passThroughPoints.length),
-          },
-          {
-            label: "Route line",
-            value: routeGeometry
-              ? `${routeGeometry.coordinates.length} points`
-              : "Not available",
-          },
-        ]
+      ? isNavigationActive
+        ? [
+            {
+              label: "Interaction",
+              value: interactionLabel,
+            },
+            {
+              label: "Follow mode",
+              value:
+                navigationFollowMode === "manual_pan"
+                  ? "Paused after pan"
+                  : "Centered on position",
+            },
+            {
+              label: "Waypoints",
+              value: String(passThroughPoints.length),
+            },
+            {
+              label: "Route line",
+              value: routeGeometry
+                ? `${routeGeometry.coordinates.length} points`
+                : "Not available",
+            },
+          ]
+        : [
+            {
+              label: "Interaction",
+              value: interactionLabel,
+            },
+            {
+              label: "Waypoints",
+              value: String(passThroughPoints.length),
+            },
+            {
+              label: "Route line",
+              value: routeGeometry
+                ? `${routeGeometry.coordinates.length} points`
+                : "Not available",
+            },
+          ]
       : [
           {
             label: "Region",
@@ -345,7 +413,13 @@ export function PlanningMap({
     <section
       className={`planning-map planning-map--${loadState}`}
       aria-label="Planning map"
+      data-map-center={formatCoordinate(center)}
       data-map-load-state={loadState}
+      data-navigation-follow-mode={
+        isNavigationActive
+          ? (navigationFollowMode ?? "follow_position")
+          : "inactive"
+      }
       data-map-style-url={getStyleLabel(styleUrl)}
       data-testid="planning-map"
     >
@@ -369,6 +443,13 @@ export function PlanningMap({
 
 function formatCoordinate(coordinate: Coordinate) {
   return `${coordinate.lat.toFixed(4)}, ${coordinate.lon.toFixed(4)}`;
+}
+
+function getCoordinateFromLngLat(lngLat: maplibregl.LngLat) {
+  return {
+    lat: lngLat.lat,
+    lon: lngLat.lng,
+  };
 }
 
 function createMarkerElement(
