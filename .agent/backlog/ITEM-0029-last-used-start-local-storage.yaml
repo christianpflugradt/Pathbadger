@@ -1,7 +1,7 @@
 id: ITEM-0029
 type: feature
 priority: P0
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0012
@@ -19,5 +19,5 @@ implementation_notes:
   - "2026-05-14 refine: `apps/web/src/App.tsx` currently exposes `last_used` in the same hard-coded start-point catalog as `saved_default`, so the supported planner still advertises fake local memory."
   - "2026-05-14 refine: keeping last-used persistence separate from the explicit default-start save flow should make the implementation and browser verification smaller than a combined storage rewrite."
 created_at: 2026-05-14T10:40:22+02:00
-updated_at: 2026-05-14T10:40:22+02:00
-closed_at: null
+updated_at: 2026-05-14T11:04:15+02:00
+closed_at: 2026-05-14T11:04:15+02:00

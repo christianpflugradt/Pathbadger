@@ -48,6 +48,11 @@ import {
   loadStoredCoordinate,
   saveStoredCoordinate,
 } from "./planning-local-storage";
+import {
+  getLastUsedStartOptionDetail,
+  getRememberedDefaultHelperCopy,
+  getRememberedDefaultOptionDetail,
+} from "./planning-start-point-state";
 import { requestRoutePreview } from "./route-preview-client";
 import {
   getRouteSurfaceSummaryCards,
@@ -84,33 +89,30 @@ type StartPointOption = {
   label: string;
 };
 
+const DEFAULT_CURRENT_POSITION_COORDINATE = { lat: 53.9167, lon: 9.8833 };
+const DEFAULT_MAP_SELECTED_START_COORDINATE = { lat: 53.9188, lon: 9.8872 };
 const startPointCatalog: Record<
   StartPointMode,
   {
     label: string;
     detail: string;
-    coordinate: Coordinate;
   }
 > = {
   current_position: {
     label: "Current GPS position",
     detail: "Fastest option once location permission is granted.",
-    coordinate: { lat: 53.9167, lon: 9.8833 },
   },
   map_point: {
     label: "Map-selected point",
     detail: "Live map clicks set the planning start.",
-    coordinate: { lat: 53.9188, lon: 9.8872 },
   },
   saved_default: {
     label: "Remembered default",
     detail: "Useful for repeated trailheads or home starts.",
-    coordinate: { lat: 53.9094, lon: 9.8748 },
   },
   last_used: {
     label: "Last used start",
     detail: "Reuse the previous origin without clicking the map again.",
-    coordinate: { lat: 53.9261, lon: 9.8967 },
   },
 };
 const activityLabels: Record<Activity, string> = {
@@ -129,23 +131,32 @@ const routeStatusLabels: Record<RouteGenerateResponse["status"], string> = {
   failed: "Preview unavailable",
 };
 const SAVED_DEFAULT_START_STORAGE_KEY = "pathbadger.savedDefaultStart";
+const LAST_USED_START_STORAGE_KEY = "pathbadger.lastUsedStart";
 const ignoreMapSelection: (coordinate: Coordinate) => void = () => {};
 
 export function App() {
+  const browserLocalStorage = getBrowserLocalStorage();
+  const isBrowserLocalStorageAvailable = browserLocalStorage !== null;
   const [startPointMode, setStartPointMode] =
     useState<StartPointMode>("map_point");
   const [savedDefaultStart, setSavedDefaultStart] = useState<Coordinate | null>(
     () =>
       loadStoredCoordinate({
         key: SAVED_DEFAULT_START_STORAGE_KEY,
-        storage: getBrowserLocalStorage(),
+        storage: browserLocalStorage,
       }),
+  );
+  const [lastUsedStart, setLastUsedStart] = useState<Coordinate | null>(() =>
+    loadStoredCoordinate({
+      key: LAST_USED_START_STORAGE_KEY,
+      storage: browserLocalStorage,
+    }),
   );
   const [rememberedDefaultSaveError, setRememberedDefaultSaveError] = useState<
     string | null
   >(null);
   const [mapSelectedStart, setMapSelectedStart] = useState<Coordinate>(
-    startPointCatalog.map_point.coordinate,
+    DEFAULT_MAP_SELECTED_START_COORDINATE,
   );
   const [mapInteractionMode, setMapInteractionMode] =
     useState<MapInteractionMode>("idle");
@@ -187,16 +198,21 @@ export function App() {
     enabled: isBrowserGeolocationEnabled,
     positionOptions: DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
   });
-  const rememberedDefaultOptionDetail = savedDefaultStart
-    ? `Saved in this browser at ${formatCoordinate(savedDefaultStart)}.`
-    : "Unavailable until you save a remembered default locally.";
+  const rememberedDefaultOptionDetail = getRememberedDefaultOptionDetail({
+    savedDefaultStart,
+    storageAvailable: isBrowserLocalStorageAvailable,
+  });
+  const lastUsedStartOptionDetail = getLastUsedStartOptionDetail({
+    lastUsedStart,
+    storageAvailable: isBrowserLocalStorageAvailable,
+  });
   const startPointOptions: Record<StartPointMode, StartPointOption> = {
     ...startPointCatalog,
     current_position: {
       ...startPointCatalog.current_position,
       coordinate:
         browserGeolocation.position?.coordinate ??
-        startPointCatalog.current_position.coordinate,
+        DEFAULT_CURRENT_POSITION_COORDINATE,
       detail: getCurrentPositionOptionDetail(browserGeolocation),
     },
     map_point: {
@@ -208,6 +224,12 @@ export function App() {
       coordinate: savedDefaultStart ?? mapSelectedStart,
       detail: rememberedDefaultOptionDetail,
       disabled: savedDefaultStart === null,
+    },
+    last_used: {
+      ...startPointCatalog.last_used,
+      coordinate: lastUsedStart ?? mapSelectedStart,
+      detail: lastUsedStartOptionDetail,
+      disabled: lastUsedStart === null,
     },
   };
 
@@ -371,6 +393,7 @@ export function App() {
         canSaveRememberedDefault,
         currentStart: startPoint.coordinate,
         savedDefaultStart,
+        storageAvailable: isBrowserLocalStorageAvailable,
       });
 
   useEffect(() => {
@@ -403,8 +426,13 @@ export function App() {
   useEffect(() => {
     if (startPointMode === "saved_default" && savedDefaultStart === null) {
       setStartPointMode("map_point");
+      return;
     }
-  }, [savedDefaultStart, startPointMode]);
+
+    if (startPointMode === "last_used" && lastUsedStart === null) {
+      setStartPointMode("map_point");
+    }
+  }, [lastUsedStart, savedDefaultStart, startPointMode]);
 
   function handleStartPointModeChange(mode: StartPointMode) {
     if (startPointOptions[mode].disabled) {
@@ -459,7 +487,7 @@ export function App() {
     const didSave = saveStoredCoordinate({
       coordinate: startPoint.coordinate,
       key: SAVED_DEFAULT_START_STORAGE_KEY,
-      storage: getBrowserLocalStorage(),
+      storage: browserLocalStorage,
     });
 
     if (!didSave) {
@@ -502,6 +530,18 @@ export function App() {
       randomSeed: options.randomSeed,
     };
     const nextRequestId = latestRoutePreviewRequestIdRef.current + 1;
+
+    if (startPointMode !== "current_position") {
+      const didSaveLastUsedStart = saveStoredCoordinate({
+        coordinate: nextRequest.start,
+        key: LAST_USED_START_STORAGE_KEY,
+        storage: browserLocalStorage,
+      });
+
+      if (didSaveLastUsedStart) {
+        setLastUsedStart(nextRequest.start);
+      }
+    }
 
     latestRoutePreviewRequestIdRef.current = nextRequestId;
     setPreviewCandidateIndex(options.candidateIndex);
@@ -706,6 +746,15 @@ export function App() {
                 <p className="helper-copy helper-copy--active">
                   Remembered default start:{" "}
                   <code>{formatCoordinate(savedDefaultStart)}</code>.
+                </p>
+              ) : null}
+              {startPointMode === "last_used" && lastUsedStart ? (
+                <p
+                  className="helper-copy helper-copy--active"
+                  data-testid="last-used-start-status"
+                >
+                  Last used start:{" "}
+                  <code>{formatCoordinate(lastUsedStart)}</code>.
                 </p>
               ) : null}
               <div className="start-point-status">
@@ -1743,30 +1792,6 @@ function getCurrentPositionRouteBlockingMessage(
   }
 }
 
-function getRememberedDefaultHelperCopy(options: {
-  canSaveRememberedDefault: boolean;
-  currentStart: Coordinate;
-  savedDefaultStart: Coordinate | null;
-}) {
-  if (!options.canSaveRememberedDefault) {
-    return "Current GPS position is intentionally not saved as the remembered default. Choose a local start first.";
-  }
-
-  if (!options.savedDefaultStart) {
-    return "No remembered default is saved in this browser yet. Save the current non-GPS start to enable that mode.";
-  }
-
-  if (areCoordinatesEqual(options.currentStart, options.savedDefaultStart)) {
-    return `Remembered default is saved in this browser at ${formatCoordinate(
-      options.savedDefaultStart,
-    )}.`;
-  }
-
-  return `Remembered default is saved at ${formatCoordinate(
-    options.savedDefaultStart,
-  )}. Save the current start to replace it.`;
-}
-
 function getNavigationMapMarkerLabel(options: {
   hasFreshPosition: boolean;
   navigationSnapshot: NonNullable<ReturnType<typeof createNavigationSnapshot>>;
@@ -1791,10 +1816,6 @@ function serializeComparablePlanningRequest(request: RouteGenerateRequest) {
     targetDistanceKm: request.targetDistanceKm,
     toleranceMeters: request.toleranceMeters,
   });
-}
-
-function areCoordinatesEqual(left: Coordinate, right: Coordinate) {
-  return left.lat === right.lat && left.lon === right.lon;
 }
 
 function getNavigableRoutePreview(
