@@ -1,0 +1,17 @@
+id: FINDING-0005
+status: open
+severity: high
+category: product_gap
+title: Planner helper copy still describes completed routing behavior as later work
+evidence:
+  - apps/web/src/App.tsx tells users "Distance stays in kilometers, with tolerance handled later." even though the live route request already sends `toleranceMeters` and the route-quality checks now validate distance-tolerance honesty.
+  - apps/web/src/App.tsx also tells users "Scoring comes later, but the preference is already explicit." even though routed candidate scoring and surface-preference selection are already implemented and marked done in the backlog and roadmap.
+  - The current roadmap marks routing-core work complete, so these visible "later" messages are orphaned placeholder copy inside a done flow rather than an active, tracked temporary state.
+impact: The supported planner UI tells users that key route-preview behavior is still future scope even though the backend already applies those capabilities, which undermines trust in the completed routing flow and leaves placeholder messaging visible in a done state.
+recommendation: Replace the stale helper text with honest copy that reflects the current tolerance and surface-scoring behavior, and add lightweight UI coverage so completed route-preview sections do not regress back to "later" messaging.
+acceptance_criteria:
+  - Planner helper text no longer describes tolerance handling or surface scoring as future work when those behaviors are already active.
+  - UI coverage or snapshot-style checks fail if completed route-preview sections regress to stale "later" placeholder copy.
+verification:
+  - npm run verify
+created_at: 2026-05-14T12:55:27Z

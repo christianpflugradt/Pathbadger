@@ -1,0 +1,18 @@
+id: FINDING-0004
+status: open
+severity: medium
+category: testing
+title: Live route-quality check overclaims instruction alignment proof
+evidence:
+  - scripts/live-route-quality-check.mjs only verifies that a preview has geometry, has more than one instruction, and that the first and last instruction coordinates exactly match the first and last geometry coordinates.
+  - docs/operations.md, docs/routing.md, scripts/README.md, and .agent/roadmap.yaml all describe `npm run test:live-route-quality` as proving instruction honesty or instruction alignment for the returned route.
+  - The current script never validates intermediate instruction coordinates, instruction ordering along the route, or whether the cues remain aligned with the geometry beyond the two endpoints.
+impact: The supported live-evidence command can pass even when intermediate instruction cues drift off the returned route, while the docs and roadmap still report that instruction alignment has been proved end to end.
+recommendation: Either narrow the command and documentation to the endpoint-alignment guarantee it actually checks today, or extend the script so it verifies intermediate instruction coordinates and ordering against the returned geometry before claiming full instruction alignment.
+acceptance_criteria:
+  - The live route-quality command and its docs describe only the guarantees the script actually enforces.
+  - If the stronger alignment claim remains, automated live evidence also validates intermediate instruction alignment and route order instead of only the first and last coordinates.
+verification:
+  - npm run verify
+  - npm run test:live-route-quality
+created_at: 2026-05-14T12:55:27Z

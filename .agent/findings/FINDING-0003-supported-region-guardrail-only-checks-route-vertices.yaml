@@ -1,0 +1,18 @@
+id: FINDING-0003
+status: open
+severity: high
+category: correctness
+title: Supported-region guardrail only checks route vertices, not segment escapes
+evidence:
+  - apps/api/src/routing/supported-region.ts implements `containsRouteGeometry` as an `every(...)` check over geometry coordinates, so it never verifies whether the segment between two accepted vertices leaves the supported polygon or crosses a hole.
+  - "A direct repo-local counterexample using `createSupportedRegion(...)` with a polygon hole returns `true` for `containsRouteGeometry({ coordinates: [[0.5, 2], [3.5, 2]] })` even though the straight segment crosses the unsupported hole between those endpoints."
+  - .agent/roadmap.yaml and ITEM-0033 both describe Schleswig-Holstein region guardrails as complete, so the current implementation is the enforcement boundary for that promise.
+impact: The api can accept a routed preview whose sampled geometry vertices stay inside the supported region while the actual path leaves the allowed area between those vertices, which weakens the newly completed region guardrail and can return likely wrong in-region results.
+recommendation: Replace the vertex-only route check with geometry that also rejects segment exits, such as line-segment intersection checks against polygon boundaries and holes or an equivalent densified containment approach with explicit coverage for concave and holed regions.
+acceptance_criteria:
+  - Route geometry is rejected when any segment leaves the supported polygon, even if all reported vertices remain inside the region.
+  - Automated coverage includes at least one polygon-with-hole or concave-boundary case that fails under the current vertex-only implementation.
+verification:
+  - npm run verify
+  - 'npx --workspace @pathbadger/api tsx --eval ''import { createSupportedRegion } from "./src/routing/supported-region.ts"; const region = createSupportedRegion({ name: "test", geometry: { type: "Polygon", coordinates: [ [[0,0],[4,0],[4,4],[0,4],[0,0]], [[1,1],[3,1],[3,3],[1,3],[1,1]] ] } }); console.log(region.containsRouteGeometry({ coordinates: [[0.5,2],[3.5,2]] }));'''
+created_at: 2026-05-14T12:55:27Z
