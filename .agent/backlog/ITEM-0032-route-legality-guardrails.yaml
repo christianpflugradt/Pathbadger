@@ -1,7 +1,7 @@
 id: ITEM-0032
 type: feature
 priority: P0
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0013
@@ -18,6 +18,9 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: `apps/api/src/routing/graphhopper-adapter.ts` currently requests only `surface`, `road_class`, and `distance` path details, so `apps/api/src/routing/routed-candidate-scoring.ts` never hard-rejects routed candidates with known unsuitable access or road-class evidence."
   - "2026-05-14 refine: `docs/product.md` section 20A.2 says MVP candidates must be rejected when known they use motorway or trunk roads unsuitable for the activity, violate explicit access restrictions, or otherwise surface illegal routing evidence."
+  - "2026-05-14 implement: `apps/api/src/routing/graphhopper-adapter.ts` now requests and normalizes GraphHopper access details, including live boolean `foot_access` and `bike_access` values, so legality scoring can detect prohibited road-class and access evidence instead of failing on runtime payload shape differences."
+  - "2026-05-14 implement: `apps/api/src/routing/routed-candidate-scoring.ts` and `apps/api/src/routing/route-generation-service.ts` now reject routed candidates with known motorway, trunk, `no`, or `private` legality evidence and fall back to an honest failed response only when every routed candidate is unsuitable."
+  - "2026-05-14 implement: added automated coverage in the GraphHopper adapter, routed candidate scoring, and route generation service tests, then verified the item with `npm run verify`, `make run-routing-app`, and a local `/api/routes/generate` sanity check that returned a geometry-backed `partial` preview for the supported sample request."
 created_at: 2026-05-14T12:05:00+02:00
-updated_at: 2026-05-14T12:05:00+02:00
-closed_at: null
+updated_at: 2026-05-14T13:06:13+02:00
+closed_at: 2026-05-14T13:06:13+02:00

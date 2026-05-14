@@ -41,6 +41,22 @@ describe("createGraphHopperAdapter", () => {
                 },
               ],
               details: {
+                bike_access: [
+                  [0, 1, true],
+                  [1, 2, false],
+                ],
+                bike_road_access: [
+                  [0, 1, "designated"],
+                  [1, 2, "destination"],
+                ],
+                foot_access: [
+                  [0, 1, true],
+                  [1, 2, false],
+                ],
+                foot_road_access: [
+                  [0, 1, "designated"],
+                  [1, 2, "destination"],
+                ],
                 surface: [
                   [0, 1, "asphalt"],
                   [1, 2, "gravel"],
@@ -110,12 +126,20 @@ describe("createGraphHopperAdapter", () => {
       ],
       surfaceDetails: [
         {
+          bikeAccess: "yes",
+          bikeRoadAccess: "designated",
           distanceMeters: 6_200,
+          footAccess: "yes",
+          footRoadAccess: "designated",
           surface: "asphalt",
           roadClass: "secondary",
         },
         {
+          bikeAccess: "no",
+          bikeRoadAccess: "destination",
           distanceMeters: 6_250,
+          footAccess: "no",
+          footRoadAccess: "destination",
           surface: "gravel",
           roadClass: "track",
         },
@@ -139,6 +163,10 @@ describe("createGraphHopperAdapter", () => {
     expect(url.searchParams.getAll("details")).toEqual([
       "surface",
       "road_class",
+      "foot_access",
+      "foot_road_access",
+      "bike_access",
+      "bike_road_access",
       "distance",
     ]);
   });
@@ -187,7 +215,11 @@ describe("createGraphHopperAdapter", () => {
       instructions: [],
       surfaceDetails: [
         {
+          bikeAccess: null,
+          bikeRoadAccess: null,
           distanceMeters: 8_640,
+          footAccess: null,
+          footRoadAccess: null,
           surface: null,
           roadClass: null,
         },

@@ -12,10 +12,20 @@ import type {
 import { z } from "zod";
 
 const GRAPHHOPPER_ROUTE_PATH = "/route";
+const graphHopperAccessPathDetailValueSchema = z.union([
+  z.boolean(),
+  z.string(),
+  z.null(),
+]);
 const graphHopperTextPathDetailSchema = z.tuple([
   z.number().int().nonnegative(),
   z.number().int().nonnegative(),
   z.string().nullable(),
+]);
+const graphHopperAccessPathDetailSchema = z.tuple([
+  z.number().int().nonnegative(),
+  z.number().int().nonnegative(),
+  graphHopperAccessPathDetailValueSchema,
 ]);
 const graphHopperDistancePathDetailSchema = z.tuple([
   z.number().int().nonnegative(),
@@ -37,7 +47,11 @@ const graphHopperInstructionSchema = z
   .passthrough();
 const graphHopperPathDetailsSchema = z
   .object({
+    bike_access: z.array(graphHopperAccessPathDetailSchema).optional(),
+    bike_road_access: z.array(graphHopperTextPathDetailSchema).optional(),
     surface: z.array(graphHopperTextPathDetailSchema).optional(),
+    foot_access: z.array(graphHopperAccessPathDetailSchema).optional(),
+    foot_road_access: z.array(graphHopperTextPathDetailSchema).optional(),
     road_class: z.array(graphHopperTextPathDetailSchema).optional(),
     distance: z.array(graphHopperDistancePathDetailSchema).optional(),
   })
@@ -66,7 +80,11 @@ export interface GraphHopperRouteRequest {
 }
 
 export interface GraphHopperRouteSurfaceDetail {
+  bikeAccess: string | null;
+  bikeRoadAccess: string | null;
   distanceMeters: number;
+  footAccess: string | null;
+  footRoadAccess: string | null;
   surface: string | null;
   roadClass: string | null;
 }
@@ -199,6 +217,10 @@ function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
   url.searchParams.set("instructions", "true");
   url.searchParams.append("details", "surface");
   url.searchParams.append("details", "road_class");
+  url.searchParams.append("details", "foot_access");
+  url.searchParams.append("details", "foot_road_access");
+  url.searchParams.append("details", "bike_access");
+  url.searchParams.append("details", "bike_road_access");
   url.searchParams.append("details", "distance");
 
   return url;
@@ -219,7 +241,27 @@ function normalizeRouteSurfaceDetails(
   return distanceDetails.reduce<GraphHopperRouteSurfaceDetail[]>(
     (normalizedDetails, [fromPointIndex, toPointIndex, distanceMeters]) => {
       const nextDetail = {
+        bikeAccess: findAccessPathDetailValue(
+          path.details?.bike_access,
+          fromPointIndex,
+          toPointIndex,
+        ),
+        bikeRoadAccess: findTextPathDetailValue(
+          path.details?.bike_road_access,
+          fromPointIndex,
+          toPointIndex,
+        ),
         distanceMeters,
+        footAccess: findAccessPathDetailValue(
+          path.details?.foot_access,
+          fromPointIndex,
+          toPointIndex,
+        ),
+        footRoadAccess: findTextPathDetailValue(
+          path.details?.foot_road_access,
+          fromPointIndex,
+          toPointIndex,
+        ),
         surface: findTextPathDetailValue(
           path.details?.surface,
           fromPointIndex,
@@ -235,6 +277,10 @@ function normalizeRouteSurfaceDetails(
 
       if (
         lastDetail &&
+        lastDetail.bikeAccess === nextDetail.bikeAccess &&
+        lastDetail.bikeRoadAccess === nextDetail.bikeRoadAccess &&
+        lastDetail.footAccess === nextDetail.footAccess &&
+        lastDetail.footRoadAccess === nextDetail.footRoadAccess &&
         lastDetail.surface === nextDetail.surface &&
         lastDetail.roadClass === nextDetail.roadClass
       ) {
@@ -309,6 +355,22 @@ function findTextPathDetailValue(
   return normalizePathDetailText(detailEntry?.[2] ?? null);
 }
 
+function findAccessPathDetailValue(
+  detailEntries:
+    | Array<z.infer<typeof graphHopperAccessPathDetailSchema>>
+    | undefined,
+  fromPointIndex: number,
+  toPointIndex: number,
+) {
+  const detailEntry = detailEntries?.find(
+    ([detailFromPointIndex, detailToPointIndex]) =>
+      fromPointIndex >= detailFromPointIndex &&
+      toPointIndex <= detailToPointIndex,
+  );
+
+  return normalizeAccessPathDetailValue(detailEntry?.[2] ?? null);
+}
+
 function normalizePathDetailText(value: string | null) {
   if (!value) {
     return null;
@@ -319,11 +381,23 @@ function normalizePathDetailText(value: string | null) {
   return trimmedValue.length > 0 ? trimmedValue : null;
 }
 
+function normalizeAccessPathDetailValue(value: boolean | string | null) {
+  if (typeof value === "boolean") {
+    return value ? "yes" : "no";
+  }
+
+  return normalizePathDetailText(value);
+}
+
 function createUnknownRouteSurfaceDetail(
   distanceMeters: number,
 ): GraphHopperRouteSurfaceDetail {
   return {
+    bikeAccess: null,
+    bikeRoadAccess: null,
     distanceMeters,
+    footAccess: null,
+    footRoadAccess: null,
     surface: null,
     roadClass: null,
   };

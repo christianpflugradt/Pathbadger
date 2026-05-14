@@ -1,15 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { scoreRoutedCandidate } from "./routed-candidate-scoring.js";
+import {
+  findKnownLegalityWarning,
+  scoreRoutedCandidate,
+} from "./routed-candidate-scoring.js";
 
 function createSurfaceDetails(
   details: Array<{
+    bikeAccess?: string | null;
+    bikeRoadAccess?: string | null;
     distanceMeters: number;
+    footAccess?: string | null;
+    footRoadAccess?: string | null;
     surface: string | null;
     roadClass: string | null;
   }>,
 ) {
-  return details;
+  return details.map((detail) => ({
+    bikeAccess: null,
+    bikeRoadAccess: null,
+    footAccess: null,
+    footRoadAccess: null,
+    ...detail,
+  }));
 }
 
 function createGeometry(coordinates: Array<[number, number]>) {
@@ -43,7 +56,11 @@ function createInstructions() {
 function createUnknownSurfaceDetails(distanceMeters: number) {
   return [
     {
+      bikeAccess: null,
+      bikeRoadAccess: null,
       distanceMeters,
+      footAccess: null,
+      footRoadAccess: null,
       surface: null,
       roadClass: null,
     },
@@ -122,6 +139,83 @@ describe("scoreRoutedCandidate", () => {
         ],
       },
       instructions: createInstructions(),
+    });
+  });
+
+  it("flags motorway or trunk evidence as a hard legality rejection", () => {
+    expect(
+      findKnownLegalityWarning({
+        request: {
+          activity: "cycling",
+          passThroughPoints: [],
+          randomSeed: null,
+          start: { lat: 54.3233, lon: 10.1228 },
+          surfacePreference: "indifferent",
+          targetDistanceKm: 20,
+          toleranceMeters: 150,
+        },
+        candidate: {
+          routeId: "candidate-illegal-road-class",
+          distanceMeters: 20_040,
+          durationMs: 2_340_000,
+          elevationGainMeters: 120,
+          geometry: createGeometry([
+            [10.1228, 54.3233],
+            [10.141, 54.332],
+          ]),
+          instructions: [],
+          surfaceDetails: createSurfaceDetails([
+            {
+              distanceMeters: 20_040,
+              surface: "asphalt",
+              roadClass: "trunk",
+            },
+          ]),
+        },
+      }),
+    ).toEqual({
+      code: "route_contains_prohibited_road_class",
+      message:
+        "GraphHopper reported motorway or trunk segments that are unsuitable for the requested activity.",
+    });
+  });
+
+  it("flags explicit mode-specific access restrictions as a hard legality rejection", () => {
+    expect(
+      findKnownLegalityWarning({
+        request: {
+          activity: "running_walking",
+          passThroughPoints: [],
+          randomSeed: null,
+          start: { lat: 54.3233, lon: 10.1228 },
+          surfacePreference: "trail",
+          targetDistanceKm: 10,
+          toleranceMeters: 150,
+        },
+        candidate: {
+          routeId: "candidate-illegal-access",
+          distanceMeters: 10_020,
+          durationMs: 2_340_000,
+          elevationGainMeters: 120,
+          geometry: createGeometry([
+            [10.1228, 54.3233],
+            [10.141, 54.332],
+          ]),
+          instructions: [],
+          surfaceDetails: createSurfaceDetails([
+            {
+              distanceMeters: 10_020,
+              footAccess: "no",
+              surface: "gravel",
+              roadClass: "path",
+            },
+          ]),
+        },
+      }),
+    ).toEqual({
+      code: "route_contains_prohibited_access",
+      message:
+        "GraphHopper reported foot or access restrictions that make this routed candidate unsuitable for running or walking.",
     });
   });
 

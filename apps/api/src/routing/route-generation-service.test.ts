@@ -8,18 +8,32 @@ import { createRouteGenerationService } from "./route-generation-service.js";
 
 function createSurfaceDetails(
   details: Array<{
+    bikeAccess?: string | null;
+    bikeRoadAccess?: string | null;
     distanceMeters: number;
+    footAccess?: string | null;
+    footRoadAccess?: string | null;
     surface: string | null;
     roadClass: string | null;
   }>,
 ) {
-  return details;
+  return details.map((detail) => ({
+    bikeAccess: null,
+    bikeRoadAccess: null,
+    footAccess: null,
+    footRoadAccess: null,
+    ...detail,
+  }));
 }
 
 function createUnknownSurfaceDetails(distanceMeters: number) {
   return [
     {
+      bikeAccess: null,
+      bikeRoadAccess: null,
       distanceMeters,
+      footAccess: null,
+      footRoadAccess: null,
       surface: null,
       roadClass: null,
     },
@@ -523,6 +537,165 @@ describe("createRouteGenerationService", () => {
         [10.1228, 54.3233],
         [10.141, 54.332],
       ]),
+    });
+  });
+
+  it("skips routed candidates with known legality violations and returns a later legal preview", async () => {
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute: vi
+          .fn()
+          .mockResolvedValueOnce({
+            distanceMeters: 10_020,
+            durationMs: 2_340_000,
+            elevationGainMeters: 120,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.152, 54.3375],
+                [10.1228, 54.3233],
+              ],
+            },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.152, 54.3375],
+            ]),
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 10_020,
+                surface: "asphalt",
+                roadClass: "trunk",
+              },
+            ]),
+          })
+          .mockResolvedValueOnce({
+            distanceMeters: 10_080,
+            durationMs: 2_360_000,
+            elevationGainMeters: 124,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.141, 54.332],
+                [10.1228, 54.3233],
+              ],
+            },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.141, 54.332],
+            ]),
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 6_048,
+                surface: "gravel",
+                roadClass: "track",
+              },
+              {
+                distanceMeters: 4_032,
+                surface: "asphalt",
+                roadClass: "residential",
+              },
+            ]),
+          }),
+      },
+    });
+
+    const response = await service.generateRoute({
+      activity: "cycling",
+      passThroughPoints: [],
+      randomSeed: "legal-seed",
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 10,
+      toleranceMeters: 150,
+    });
+
+    expect(response).toEqual({
+      routeId: "legal-seed-counter",
+      status: "success",
+      warnings: [],
+      summary: {
+        totalDistanceKm: 10.08,
+        targetDistanceKm: 10,
+        distanceDeltaMeters: 80,
+        elevationGainMeters: 124,
+        surface: {
+          asphaltPercent: 40,
+          trailUnpavedPercent: 60,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 0,
+        },
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.141, 54.332],
+          [10.1228, 54.3233],
+        ],
+      },
+      instructions: createInstructions([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
+    });
+  });
+
+  it("returns a failed response when every routed candidate is rejected for legality", async () => {
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute: vi.fn().mockResolvedValue({
+          distanceMeters: 12_040,
+          durationMs: 4_910_000,
+          elevationGainMeters: 82,
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [10.1228, 54.3233],
+              [10.141, 54.332],
+              [10.1228, 54.3233],
+            ],
+          },
+          instructions: createInstructions([
+            [10.1228, 54.3233],
+            [10.141, 54.332],
+          ]),
+          surfaceDetails: createSurfaceDetails([
+            {
+              bikeAccess: "no",
+              distanceMeters: 12_040,
+              surface: "asphalt",
+              roadClass: "secondary",
+            },
+          ]),
+        }),
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "cycling",
+        passThroughPoints: [],
+        randomSeed: "illegal-seed",
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "indifferent",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "illegal-seed-clockwise",
+      status: "failed",
+      warnings: [
+        {
+          code: "route_contains_prohibited_access",
+          message:
+            "GraphHopper reported bicycle or access restrictions that make this routed candidate unsuitable for cycling.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
     });
   });
 });

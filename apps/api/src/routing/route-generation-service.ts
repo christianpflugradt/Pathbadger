@@ -13,7 +13,10 @@ import {
   GraphHopperUnavailableError,
 } from "./graphhopper-adapter.js";
 import type { RoutingEngineAdapter } from "./graphhopper-adapter.js";
-import { scoreRoutedCandidate } from "./routed-candidate-scoring.js";
+import {
+  findKnownLegalityWarning,
+  scoreRoutedCandidate,
+} from "./routed-candidate-scoring.js";
 
 export interface RouteGenerationService {
   generateRoute(request: RouteGenerateRequest): Promise<RouteGenerateResponse>;
@@ -32,6 +35,7 @@ export function createRouteGenerationService(
       const candidates = createRouteCandidateWaypointSeeds(parsedRequest);
       const scoredCandidates = [];
       const failures = [];
+      const rejections = [];
 
       if (candidates.length === 0) {
         return routeGenerateResponseSchema.parse({
@@ -55,12 +59,26 @@ export function createRouteGenerationService(
             points: candidate.points,
             activity: parsedRequest.activity,
           });
+          const candidateWithRouteId = {
+            routeId: candidate.id,
+            ...routedCandidate,
+          };
+          const legalityWarning = findKnownLegalityWarning({
+            request: parsedRequest,
+            candidate: candidateWithRouteId,
+          });
+
+          if (legalityWarning) {
+            rejections.push({
+              routeId: candidate.id,
+              warning: legalityWarning,
+            });
+            continue;
+          }
+
           const scoredCandidate = scoreRoutedCandidate({
             request: parsedRequest,
-            candidate: {
-              routeId: candidate.id,
-              ...routedCandidate,
-            },
+            candidate: candidateWithRouteId,
           });
 
           scoredCandidates.push(scoredCandidate);
@@ -81,15 +99,22 @@ export function createRouteGenerationService(
       }
 
       const [firstFailure] = failures;
+      const [firstRejection] = rejections;
 
       return routeGenerateResponseSchema.parse(
-        firstFailure
-          ? mapFailureToResponse(firstFailure.routeId, firstFailure.error)
-          : createFailedRouteResponse(
-              "unavailable-candidate",
-              "route_generation_failed",
-              "Route generation failed before a scored preview was available.",
-            ),
+        firstRejection
+          ? createFailedRouteResponse(
+              firstRejection.routeId,
+              firstRejection.warning.code,
+              firstRejection.warning.message,
+            )
+          : firstFailure
+            ? mapFailureToResponse(firstFailure.routeId, firstFailure.error)
+            : createFailedRouteResponse(
+                "unavailable-candidate",
+                "route_generation_failed",
+                "Route generation failed before a scored preview was available.",
+              ),
       );
     },
   };

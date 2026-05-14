@@ -54,6 +54,13 @@ const FIELD_TRACK_OTHER_ROAD_CLASSES = new Set([
   "steps",
   "track",
 ]);
+const PROHIBITED_ACTIVITY_ROAD_CLASSES = new Set([
+  "motorway",
+  "motorway_link",
+  "trunk",
+  "trunk_link",
+]);
+const PROHIBITED_ACCESS_VALUES = new Set(["no", "private"]);
 
 export interface RoutedCandidateForScoring extends GraphHopperRouteResult {
   routeId: string;
@@ -75,6 +82,60 @@ export interface ScoredRoutedCandidate {
 export interface ScoreRoutedCandidateOptions {
   request: RouteGenerateRequest;
   candidate: RoutedCandidateForScoring;
+}
+
+export function findKnownLegalityWarning(
+  options: ScoreRoutedCandidateOptions,
+): RouteWarning | null {
+  const parsedRequest = routeGenerateRequestSchema.parse(options.request);
+
+  if (
+    options.candidate.surfaceDetails.some((detail) => {
+      const roadClass = normalizeCategoryToken(detail.roadClass);
+
+      return roadClass
+        ? PROHIBITED_ACTIVITY_ROAD_CLASSES.has(roadClass)
+        : false;
+    })
+  ) {
+    return {
+      code: "route_contains_prohibited_road_class",
+      message:
+        "GraphHopper reported motorway or trunk segments that are unsuitable for the requested activity.",
+    };
+  }
+
+  const hasProhibitedAccess = options.candidate.surfaceDetails.some(
+    (detail) => {
+      const modeAccess = normalizeCategoryToken(
+        parsedRequest.activity === "cycling"
+          ? detail.bikeAccess
+          : detail.footAccess,
+      );
+      const modeRoadAccess = normalizeCategoryToken(
+        parsedRequest.activity === "cycling"
+          ? detail.bikeRoadAccess
+          : detail.footRoadAccess,
+      );
+
+      return (
+        (modeAccess ? PROHIBITED_ACCESS_VALUES.has(modeAccess) : false) ||
+        (modeRoadAccess ? PROHIBITED_ACCESS_VALUES.has(modeRoadAccess) : false)
+      );
+    },
+  );
+
+  if (hasProhibitedAccess) {
+    return {
+      code: "route_contains_prohibited_access",
+      message:
+        parsedRequest.activity === "cycling"
+          ? "GraphHopper reported bicycle or access restrictions that make this routed candidate unsuitable for cycling."
+          : "GraphHopper reported foot or access restrictions that make this routed candidate unsuitable for running or walking.",
+    };
+  }
+
+  return null;
 }
 
 export function scoreRoutedCandidate(
