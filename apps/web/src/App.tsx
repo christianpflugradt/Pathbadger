@@ -944,7 +944,8 @@ export function App() {
                 <h3>Pass-through points</h3>
                 <p>
                   Pass-through waypoints now come from live map clicks. Local
-                  place search can be layered in later.
+                  place search remains later scope and is not part of the
+                  supported planner yet.
                 </p>
               </div>
               <div className="button-row">
@@ -961,14 +962,11 @@ export function App() {
                     ? "Cancel map click"
                     : "Add next map click"}
                 </button>
-                <button type="button" className="button button--ghost" disabled>
-                  Place search later
-                </button>
               </div>
               <p className="helper-copy">
                 {isAwaitingPassThroughPoint
                   ? `Click the planning map to add pass-through point ${passThroughPoints.length + 1}.`
-                  : "Each pass-through point is now created from a real map click and can still be removed from the list."}
+                  : "Each pass-through point is created from a real map click and can still be removed from the list. Local place search stays future scope for now."}
               </p>
               {passThroughPoints.length > 0 ? (
                 <ul className="pass-through-list">
