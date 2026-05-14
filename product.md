@@ -1983,6 +1983,8 @@ MAX_TARGET_DISTANCE_KM
 DEFAULT_DISTANCE_TOLERANCE_METERS
 ```
 
+`PUBLIC_API_BASE_URL` must stay same-origin at `/api` in the supported browser-facing topology. Absolute browser API origins are unsupported unless the frontend proxy contract is intentionally changed and the API deliberately regains browser CORS support.
+
 ## 18. Suggested roadmap phases
 
 ### Phase 1: Foundation

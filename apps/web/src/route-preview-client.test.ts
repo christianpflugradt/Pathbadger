@@ -147,7 +147,7 @@ describe("requestRoutePreview", () => {
     ).rejects.toThrow("API returned an unexpected route preview payload.");
   });
 
-  it("supports an absolute API base URL when a caller provides one", async () => {
+  it("falls back to the same-origin root route when the api base is blank", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -168,7 +168,7 @@ describe("requestRoutePreview", () => {
     );
 
     await requestRoutePreview({
-      apiBaseUrl: "http://localhost:3001/api",
+      apiBaseUrl: "   ",
       fetchImpl: fetchMock,
       request: {
         activity: "running_walking",
@@ -183,8 +183,6 @@ describe("requestRoutePreview", () => {
 
     const [requestUrl] = fetchMock.mock.calls[0] ?? [];
 
-    expect(String(requestUrl)).toBe(
-      "http://localhost:3001/api/routes/generate",
-    );
+    expect(String(requestUrl)).toBe("/routes/generate");
   });
 });

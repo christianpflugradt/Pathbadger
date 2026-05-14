@@ -2016,6 +2016,8 @@ MAX_TARGET_DISTANCE_KM
 DEFAULT_DISTANCE_TOLERANCE_METERS
 ```
 
+`PUBLIC_API_BASE_URL` must stay same-origin at `/api` in the supported browser-facing topology. Absolute browser API origins are unsupported unless the frontend proxy contract is intentionally changed and the API deliberately regains browser CORS support.
+
 `PUBLIC_TILE_STYLE_URL` must point at a real self-hosted style document. If it
 is unreachable, the planning map must fail with an explicit error state instead
 of substituting bundled or synthetic cartography.

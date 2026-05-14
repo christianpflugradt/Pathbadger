@@ -82,6 +82,9 @@ default supported app flow.
 
 ## Tile style contract
 
+- `PUBLIC_API_BASE_URL` is the web-facing route-preview contract for browser requests.
+- In the supported compose topology it must stay same-origin at `/api` so the frontend remains the only browser-facing entrypoint.
+- Absolute browser API origins are intentionally unsupported unless the proxy contract changes and the API deliberately regains browser CORS support.
 - `PUBLIC_TILE_STYLE_URL` is the web-facing map-style contract for future MapLibre integration.
 - It must point to a self-hosted style JSON document served by the local tile stack, not a hosted third-party style URL.
 - In the supported compose topology it should stay same-origin at `/styles/basic/style.json` so the frontend remains the only browser-facing entrypoint.
