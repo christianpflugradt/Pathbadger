@@ -1,0 +1,23 @@
+id: FINDING-0006
+status: open
+severity: high
+category: product_gap
+title: Supported live map style emits relative tile URLs that fail at runtime
+evidence:
+  - '`services/tileserver/server.mjs` serves `/styles/basic/style.json` by calling `createStyleDocument(...)` without deriving a request origin, and `services/tileserver/lib.mjs` defaults that style document to `"/tiles/basic/{z}/{x}/{y}.pbf"`.'
+  - "`services/tileserver/lib.test.mjs` currently locks that relative tile path in as the default success case instead of proving that the served style remains browser-resolvable in the supported live app."
+  - "In the supported local boot, `npm run test:browser-smoke -- --app-url http://localhost:5173` now fails the `live-app` scenario with `map_runtime_error`, `Self-hosted map unavailable`, and `Failed to construct 'Request': Failed to parse URL from /tiles/basic/10/540/329.pbf`."
+  - 'A direct fetch against `http://127.0.0.1:5173/styles/basic/style.json` during the same run returns `sources.basemap.tiles = ["/tiles/basic/{z}/{x}/{y}.pbf"]`, matching the runtime failure.'
+impact: The supported browser flow can boot into a visible hard failure instead of real self-hosted cartography, which breaks the core planning-map journey and invalidates current done-state claims around real browser-visible map readiness until the live style document becomes resolvable in the browser.
+recommendation: Make the served style document emit browser-resolvable tile source URLs for the supported app origin, then extend the live app smoke path so the real browser-backed map boot must reach `data-map-load-state=ready` before map-readiness claims can stay closed.
+acceptance_criteria:
+  - The style document served through the supported app origin exposes tile source URLs that the live browser can resolve during real map boot, not just in fixture-only checks.
+  - "`make run-app` or `make run-routing-app` followed by `npm run test:browser-smoke -- --app-url http://localhost:5173` passes the `live-app` scenario with the planning map in the ready state instead of `Self-hosted map unavailable`."
+  - Regression coverage fails if the default style document falls back to a tile source URL shape that reproduces the runtime `Failed to parse URL` error in the supported browser flow.
+verification:
+  - npm run verify
+  - make run-app
+  - npm run test:browser-smoke -- --app-url http://localhost:5173
+created_at: 2026-05-14T16:13:57+02:00
+updated_at: 2026-05-14T16:13:57+02:00
+closed_at: null

@@ -1,0 +1,22 @@
+id: FINDING-0007
+status: open
+severity: medium
+category: operations
+title: "`make stopp-app` does not fully tear down the routing profile"
+evidence:
+  - "`Makefile` documents `make stopp-app` as the shared stop command, including after `make run-routing-app`, but `scripts/dev-down.sh` only runs `docker compose down --remove-orphans` without reactivating the `maps` profile."
+  - "After this review booted the supported routing stack with `make run-routing-app`, running `make stopp-app` removed `web`, `api`, and `tileserver` but left `pathbadger-graphhopper-1` running and kept the `pathbadger_default` network in use."
+  - "`docker compose ps --format json` immediately after `make stopp-app` still reported `pathbadger-graphhopper-1` as `running` and `healthy`."
+impact: The documented stop command does not fully clean up the heavier routing-capable local boot, so review and development workflows can silently leave the largest service and shared compose network running, wasting resources and making the supported local lifecycle less reproducible.
+recommendation: Make the repo-native stop path tear down both the default services and the routing profile, or add a distinct documented stop command for the routing-capable stack and ensure the run/stop pairs match.
+acceptance_criteria:
+  - After `make run-routing-app`, the documented repo-native stop command removes `pathbadger-graphhopper-1` as well as the default services.
+  - The compose network is no longer left in use after the supported stop command completes for the routing-capable stack.
+  - Workflow docs describe the correct stop command for both `make run-app` and `make run-routing-app` so developers do not have to infer profile-specific cleanup.
+verification:
+  - make run-routing-app
+  - make stopp-app
+  - docker compose ps --format json
+created_at: 2026-05-14T16:13:57+02:00
+updated_at: 2026-05-14T16:13:57+02:00
+closed_at: null
