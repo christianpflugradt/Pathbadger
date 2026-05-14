@@ -40,9 +40,34 @@ export function createSupportedRegion(options: {
       );
     },
     containsRouteGeometry(geometry) {
-      return geometry.coordinates.every((coordinate) =>
-        containsPositionInPolygons(coordinate, polygons),
-      );
+      if (
+        !geometry.coordinates.every((coordinate) =>
+          containsPositionInPolygons(coordinate, polygons),
+        )
+      ) {
+        return false;
+      }
+
+      for (let index = 1; index < geometry.coordinates.length; index += 1) {
+        const previousCoordinate = geometry.coordinates[index - 1];
+        const currentCoordinate = geometry.coordinates[index];
+
+        if (!previousCoordinate || !currentCoordinate) {
+          return false;
+        }
+
+        if (
+          !segmentStaysWithinPolygons(
+            previousCoordinate,
+            currentCoordinate,
+            polygons,
+          )
+        ) {
+          return false;
+        }
+      }
+
+      return true;
     },
   };
 }
@@ -125,6 +150,160 @@ function containsPositionInRing(position: Position, ring: Position[]) {
   return isInside;
 }
 
+function segmentStaysWithinPolygons(
+  segmentStart: Position,
+  segmentEnd: Position,
+  polygons: PolygonCoordinates[],
+) {
+  if (positionsEqual(segmentStart, segmentEnd)) {
+    return containsPositionInPolygons(segmentStart, polygons);
+  }
+
+  const intersectionParameters = collectSegmentBoundaryParameters(
+    segmentStart,
+    segmentEnd,
+    polygons,
+  );
+
+  for (const parameter of intersectionParameters) {
+    if (
+      !containsPositionInPolygons(
+        interpolatePosition(segmentStart, segmentEnd, parameter),
+        polygons,
+      )
+    ) {
+      return false;
+    }
+  }
+
+  for (let index = 1; index < intersectionParameters.length; index += 1) {
+    const previousParameter = intersectionParameters[index - 1];
+    const currentParameter = intersectionParameters[index];
+
+    if (
+      previousParameter === undefined ||
+      currentParameter === undefined ||
+      currentParameter - previousParameter <= BOUNDARY_EPSILON
+    ) {
+      continue;
+    }
+
+    const midpointParameter = (previousParameter + currentParameter) / 2;
+
+    if (
+      !containsPositionInPolygons(
+        interpolatePosition(segmentStart, segmentEnd, midpointParameter),
+        polygons,
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function collectSegmentBoundaryParameters(
+  segmentStart: Position,
+  segmentEnd: Position,
+  polygons: PolygonCoordinates[],
+) {
+  const parameters = [0, 1];
+
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      for (let index = 0; index < ring.length; index += 1) {
+        const edgeStart = ring[index];
+        const edgeEnd = ring[(index + 1) % ring.length];
+
+        if (!edgeStart || !edgeEnd) {
+          continue;
+        }
+
+        parameters.push(
+          ...getSegmentIntersectionParameters(
+            segmentStart,
+            segmentEnd,
+            edgeStart,
+            edgeEnd,
+          ),
+        );
+      }
+    }
+  }
+
+  return [...parameters]
+    .map(normalizeSegmentParameter)
+    .sort((left, right) => left - right)
+    .filter(
+      (parameter, index, sortedParameters) =>
+        index === 0 ||
+        Math.abs(parameter - (sortedParameters[index - 1] ?? parameter)) >
+          BOUNDARY_EPSILON,
+    );
+}
+
+function getSegmentIntersectionParameters(
+  segmentStart: Position,
+  segmentEnd: Position,
+  edgeStart: Position,
+  edgeEnd: Position,
+) {
+  const segmentVector = subtractPositions(segmentEnd, segmentStart);
+  const edgeVector = subtractPositions(edgeEnd, edgeStart);
+  const edgeStartOffset = subtractPositions(edgeStart, segmentStart);
+  const segmentCrossEdge = crossProduct(segmentVector, edgeVector);
+  const edgeOffsetCrossSegment = crossProduct(edgeStartOffset, segmentVector);
+
+  if (
+    Math.abs(segmentCrossEdge) <= BOUNDARY_EPSILON &&
+    Math.abs(edgeOffsetCrossSegment) <= BOUNDARY_EPSILON
+  ) {
+    const segmentLengthSquared = dotProduct(segmentVector, segmentVector);
+
+    if (segmentLengthSquared <= BOUNDARY_EPSILON) {
+      return [];
+    }
+
+    const overlapStart =
+      dotProduct(edgeStartOffset, segmentVector) / segmentLengthSquared;
+    const overlapEnd =
+      dotProduct(subtractPositions(edgeEnd, segmentStart), segmentVector) /
+      segmentLengthSquared;
+    const normalizedOverlapStart = Math.max(
+      0,
+      Math.min(overlapStart, overlapEnd),
+    );
+    const normalizedOverlapEnd = Math.min(
+      1,
+      Math.max(overlapStart, overlapEnd),
+    );
+
+    return normalizedOverlapStart <= normalizedOverlapEnd + BOUNDARY_EPSILON
+      ? [normalizedOverlapStart, normalizedOverlapEnd]
+      : [];
+  }
+
+  if (Math.abs(segmentCrossEdge) <= BOUNDARY_EPSILON) {
+    return [];
+  }
+
+  const segmentParameter =
+    crossProduct(edgeStartOffset, edgeVector) / segmentCrossEdge;
+  const edgeParameter = edgeOffsetCrossSegment / segmentCrossEdge;
+
+  if (
+    segmentParameter < -BOUNDARY_EPSILON ||
+    segmentParameter > 1 + BOUNDARY_EPSILON ||
+    edgeParameter < -BOUNDARY_EPSILON ||
+    edgeParameter > 1 + BOUNDARY_EPSILON
+  ) {
+    return [];
+  }
+
+  return [segmentParameter];
+}
+
 function isPositionOnRingBoundary(position: Position, ring: Position[]) {
   for (let index = 0; index < ring.length; index += 1) {
     const start = ring[index];
@@ -164,4 +343,46 @@ function isPositionOnSegment(
     pointLat >= Math.min(startLat, endLat) - BOUNDARY_EPSILON &&
     pointLat <= Math.max(startLat, endLat) + BOUNDARY_EPSILON
   );
+}
+
+function positionsEqual(left: Position, right: Position) {
+  return (
+    Math.abs(left[0] - right[0]) <= BOUNDARY_EPSILON &&
+    Math.abs(left[1] - right[1]) <= BOUNDARY_EPSILON
+  );
+}
+
+function interpolatePosition(
+  start: Position,
+  end: Position,
+  parameter: number,
+): Position {
+  return [
+    start[0] + (end[0] - start[0]) * parameter,
+    start[1] + (end[1] - start[1]) * parameter,
+  ];
+}
+
+function subtractPositions(left: Position, right: Position): Position {
+  return [left[0] - right[0], left[1] - right[1]];
+}
+
+function crossProduct(left: Position, right: Position) {
+  return left[0] * right[1] - left[1] * right[0];
+}
+
+function dotProduct(left: Position, right: Position) {
+  return left[0] * right[0] + left[1] * right[1];
+}
+
+function normalizeSegmentParameter(parameter: number) {
+  if (parameter <= BOUNDARY_EPSILON) {
+    return 0;
+  }
+
+  if (parameter >= 1 - BOUNDARY_EPSILON) {
+    return 1;
+  }
+
+  return parameter;
 }
