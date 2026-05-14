@@ -132,6 +132,84 @@ describe("createApp", () => {
     await app.close();
   });
 
+  it("returns normalized place-search results from the place-search boundary", async () => {
+    const searchPlaces = vi.fn().mockResolvedValue({
+      status: "success",
+      query: "Bad Bramstedt",
+      results: [
+        {
+          id: "relation-62644",
+          label: "Bad Bramstedt, Schleswig-Holstein, Deutschland",
+          coordinate: {
+            lat: 53.9188,
+            lon: 9.8872,
+          },
+        },
+      ],
+      message: "Found 1 local place match.",
+    });
+    const app = createApp({
+      placeSearchService: {
+        searchPlaces,
+      },
+      routeGenerationService: {
+        generateRoute: vi.fn(),
+      },
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/places/search?query=Bad%20Bramstedt&limit=3",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(searchPlaces).toHaveBeenCalledWith({
+      query: "Bad Bramstedt",
+      limit: 3,
+    });
+    expect(response.json()).toEqual({
+      status: "success",
+      query: "Bad Bramstedt",
+      results: [
+        {
+          id: "relation-62644",
+          label: "Bad Bramstedt, Schleswig-Holstein, Deutschland",
+          coordinate: {
+            lat: 53.9188,
+            lon: 9.8872,
+          },
+        },
+      ],
+      message: "Found 1 local place match.",
+    });
+
+    await app.close();
+  });
+
+  it("rejects malformed place-search requests with a 400", async () => {
+    const app = createApp({
+      placeSearchService: {
+        searchPlaces: vi.fn(),
+      },
+      routeGenerationService: {
+        generateRoute: vi.fn(),
+      },
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/places/search?query=a",
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: "invalid_place_search_request",
+      message: "Query string does not match the shared place-search contract.",
+    });
+
+    await app.close();
+  });
+
   it("reports the configured region name through the health endpoint", async () => {
     const previousRegionName = process.env.REGION_NAME;
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const DEFAULT_DISTANCE_TOLERANCE_METERS = 150;
+export const DEFAULT_PLACE_SEARCH_LIMIT = 5;
 
 export const activitySchema = z.enum(["running_walking", "cycling"]);
 export const surfacePreferenceSchema = z.enum([
@@ -68,6 +69,31 @@ export const routeGenerateResponseSchema = z.object({
   geometry: routeGeometrySchema.nullable(),
   instructions: z.array(routeInstructionSchema).nullable(),
 });
+export const placeSearchStatusSchema = z.enum([
+  "success",
+  "empty",
+  "unavailable",
+]);
+export const placeSearchRequestSchema = z.object({
+  query: z.string().trim().min(2).max(120),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(10)
+    .default(DEFAULT_PLACE_SEARCH_LIMIT),
+});
+export const placeSearchResultSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  coordinate: coordinateSchema,
+});
+export const placeSearchResponseSchema = z.object({
+  status: placeSearchStatusSchema,
+  query: z.string().min(2),
+  results: z.array(placeSearchResultSchema),
+  message: z.string().min(1),
+});
 
 export type Activity = z.infer<typeof activitySchema>;
 export type Coordinate = z.infer<typeof coordinateSchema>;
@@ -80,7 +106,12 @@ export type RouteGeometry = z.infer<typeof routeGeometrySchema>;
 export type RouteInstruction = z.infer<typeof routeInstructionSchema>;
 export type RouteGenerateRequest = z.infer<typeof routeGenerateRequestSchema>;
 export type RouteGenerateResponse = z.infer<typeof routeGenerateResponseSchema>;
+export type PlaceSearchStatus = z.infer<typeof placeSearchStatusSchema>;
+export type PlaceSearchRequest = z.infer<typeof placeSearchRequestSchema>;
+export type PlaceSearchResult = z.infer<typeof placeSearchResultSchema>;
+export type PlaceSearchResponse = z.infer<typeof placeSearchResponseSchema>;
 
 export const activityOptions = activitySchema.options;
 export const surfacePreferenceOptions = surfacePreferenceSchema.options;
 export const routeStatusOptions = routeStatusSchema.options;
+export const placeSearchStatusOptions = placeSearchStatusSchema.options;

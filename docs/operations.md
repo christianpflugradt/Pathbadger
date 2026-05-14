@@ -101,6 +101,15 @@ default supported app flow.
   must also fetch elevation tiles and build a second elevation-enabled graph
   import before the route summary can expose climb data.
 
+## Place search
+
+- `GET /api/places/search?query=...&limit=...` is the supported same-origin place-search boundary for later planner work.
+- `PLACE_SEARCH_PROVIDER_URL=http://nominatim:8080` is the api-side environment hook for a self-hosted Nominatim-compatible provider on the Docker internal network. The api app appends `/search` automatically when the configured base URL does not already include it.
+- When `PLACE_SEARCH_PROVIDER_URL` is unset, blank, unreachable, or returns malformed data, the boundary responds with `status: "unavailable"` plus an explicit message instead of inventing search results.
+- When a configured provider returns no matches, the boundary responds with `status: "empty"` and an explicit no-results message.
+- Keep browser traffic on the frontend proxy at `/api/places/search`; do not expose the provider directly to the browser or add client-side CORS dependencies for it.
+- A supported local stack check looks like `curl "http://127.0.0.1:5173/api/places/search?query=Bad%20Bramstedt"`, which should return an honest `success`, `empty`, or `unavailable` payload through the frontend proxy.
+
 ## Tile style contract
 
 - `PUBLIC_API_BASE_URL` is the web-facing route-preview contract for browser requests.

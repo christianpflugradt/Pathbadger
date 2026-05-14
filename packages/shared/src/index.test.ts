@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_DISTANCE_TOLERANCE_METERS,
+  DEFAULT_PLACE_SEARCH_LIMIT,
+  placeSearchRequestSchema,
+  placeSearchResponseSchema,
   routeGenerateRequestSchema,
   routeGenerateResponseSchema,
   routeInstructionSchema,
@@ -209,5 +212,71 @@ describe("routeInstructionSchema", () => {
 
     expect(parsed.distanceFromStartMeters).toBe(1250);
     expect(parsed.streetName).toBe("Forest path");
+  });
+});
+
+describe("placeSearchRequestSchema", () => {
+  it("parses a valid request and fills the default limit", () => {
+    const parsed = placeSearchRequestSchema.parse({
+      query: "  Bad Bramstedt  ",
+    });
+
+    expect(parsed).toEqual({
+      query: "Bad Bramstedt",
+      limit: DEFAULT_PLACE_SEARCH_LIMIT,
+    });
+  });
+
+  it("coerces query-string limits into numbers", () => {
+    const parsed = placeSearchRequestSchema.parse({
+      query: "Kiel",
+      limit: "7",
+    });
+
+    expect(parsed.limit).toBe(7);
+  });
+
+  it("rejects blank or too-short queries", () => {
+    expect(() =>
+      placeSearchRequestSchema.parse({
+        query: " ",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("placeSearchResponseSchema", () => {
+  it("parses a successful place-search response", () => {
+    const parsed = placeSearchResponseSchema.parse({
+      status: "success",
+      query: "Bad Bramstedt",
+      results: [
+        {
+          id: "relation-62644",
+          label: "Bad Bramstedt, Schleswig-Holstein, Deutschland",
+          coordinate: {
+            lat: 53.9188,
+            lon: 9.8872,
+          },
+        },
+      ],
+      message: "Found 1 local place match.",
+    });
+
+    expect(parsed.results).toHaveLength(1);
+    expect(parsed.results[0]?.coordinate.lat).toBe(53.9188);
+  });
+
+  it("allows unavailable responses with empty results", () => {
+    const parsed = placeSearchResponseSchema.parse({
+      status: "unavailable",
+      query: "Kiel",
+      results: [],
+      message:
+        "Local place search is unavailable because PLACE_SEARCH_PROVIDER_URL is not configured.",
+    });
+
+    expect(parsed.status).toBe("unavailable");
+    expect(parsed.results).toEqual([]);
   });
 });

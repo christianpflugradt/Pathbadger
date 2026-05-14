@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 98
+  overall_progress_percent: 99
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -96,7 +96,7 @@ roadmap:
     - id: post-mvp-place-search
       title: Self-hosted place search
       status: active
-      progress_percent: 0
+      progress_percent: 50
       target_outcome: same-origin self-hosted place search that expands the planner beyond map-click-only waypoint selection without introducing browser-side third-party dependencies
   current_epic: EPIC-0017
   completed_summary:
@@ -139,6 +139,7 @@ roadmap:
     - the supported live map proof now serves frontend-resolvable self-hosted tile template URLs and `npm run test:browser-smoke -- --app-url http://localhost:5173` confirms real tile-stack requests through the proxied planning map boot
     - navigation now surfaces estimated remaining time only when fresh route progress and speed evidence are strong enough to support it, while keeping ETA explicitly unavailable when browser geolocation or pace signals are too weak to trust
     - the repo now ships an explicit `make run-routing-app-elevation` flow plus `npm run test:live-route-elevation`, keeping the lighter default routing stack honest while proving that the heavier local GraphHopper import can return non-null elevation gain through the supported frontend proxy
+    - the api now exposes a supported same-origin `GET /api/places/search` boundary with shared contracts and honest `empty` or `unavailable` states, so later planner UI work can add local place search without direct browser calls to any provider
   remaining_summary:
-    - the active `EPIC-0017` now opens self-hosted place search, starting with a supported same-origin local search boundary before the planner regains a visible search workflow
+    - the active `EPIC-0017` now centers on planner UI integration for local place search, building on the supported same-origin `/api/places/search` boundary that is already in place
     - rerouting after off-route detection remains intentionally deferred until the local place-search path is established and new additive execution scope is opened

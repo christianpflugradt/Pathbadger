@@ -1,7 +1,7 @@
 id: ITEM-0041
 type: feature
 priority: P1
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0017
@@ -19,6 +19,9 @@ implementation_notes:
   - "2026-05-14 refine: `apps/web/src/App.tsx` now keeps pass-through selection honest by saying local place search stays future scope, so the next grounded slice is a same-origin backend boundary rather than reviving a UI control before the data path exists."
   - "2026-05-14 refine: `docs/product.md` section 4.1 explicitly names searched places as an optional source for pass-through points once local geocoding exists, and section 5.2 keeps local geocoding/search for places in later scope, which makes a shared contract plus supported api path the smallest additive entry point."
   - "2026-05-14 refine: keeping the first slice at the boundary level preserves the repo's self-hosted and no-registration guarantees while leaving the current map-click planner UI honest until the visible search workflow is ready."
+  - "2026-05-14 implement: added shared place-search request/response contracts in `packages/shared`, plus a Nominatim-compatible `PlaceSearchService` boundary in `apps/api` that normalizes successful results and returns explicit `empty` or `unavailable` states when the local provider has no matches, is unconfigured, or returns malformed data."
+  - "2026-05-14 implement: wired `GET /places/search?query=...&limit=...` into the api app, documented `PLACE_SEARCH_PROVIDER_URL` and the same-origin `/api/places/search` contract in `README.md` and `docs/operations.md`, and passed the provider URL through the compose api environment without exposing it to the browser."
+  - '2026-05-14 implement: verified with focused shared/api tests, `npm run verify`, `make run-app`, and a supported proxied request to `http://127.0.0.1:5173/api/places/search?query=Bad%20Bramstedt`, which returned `status: "unavailable"` with the explicit message that `PLACE_SEARCH_PROVIDER_URL` is not configured.'
 created_at: 2026-05-14T19:59:37+02:00
-updated_at: 2026-05-14T19:59:37+02:00
-closed_at: null
+updated_at: 2026-05-14T20:17:56+02:00
+closed_at: 2026-05-14T20:17:56+02:00
