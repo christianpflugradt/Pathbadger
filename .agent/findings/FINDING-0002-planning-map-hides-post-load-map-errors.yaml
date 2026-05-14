@@ -1,0 +1,19 @@
+id: FINDING-0002
+status: open
+severity: medium
+category: correctness
+title: Planning map keeps reporting ready after post-load tile or source errors
+evidence:
+  - apps/web/src/PlanningMap.tsx preserves loadState=ready when MapLibre emits later error events, while the visible error copy is only shown when loadState becomes error.
+  - scripts/browser-smoke.mjs treats any matching sub-400 response as a successful tile request and only fails when data-map-load-state never reaches ready, so successful but invalid tile-source responses can still look healthy.
+impact: A style that loads successfully and then starts failing on tiles or source payloads can still present the UI as healthy, which breaks the fail-honestly map contract and weakens smoke coverage for degraded map runs.
+recommendation: Move the planning map into an explicit degraded or error state when post-load tile or source failures occur, and tighten the browser smoke so it fails on map errors triggered after initial readiness instead of trusting any matching 2xx response.
+acceptance_criteria:
+  - Post-load MapLibre tile or source errors change the visible planning-map state away from ready.
+  - Browser smoke fails when matching tile requests return successful but invalid payloads or otherwise trigger map errors after initial load.
+verification:
+  - npm run test:browser-smoke
+  - npm test
+created_at: 2026-05-14T10:13:01Z
+updated_at: 2026-05-14T10:13:01Z
+closed_at: null
