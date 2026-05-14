@@ -1,0 +1,22 @@
+id: ITEM-0036
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0014
+title: Surface iPhone and PWA runtime caveats honestly
+summary: Expose the key browser and PWA limitations around geolocation permission, HTTPS requirements, background behavior, and Wake Lock variability so the supported navigation flow stays honest on iPhone-class browsers.
+acceptance_criteria:
+  - the supported navigation or settings UI surfaces the most important runtime caveats before the user mistakes browser constraints for app defects
+  - docs and user-facing copy explain HTTPS, permission, background, and Wake Lock limits without implying unsupported native behavior
+  - automated or browser verification covers the surfaced caveat state instead of leaving it as undocumented copy only
+verification:
+  - npm run verify
+  - supported local browser walkthrough proving the caveat copy is visible from the real app flow
+implementation_notes:
+  - "2026-05-14 refine: `docs/product.md` section 20B.3 requires documenting iPhone/PWA caveats explicitly, but the implemented app currently focuses on permission-denied and unavailable GPS states without surfacing the broader runtime caveats anywhere user-visible."
+  - "2026-05-14 refine: `README.md`, `docs/operations.md`, and the web runtime copy now cover live route-quality evidence, so the next honest-doc/runtime gap is mobile browser caveat surfacing rather than another backend integration."
+created_at: 2026-05-14T14:46:58+02:00
+updated_at: 2026-05-14T14:46:58+02:00
+closed_at: null

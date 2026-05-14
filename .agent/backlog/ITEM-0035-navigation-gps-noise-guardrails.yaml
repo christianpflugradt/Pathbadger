@@ -1,0 +1,22 @@
+id: ITEM-0035
+type: feature
+priority: P1
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0014
+title: Add conservative guardrails for noisy live GPS fixes
+summary: Use browser accuracy data and recency thresholds to keep active navigation honest when the live geolocation feed is too noisy or low-confidence to trust for precise off-route or progress updates.
+acceptance_criteria:
+  - navigation distinguishes fresh high-confidence fixes from noisy or low-confidence browser positions instead of treating every `ready` update as equally precise
+  - low-confidence fixes avoid overreacting in off-route or progress UI and surface explicit copy about reduced confidence
+  - automated coverage proves the guardrail behavior with deterministic mocked geolocation states rather than relying only on ad hoc browser trials
+verification:
+  - npm run verify
+  - supported local browser navigation check showing low-confidence GPS copy or state without pretending precision
+implementation_notes:
+  - "2026-05-14 refine: `apps/web/src/browser-geolocation.ts` already normalizes `accuracyMeters`, but the current navigation tracking state and execution UI do not yet use that field to distinguish trustworthy fixes from noisy ones."
+  - "2026-05-14 refine: `docs/product.md` section 20B.2 explicitly calls for using accuracy data to avoid overreacting to noisy GPS, making this the first hardening item with direct product backing and a narrow write scope in the web runtime."
+created_at: 2026-05-14T14:46:58+02:00
+updated_at: 2026-05-14T14:46:58+02:00
+closed_at: null

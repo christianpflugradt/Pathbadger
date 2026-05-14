@@ -1,0 +1,16 @@
+id: EPIC-0014
+status: open
+phase: hardening
+title: Harden mobile navigation runtime behavior
+objective: turn the first working browser navigation loop into a more trustworthy iPhone-friendly runtime by handling noisy GPS fixes conservatively, surfacing PWA caveats honestly, and adding a simple battery-saver path that reduces wasteful live-navigation work
+success_criteria:
+  - low-confidence or noisy GPS fixes no longer make the navigation UI overreact as if they were precise
+  - the supported app documents and surfaces iPhone/PWA runtime caveats instead of hiding browser limitations behind silent failure states
+  - the frontend exposes a first battery-saver navigation mode or equivalent runtime policy that reduces geolocation and map-follow churn without inventing backend dependencies
+items:
+  - ITEM-0035
+  - ITEM-0036
+  - ITEM-0037
+created_at: 2026-05-14T14:46:58+02:00
+updated_at: 2026-05-14T14:46:58+02:00
+closed_at: null

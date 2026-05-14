@@ -1,0 +1,22 @@
+id: ITEM-0037
+type: feature
+priority: P2
+status: open
+scope: web
+origin: refine
+parent_epic: EPIC-0014
+title: Add a first battery-saver navigation mode
+summary: Introduce a simple navigation runtime mode that reduces geolocation churn or follow-map animation pressure so the browser execution loop is less wasteful on iPhone-class devices.
+acceptance_criteria:
+  - the frontend exposes a simple battery-saver mode or equivalent runtime switch for navigation
+  - saver behavior reduces one or more expensive live-navigation behaviors such as aggressive GPS watch settings or automatic map-follow animation frequency
+  - docs and tests describe what saver mode changes and what fidelity tradeoffs it introduces
+verification:
+  - npm run verify
+  - supported local browser walkthrough showing the saver toggle or mode and the affected runtime behavior
+implementation_notes:
+  - "2026-05-14 refine: `apps/web/src/browser-geolocation.ts` currently hardcodes one `enableHighAccuracy` / `maximumAge` / `timeout` configuration, and the product spec still calls out a later battery-saver setting as the preferred honest path instead of pretending the default runtime is already optimized."
+  - "2026-05-14 refine: `docs/product.md` section 10 and 20B.2 both emphasize avoiding excessive GPS update work and map animation churn, making a focused frontend-only saver mode a better next slice than broader architectural changes."
+created_at: 2026-05-14T14:46:58+02:00
+updated_at: 2026-05-14T14:46:58+02:00
+closed_at: null
