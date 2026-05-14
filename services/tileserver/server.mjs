@@ -56,6 +56,7 @@ const server = createServer((request, response) => {
       response,
       200,
       createStyleDocument({
+        baseUrl: getRequestOrigin(request),
         regionLabel:
           DATA_SCOPE === "schleswig_holstein"
             ? "Schleswig-Holstein basemap"
@@ -125,4 +126,14 @@ function respondJson(response, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8",
   });
   response.end(body);
+}
+
+function getRequestOrigin(request) {
+  const forwardedProtocolHeader = request.headers["x-forwarded-proto"];
+  const protocol = Array.isArray(forwardedProtocolHeader)
+    ? forwardedProtocolHeader[0]
+    : forwardedProtocolHeader?.split(",")[0];
+  const host = request.headers.host?.trim() || `127.0.0.1:${PORT}`;
+
+  return `${protocol?.trim() || "http"}://${host}`;
 }

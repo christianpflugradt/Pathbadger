@@ -31,6 +31,11 @@ import {
   getNavigationGpsConfidenceState,
   getNavigationGpsGuardrailPreviewCopy,
 } from "./navigation-gps-confidence";
+import {
+  getNavigationOrientationModeOptions,
+  getNavigationOrientationState,
+} from "./navigation-orientation-state";
+import type { NavigationOrientationMode } from "./navigation-orientation-state";
 import { createNavigationSnapshot } from "./navigation-session";
 import {
   getNavigationTrackingBannerClassName,
@@ -214,6 +219,8 @@ export function App() {
     useState<NavigationSession | null>(null);
   const [navigationRuntimeMode, setNavigationRuntimeMode] =
     useState<NavigationRuntimeMode>("normal");
+  const [navigationOrientationMode, setNavigationOrientationMode] =
+    useState<NavigationOrientationMode>("north_up");
   const [navigationFollowMode, setNavigationFollowMode] =
     useState<NavigationFollowMode>("follow_position");
   const [navigationManualCenter, setNavigationManualCenter] =
@@ -237,6 +244,8 @@ export function App() {
   const isBrowserGeolocationEnabled =
     startPointMode === "current_position" || isNavigationActive;
   const navigationRuntimeModeOptions = getNavigationRuntimeModeOptions();
+  const navigationOrientationModeOptions =
+    getNavigationOrientationModeOptions();
   const browserGeolocationPositionOptions = isNavigationActive
     ? getNavigationRuntimeModePositionOptions(navigationRuntimeMode)
     : DEFAULT_BROWSER_GEOLOCATION_OPTIONS;
@@ -421,6 +430,16 @@ export function App() {
   const navigationFollowActionLabel = getNavigationFollowModeActionLabel({
     hasTrackedPosition: navigationHasTrackedPosition,
     mode: navigationFollowMode,
+  });
+  const navigationOrientationState = getNavigationOrientationState({
+    followMode: navigationFollowMode,
+    hasFreshPosition: navigationHasFreshPosition,
+    hasLowConfidencePosition: navigationHasLowConfidencePosition,
+    hasTrackedPosition: navigationHasTrackedPosition,
+    isNavigationActive,
+    mode: navigationOrientationMode,
+    position: navigationTrackedPosition,
+    runtimeMode: navigationRuntimeMode,
   });
   const canStartNavigation =
     navigableRoutePreview !== null &&
@@ -1138,6 +1157,16 @@ export function App() {
               navigationFollowMode={
                 isNavigationActive ? navigationFollowMode : null
               }
+              navigationBearingDegrees={
+                isNavigationActive
+                  ? navigationOrientationState.appliedBearingDegrees
+                  : 0
+              }
+              navigationOrientationLabel={
+                isNavigationActive
+                  ? navigationOrientationState.indicatorLabel
+                  : "North up"
+              }
               onNavigationManualPan={handleNavigationManualPan}
               onMapSelect={
                 isNavigationActive ? ignoreMapSelection : handleMapSelection
@@ -1411,6 +1440,45 @@ export function App() {
                 {navigationRuntimeModeSummary}
               </p>
               <div className="section-heading">
+                <h3>Map orientation</h3>
+                <p>
+                  Keep the map north-up by default or request heading-up when
+                  the browser can provide a trustworthy live heading.
+                </p>
+              </div>
+              <div
+                className="option-grid"
+                data-testid="navigation-orientation-mode"
+              >
+                {navigationOrientationModeOptions.map((option) => (
+                  <button
+                    key={option.mode}
+                    type="button"
+                    data-testid={`navigation-orientation-mode-${option.mode}`}
+                    className={`option-card${
+                      navigationOrientationMode === option.mode
+                        ? " option-card--selected"
+                        : ""
+                    }`}
+                    onClick={() => setNavigationOrientationMode(option.mode)}
+                  >
+                    <span className="option-title">{option.label}</span>
+                    <span className="option-detail">{option.detail}</span>
+                  </button>
+                ))}
+              </div>
+              <p
+                className={`helper-copy ${
+                  navigationOrientationMode === "heading_up" &&
+                  !navigationOrientationState.isHeadingUpActive
+                    ? "helper-copy--warning"
+                    : "helper-copy--active"
+                }`}
+                data-testid="navigation-orientation-summary"
+              >
+                {navigationOrientationState.helperCopy}
+              </p>
+              <div className="section-heading">
                 <h3>Browser runtime caveats</h3>
                 <p>{getNavigationRuntimeCaveatSummary()}</p>
               </div>
@@ -1456,6 +1524,11 @@ export function App() {
                     className={`status-pill ${navigationFollowStatusPillClassName}`}
                   >
                     {navigationFollowStatusLabel}
+                  </span>
+                  <span
+                    className={`status-pill ${navigationOrientationState.statusPillClassName}`}
+                  >
+                    {navigationOrientationState.statusLabel}
                   </span>
                   <span
                     className={`status-pill ${
@@ -1574,6 +1647,12 @@ export function App() {
                       <div className="preview-stat">
                         <span>Map follow</span>
                         <strong>{navigationFollowStatusLabel}</strong>
+                      </div>
+                      <div className="preview-stat">
+                        <span>Orientation</span>
+                        <strong>
+                          {navigationOrientationState.indicatorLabel}
+                        </strong>
                       </div>
                       <div className="preview-stat">
                         <span>Runtime mode</span>
@@ -1706,6 +1785,12 @@ export function App() {
                         <strong>{navigationFollowStatusLabel}</strong>
                       </div>
                       <div className="preview-stat">
+                        <span>Orientation</span>
+                        <strong>
+                          {navigationOrientationState.indicatorLabel}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
                         <span>Runtime mode</span>
                         <strong>{navigationRuntimeModeLabel}</strong>
                       </div>
@@ -1733,6 +1818,16 @@ export function App() {
                       }`}
                     >
                       {navigationFollowHelperCopy}
+                    </p>
+                    <p
+                      className={`helper-copy ${
+                        navigationOrientationMode === "heading_up" &&
+                        !navigationOrientationState.isHeadingUpActive
+                          ? "helper-copy--warning"
+                          : "helper-copy--active"
+                      }`}
+                    >
+                      {navigationOrientationState.helperCopy}
                     </p>
                   </>
                 )}
@@ -1800,6 +1895,10 @@ export function App() {
                     <strong>
                       {navigableRoutePreview.instructions?.length ?? 0}
                     </strong>
+                  </div>
+                  <div className="preview-stat">
+                    <span>Orientation</span>
+                    <strong>{navigationOrientationState.indicatorLabel}</strong>
                   </div>
                   <div className="preview-stat">
                     <span>Runtime mode</span>

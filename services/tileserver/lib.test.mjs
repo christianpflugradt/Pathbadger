@@ -69,15 +69,17 @@ describe("classifyWayTags", () => {
 });
 
 describe("createStyleDocument", () => {
-  it("defaults to the frontend-routed tile path", () => {
-    const style = createStyleDocument();
+  it("resolves the served tile path against the supported app origin", () => {
+    const style = createStyleDocument({
+      baseUrl: "http://localhost:5173/styles/basic/style.json",
+    });
 
     expect(style.sources.basemap.tiles).toEqual([
-      "/tiles/basic/{z}/{x}/{y}.pbf",
+      "http://localhost:5173/tiles/basic/{z}/{x}/{y}.pbf",
     ]);
   });
 
-  it("points at the dedicated local tile service path", () => {
+  it("keeps an explicit absolute tile service path unchanged", () => {
     const style = createStyleDocument({
       regionLabel: "Bad Bramstedt 50 km starter",
       tileUrl: "http://localhost:8080/tiles/basic/{z}/{x}/{y}.pbf",

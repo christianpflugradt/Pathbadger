@@ -129,7 +129,10 @@ export function toFeatureProperties(tags) {
 export function createStyleDocument(options = {}) {
   const center = options.center ?? DEFAULT_STYLE_CENTER;
   const regionLabel = options.regionLabel ?? "Bad Bramstedt starter";
-  const tileUrl = options.tileUrl ?? "/tiles/basic/{z}/{x}/{y}.pbf";
+  const tileUrl = resolveStyleAssetUrl({
+    baseUrl: options.baseUrl ?? null,
+    assetUrl: options.tileUrl ?? "/tiles/basic/{z}/{x}/{y}.pbf",
+  });
 
   return {
     center,
@@ -295,4 +298,24 @@ export function createStyleDocument(options = {}) {
 
 export function getTileSourceId() {
   return TILE_SOURCE_ID;
+}
+
+function resolveStyleAssetUrl(options) {
+  if (
+    typeof options.baseUrl !== "string" ||
+    !options.baseUrl.trim() ||
+    typeof options.assetUrl !== "string" ||
+    !options.assetUrl.trim()
+  ) {
+    return options.assetUrl;
+  }
+
+  try {
+    return new URL(options.assetUrl, options.baseUrl)
+      .toString()
+      .replaceAll("%7B", "{")
+      .replaceAll("%7D", "}");
+  } catch {
+    return options.assetUrl;
+  }
 }

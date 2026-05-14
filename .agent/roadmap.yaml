@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 95
+  overall_progress_percent: 98
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -86,7 +86,7 @@ roadmap:
     - id: post-mvp-navigation-polish
       title: Optional navigation orientation and trip cues
       status: active
-      progress_percent: 0
+      progress_percent: 50
       target_outcome: additive post-MVP navigation polish such as optional heading-aware map behavior and feasible remaining-time estimates without compromising the stable self-hosted browser flow
   current_epic: EPIC-0015
   completed_summary:
@@ -125,7 +125,8 @@ roadmap:
     - the supported planner now removes the orphaned `Place search later` control and keeps pass-through planning explicitly centered on live map clicks while documenting local place search as later scope
     - the routing core now includes legality and Schleswig-Holstein region guardrails plus `npm run test:live-route-quality`, a repeatable frontend-proxied live evidence command that proves first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior on `make run-routing-app`
     - the scoped MVP backlog for the supported self-hosted browser flow is complete, so any newly opened work is additive post-MVP scope rather than a missing required capability
+    - navigation now exposes an explicit `Heading up` mode alongside the north-up default, rotates only when browser heading data is fresh and trustworthy, and falls back honestly when heading support, GPS confidence, or Battery saver constraints are weak
+    - the supported live map proof now serves frontend-resolvable self-hosted tile template URLs and `npm run test:browser-smoke -- --app-url http://localhost:5173` confirms real tile-stack requests through the proxied planning map boot
   remaining_summary:
-    - the active `EPIC-0015` now targets optional navigation polish, starting with a heading-up map mode that reuses existing browser heading data when trustworthy and falls back honestly when heading support or runtime conditions are weak
-    - a follow-up navigation ETA slice can reuse the current remaining-distance and speed calculations to surface estimated remaining time only when live browser evidence is strong enough to justify it
+    - the active `EPIC-0015` now has one remaining planned slice: surface estimated remaining time only when the existing remaining-distance, speed, and GPS-confidence signals are strong enough to justify it
     - broader additive ideas such as self-hosted place search, elevation-capable previews, and rerouting remain intentionally deferred until this smaller navigation-polish line is proven

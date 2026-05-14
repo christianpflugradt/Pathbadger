@@ -482,12 +482,14 @@ function auditStyleDocument(styleDocument, styleUrl, appOrigin) {
       source.tiles.every((tileUrl) => typeof tileUrl === "string")
     ) {
       requestUrls.push(
-        ...source.tiles.map((tileUrl) => new URL(tileUrl, styleUrl).toString()),
+        ...source.tiles.map((tileUrl) =>
+          resolveTemplatedUrl(tileUrl, styleUrl),
+        ),
       );
     }
 
     if ("url" in source && typeof source.url === "string") {
-      requestUrls.push(new URL(source.url, styleUrl).toString());
+      requestUrls.push(resolveTemplatedUrl(source.url, styleUrl));
     }
   }
 
@@ -525,17 +527,25 @@ function auditStyleDocument(styleDocument, styleUrl, appOrigin) {
     ok: true,
     requestMatchers: requestUrls.map((requestUrl) => {
       const requestLocation = new URL(requestUrl);
-      const templateMarkerIndex = requestLocation.pathname.indexOf("{");
+      const decodedPathname = decodeURIComponent(requestLocation.pathname);
+      const templateMarkerIndex = decodedPathname.indexOf("{");
 
       return {
         origin: requestLocation.origin,
         pathPrefix:
           templateMarkerIndex >= 0
-            ? requestLocation.pathname.slice(0, templateMarkerIndex)
-            : requestLocation.pathname,
+            ? decodedPathname.slice(0, templateMarkerIndex)
+            : decodedPathname,
       };
     }),
   };
+}
+
+function resolveTemplatedUrl(assetUrl, baseUrl) {
+  return new URL(assetUrl, baseUrl)
+    .toString()
+    .replaceAll("%7B", "{")
+    .replaceAll("%7D", "}");
 }
 
 function summarizeTileRequests(options) {

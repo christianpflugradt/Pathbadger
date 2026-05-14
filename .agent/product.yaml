@@ -54,13 +54,13 @@ product:
       - estimated_remaining_time_when_feasible
       - off_route_warning
       - north_up_mode
-      - optional_heading_up_later
+      - optional_heading_up_mode
     settings:
       - local_storage_for_last_activity
       - local_storage_for_surface_preference
       - local_storage_for_default_start
       - local_storage_for_last_start
-      - battery_mode_later
+      - battery_runtime_mode
     diagnostics:
       - hard_failure_when_required_map_style_unavailable
       - explicit_temporary_placeholder_labeling_when_capability_unfinished

@@ -23,7 +23,9 @@ type PlanningMapProps = {
   isMapStartActive: boolean;
   isNavigationActive: boolean;
   interactionMode: "idle" | "add_pass_through";
+  navigationBearingDegrees: number;
   navigationFollowMode: NavigationFollowMode | null;
+  navigationOrientationLabel: string;
   onNavigationManualPan: (center: Coordinate) => void;
   onMapSelect: (coordinate: Coordinate) => void;
   onNavigationViewportChange: (center: Coordinate) => void;
@@ -49,7 +51,9 @@ export function PlanningMap({
   isMapStartActive,
   isNavigationActive,
   interactionMode,
+  navigationBearingDegrees,
   navigationFollowMode,
+  navigationOrientationLabel,
   onNavigationManualPan,
   onMapSelect,
   onNavigationViewportChange,
@@ -142,11 +146,18 @@ export function PlanningMap({
     }
 
     map.easeTo({
+      bearing: isNavigationActive ? navigationBearingDegrees : 0,
       center: [center.lon, center.lat],
       duration: 0,
       zoom: map.getZoom() || DEFAULT_ZOOM,
     });
-  }, [center.lat, center.lon, isNavigationActive, navigationFollowMode]);
+  }, [
+    center.lat,
+    center.lon,
+    isNavigationActive,
+    navigationBearingDegrees,
+    navigationFollowMode,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -349,6 +360,10 @@ export function PlanningMap({
                   : "Centered on position",
             },
             {
+              label: "Orientation",
+              value: navigationOrientationLabel,
+            },
+            {
               label: "Waypoints",
               value: String(passThroughPoints.length),
             },
@@ -418,10 +433,14 @@ export function PlanningMap({
       aria-label="Planning map"
       data-map-center={formatCoordinate(center)}
       data-map-load-state={loadState}
+      data-navigation-bearing={String(navigationBearingDegrees)}
       data-navigation-follow-mode={
         isNavigationActive
           ? (navigationFollowMode ?? "follow_position")
           : "inactive"
+      }
+      data-navigation-orientation={
+        isNavigationActive ? navigationOrientationLabel : "inactive"
       }
       data-map-style-url={getStyleLabel(styleUrl)}
       data-testid="planning-map"

@@ -15,7 +15,7 @@ Navigation is the second major product state after route planning.
 
 - avoid backend round trips during active route following
 - keep map updates simple and conservative
-- treat heading-up mode as optional later work
+- keep heading-up optional and guarded instead of turning it on by default
 - surface uncertainty or GPS inaccuracy honestly instead of pretending precision
 
 ## Current state
@@ -26,6 +26,7 @@ The navigation runtime is now implemented for the supported local browser flow:
 - live browser geolocation drives current-position updates
 - progress, next instruction, off-route warnings, and speed metrics stay local in the frontend
 - map follow stays enabled by default, pauses after a manual pan, and can be explicitly recentered
+- navigation can optionally switch into a guarded heading-up mode, but it stays north-up by default and falls back honestly when heading data is weak or Battery saver is active
 - low-confidence or stale live GPS fixes now stay conservative, so off-route and progress cues become approximate until a tighter browser update arrives
 - navigation now exposes `Normal GPS` and `Battery saver` runtime modes, with saver mode relaxing browser geolocation to lower live-update churn at the cost of older or rougher fixes
 
@@ -41,4 +42,4 @@ The supported navigation flow is still browser-first rather than native:
 
 The MVP is still expected to be useful with the screen on and the app active.
 
-The scoped navigation hardening backlog is now complete for the supported browser flow. Future work would be net-new runtime modes or broader platform experiments rather than required MVP completion work.
+Current additive navigation work is now centered on ETA-style trip cues and broader platform experiments rather than on first-pass live orientation support.

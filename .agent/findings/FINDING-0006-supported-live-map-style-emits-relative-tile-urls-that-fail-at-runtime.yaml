@@ -1,5 +1,5 @@
 id: FINDING-0006
-status: open
+status: done
 severity: high
 category: product_gap
 title: Supported live map style emits relative tile URLs that fail at runtime
@@ -19,5 +19,5 @@ verification:
   - make run-app
   - npm run test:browser-smoke -- --app-url http://localhost:5173
 created_at: 2026-05-14T16:13:57+02:00
-updated_at: 2026-05-14T16:13:57+02:00
-closed_at: null
+updated_at: 2026-05-14T16:37:44+02:00
+closed_at: 2026-05-14T16:37:44+02:00
