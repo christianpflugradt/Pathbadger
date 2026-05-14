@@ -6,10 +6,8 @@ import {
 } from "./config";
 
 describe("resolvePublicTileStyleUrl", () => {
-  it("defaults to the real self-hosted TileServer style endpoint", () => {
-    expect(DEFAULT_PUBLIC_TILE_STYLE_URL).toBe(
-      "http://localhost:8080/styles/basic/style.json",
-    );
+  it("defaults to the frontend-proxied self-hosted style endpoint", () => {
+    expect(DEFAULT_PUBLIC_TILE_STYLE_URL).toBe("/styles/basic/style.json");
     expect(resolvePublicTileStyleUrl(undefined)).toBe(
       DEFAULT_PUBLIC_TILE_STYLE_URL,
     );
@@ -23,10 +21,8 @@ describe("resolvePublicTileStyleUrl", () => {
   });
 
   it("preserves an explicit self-hosted style URL", () => {
-    expect(
-      resolvePublicTileStyleUrl(
-        "http://localhost:9090/styles/custom/style.json",
-      ),
-    ).toBe("http://localhost:9090/styles/custom/style.json");
+    expect(resolvePublicTileStyleUrl("/styles/custom/style.json")).toBe(
+      "/styles/custom/style.json",
+    );
   });
 });

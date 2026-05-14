@@ -16,6 +16,10 @@ commands:
       - refine
       - implement
       - review
+    commit_policy:
+      commit_required_when_files_change: true
+      push_when_remote_available: true
+      user_may_explicitly_defer_commit: true
     phases:
       - read_state
       - plan_minimal_change
@@ -70,7 +74,8 @@ commands:
       - if_unplanned_placeholder_is_needed_block_the_item_and_send_control_back_to_refine
       - never_mark_placeholder_backed_capability_done_while_its_exit_item_is_open
       - update_item_status
-      - commit_and_push_when_remote_available
+      - stage_and_commit_before_report_unless_user_explicitly_defers_commit
+      - push_when_remote_available
   review:
     purpose: workspace_audit_and_findings_only
     scope: full_workspace_only

@@ -53,6 +53,8 @@ governance:
     done_states_must_exclude_placeholder_backed_capabilities: true
     implement_exactly_one_item: true
     implement_must_block_on_unplanned_placeholder_need: true
+    mutating_repo_tasks_must_commit_before_reporting_completion: true
+    push_after_commit_when_remote_available_unless_user_defers: true
     review_does_not_update_roadmap: true
     review_scope_is_full_workspace: true
     review_focus_hints_do_not_limit_scope: true

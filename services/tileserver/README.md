@@ -3,9 +3,14 @@
 This directory holds the local vector-tile service used by the supported planning-map flow.
 
 The frontend consumes the self-hosted style endpoint through
-`PUBLIC_TILE_STYLE_URL`, which defaults to `http://localhost:8080/styles/basic/style.json`.
+`PUBLIC_TILE_STYLE_URL`, which defaults to `/styles/basic/style.json` through
+the frontend proxy.
 If that endpoint is missing or unreachable, the app should surface a hard map
 failure instead of falling back to bundled map art.
+
+The supported browser-facing topology keeps this service internal-only. Do not
+reintroduce direct browser access to the tile server; the frontend should proxy
+style and tile requests on its behalf.
 
 ## Data scopes
 

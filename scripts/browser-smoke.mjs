@@ -198,6 +198,7 @@ async function inspectPlanningMapTarget(options) {
     const styleAudit = auditStyleDocument(
       styleDocumentResult.styleDocument,
       styleUrlResult.styleUrl,
+      new URL(options.appUrl).origin,
     );
 
     if (!styleAudit.ok) {
@@ -220,7 +221,7 @@ async function inspectPlanningMapTarget(options) {
 
     const tileRequestSummary = summarizeTileRequests({
       networkEvents,
-      requestOrigins: styleAudit.requestOrigins,
+      requestMatchers: styleAudit.requestMatchers,
       styleUrl: styleUrlResult.styleUrl,
     });
 
@@ -370,18 +371,6 @@ function resolveAndClassifyStyleUrl(rawStyleUrl, appUrl) {
 
   const appOrigin = new URL(appUrl).origin;
   const styleLocation = new URL(resolvedStyleUrl);
-  const isLocalHost =
-    styleLocation.hostname === "localhost" ||
-    styleLocation.hostname === "127.0.0.1";
-
-  if (!isLocalHost) {
-    return {
-      cause: "undeclared_fallback",
-      detail: `The planning map points at a non-local style origin: ${styleLocation.origin}`,
-      ok: false,
-      styleUrl: resolvedStyleUrl,
-    };
-  }
 
   if (resolvedStyleUrl.includes("local-fallback")) {
     return {
@@ -393,14 +382,10 @@ function resolveAndClassifyStyleUrl(rawStyleUrl, appUrl) {
     };
   }
 
-  if (
-    styleLocation.origin === appOrigin &&
-    styleLocation.pathname.startsWith("/styles/")
-  ) {
+  if (styleLocation.origin !== appOrigin) {
     return {
       cause: "undeclared_fallback",
-      detail:
-        "The planning map style is being served by the web app origin instead of a dedicated self-hosted tile stack.",
+      detail: `The planning map style bypasses the frontend proxy and points at ${styleLocation.origin}.`,
       ok: false,
       styleUrl: resolvedStyleUrl,
     };
@@ -446,7 +431,7 @@ async function fetchStyleDocument(styleUrl) {
   }
 }
 
-function auditStyleDocument(styleDocument, styleUrl) {
+function auditStyleDocument(styleDocument, styleUrl, appOrigin) {
   if (!styleDocument || typeof styleDocument !== "object") {
     return {
       cause: "undeclared_fallback",
@@ -494,14 +479,11 @@ function auditStyleDocument(styleDocument, styleUrl) {
 
   for (const requestUrl of requestUrls) {
     const requestLocation = new URL(requestUrl);
-    const isLocalHost =
-      requestLocation.hostname === "localhost" ||
-      requestLocation.hostname === "127.0.0.1";
 
-    if (!isLocalHost) {
+    if (requestLocation.origin !== appOrigin) {
       return {
         cause: "undeclared_fallback",
-        detail: `The style document references a non-local tile source: ${requestLocation.origin}`,
+        detail: `The style document bypasses the frontend proxy and references ${requestLocation.origin}.`,
         ok: false,
       };
     }
@@ -518,14 +500,22 @@ function auditStyleDocument(styleDocument, styleUrl) {
 
   return {
     ok: true,
-    requestOrigins: [
-      ...new Set(requestUrls.map((requestUrl) => new URL(requestUrl).origin)),
-    ],
+    requestMatchers: requestUrls.map((requestUrl) => {
+      const requestLocation = new URL(requestUrl);
+      const templateMarkerIndex = requestLocation.pathname.indexOf("{");
+
+      return {
+        origin: requestLocation.origin,
+        pathPrefix:
+          templateMarkerIndex >= 0
+            ? requestLocation.pathname.slice(0, templateMarkerIndex)
+            : requestLocation.pathname,
+      };
+    }),
   };
 }
 
 function summarizeTileRequests(options) {
-  const requestOrigins = new Set(options.requestOrigins);
   const styleUrl = options.styleUrl;
   const failures = [];
   const successes = [];
@@ -533,7 +523,14 @@ function summarizeTileRequests(options) {
   for (const event of options.networkEvents) {
     const eventUrl = new URL(event.url);
 
-    if (!requestOrigins.has(eventUrl.origin) || event.url === styleUrl) {
+    if (
+      event.url === styleUrl ||
+      !options.requestMatchers.some(
+        (requestMatcher) =>
+          requestMatcher.origin === eventUrl.origin &&
+          eventUrl.pathname.startsWith(requestMatcher.pathPrefix),
+      )
+    ) {
       continue;
     }
 
@@ -661,7 +658,7 @@ Usage:
 
 Without --app-url, the command runs a fixture-backed suite that proves the smoke
 can distinguish a healthy self-hosted map from unreachable style JSON, missing
-tile data, and undeclared fallback paths.`);
+tile data, and proxy-bypassing fallback paths.`);
 }
 
 async function readLocatorText(locator) {
@@ -683,21 +680,16 @@ async function createFixtureScenario(id) {
     appState: "ready",
     appStatusBody: "Fixture planning map state.",
     appStatusHeading: "Planning map is live",
-    appTileRequests: [],
+    appStyleStatus: 200,
+    appTileStatus: 200,
     expectedCause: SELF_HOSTED_PASS_CAUSE,
-    mapServerStyleStatus: 200,
-    sameOriginFallback: false,
     styleDocument: {},
   };
   const mapServer = await startFixtureServer((request, response) => {
     const { pathname } = new URL(request.url ?? "/", "http://127.0.0.1");
 
     if (pathname === "/styles/basic/style.json") {
-      respondJson(
-        response,
-        scenario.mapServerStyleStatus,
-        scenario.styleDocument,
-      );
+      respondJson(response, 200, scenario.styleDocument);
       return;
     }
 
@@ -717,11 +709,10 @@ async function createFixtureScenario(id) {
   const mapOrigin = `http://127.0.0.1:${mapServer.port}`;
 
   if (id === "healthy-self-hosted-map") {
-    scenario.appTileRequests = [`${mapOrigin}/tiles/basic/0/0/0.pbf`];
     scenario.styleDocument = {
       sources: {
         base: {
-          tiles: [`${mapOrigin}/tiles/basic/0/0/0.pbf`],
+          tiles: ["/tiles/basic/0/0/0.pbf"],
           type: "vector",
         },
       },
@@ -734,15 +725,15 @@ async function createFixtureScenario(id) {
     scenario.appStatusBody =
       "Could not load the self-hosted style document because it returned 404.";
     scenario.appStatusHeading = "Self-hosted map unavailable";
-    scenario.mapServerStyleStatus = 404;
+    scenario.appStyleStatus = 404;
   }
 
   if (id === "missing-tile-data") {
-    scenario.appTileRequests = [`${mapOrigin}/tiles/basic/0/0/0.pbf`];
+    scenario.appTileStatus = 404;
     scenario.styleDocument = {
       sources: {
         base: {
-          tiles: [`${mapOrigin}/tiles/basic/0/0/0.pbf`],
+          tiles: ["/tiles/basic/0/0/0.pbf"],
           type: "vector",
         },
       },
@@ -756,33 +747,31 @@ async function createFixtureScenario(id) {
     if (requestUrl.pathname === "/") {
       const styleUrl =
         id === "undeclared-fallback"
-          ? `${requestUrl.origin}/styles/local-fallback.json`
-          : `${mapOrigin}/styles/basic/style.json`;
+          ? `${mapOrigin}/styles/basic/style.json`
+          : "/styles/basic/style.json";
       const html = renderFixturePage({
         loadState: scenario.appState,
         statusBody: scenario.appStatusBody,
         statusHeading: scenario.appStatusHeading,
         styleUrl,
-        tileRequests: scenario.appTileRequests,
       });
 
       respondHtml(response, 200, html);
       return;
     }
 
-    if (requestUrl.pathname === "/styles/local-fallback.json") {
-      respondJson(response, 200, {
-        sources: {
-          fallback: {
-            data: {
-              features: [],
-              type: "FeatureCollection",
-            },
-            type: "geojson",
-          },
-        },
-        version: 8,
-      });
+    if (requestUrl.pathname === "/styles/basic/style.json") {
+      respondJson(response, scenario.appStyleStatus, scenario.styleDocument);
+      return;
+    }
+
+    if (requestUrl.pathname === "/tiles/basic/0/0/0.pbf") {
+      if (scenario.appTileStatus !== 200) {
+        respondText(response, scenario.appTileStatus, "Missing tile artifact.");
+        return;
+      }
+
+      respondBuffer(response, 200, Buffer.from("fixture-vector-tile"));
       return;
     }
 
@@ -822,10 +811,7 @@ function renderFixturePage(options) {
     </section>
     <script>
       window.addEventListener("load", () => {
-        const requests = ${JSON.stringify(options.tileRequests)}
-        for (const requestUrl of requests) {
-          fetch(requestUrl, { mode: "cors" }).catch(() => {})
-        }
+        fetch("/tiles/basic/0/0/0.pbf").catch(() => {})
       })
     </script>
   </body>

@@ -14,8 +14,9 @@
 
 `npm run compose:test` validates both the default compose graph and the `maps`
 profile configuration, builds the `api`, `web`, and `tileserver` services,
-waits for them to stay running, verifies the api `/health` response and the tile
-style endpoint from inside the stack, and then tears the stack down.
+waits for them to stay running, verifies the internal api and tile endpoints
+inside the stack, verifies the frontend proxy for `/api/health` and
+`/styles/basic/style.json`, and then tears the stack down.
 
 The Make targets split the lighter planning boot from the heavier routing boot:
 
@@ -82,8 +83,10 @@ default supported app flow.
 
 - `PUBLIC_TILE_STYLE_URL` is the web-facing map-style contract for future MapLibre integration.
 - It must point to a self-hosted style JSON document served by the local tile stack, not a hosted third-party style URL.
+- In the supported compose topology it should stay same-origin at `/styles/basic/style.json` so the frontend remains the only browser-facing entrypoint.
 - If that style endpoint is unreachable, the planning map must fail honestly instead of substituting bundled placeholder cartography.
-- The supported local endpoint is `http://localhost:8080/styles/basic/style.json`.
+- The supported local browser endpoint is `http://localhost:5173/styles/basic/style.json`.
+- Do not reintroduce direct browser access to `api`, `tileserver`, or `graphhopper`, and do not depend on client-side CORS for those services. The frontend proxy is the supported front controller.
 
 ## Browser smoke
 
@@ -99,6 +102,7 @@ default supported app flow.
 - `implement` changes exactly one backlog item
 - `fix` resolves exactly one open finding from `.agent/findings/`
 - `review` compares the current state with `.agent` specs and [docs/product.md](/Users/cpf/Workspace/personal/Pathbadger/docs/product.md), then persists any confirmed defects as finding files
+- Any repo task that changes files must stage and create a git commit before reporting completion unless the user explicitly says not to commit yet.
 - `review` always audits the whole workspace. Focus hints such as `review security` or `review architecture` may change emphasis, but they must not reduce scope.
 - `review <number>` is not a supported shorthand for commit-count review and must never be interpreted that way.
 - `show` reports a brief workspace summary from `.agent/roadmap.yaml`, `.agent/epics/`, and `.agent/backlog/` without changing files

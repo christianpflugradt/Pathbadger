@@ -9,17 +9,19 @@ services:
       GRAPHHOPPER_URL: ${GRAPHHOPPER_URL:-http://graphhopper:8989}
       GRAPHHOPPER_HAS_ELEVATION: ${GRAPHHOPPER_HAS_ELEVATION:-false}
       TILESERVER_URL: ${TILESERVER_URL:-http://tileserver:8080}
-    ports:
-      - "${API_PORT:-3001}:3001"
+    expose:
+      - "3001"
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
-      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-http://localhost:3001}
-      PUBLIC_TILE_STYLE_URL: ${PUBLIC_TILE_STYLE_URL:-http://localhost:8080/styles/basic/style.json}
-      REGION_NAME: ${REGION_NAME:-Schleswig-Holstein}
+      PATHBADGER_API_UPSTREAM: ${PATHBADGER_API_UPSTREAM:-http://api:3001}
+      PATHBADGER_TILESERVER_UPSTREAM: ${PATHBADGER_TILESERVER_UPSTREAM:-http://tileserver:8080}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-/api}
+      PUBLIC_REGION_NAME: ${REGION_NAME:-Schleswig-Holstein}
+      PUBLIC_TILE_STYLE_URL: ${PUBLIC_TILE_STYLE_URL:-/styles/basic/style.json}
     depends_on:
       - api
       - tileserver
@@ -41,8 +43,8 @@ services:
       - /config/config.yml
       - --host
       - 0.0.0.0
-    ports:
-      - "8989:8989"
+    expose:
+      - "8989"
     volumes:
       - ./data/osm:/data/osm
       - ./data/graphhopper:/data/graphhopper
@@ -56,7 +58,7 @@ services:
     environment:
       PATHBADGER_TILE_DATA_FILE: ${PATHBADGER_TILE_DATA_FILE:-}
       PATHBADGER_TILE_DATA_SCOPE: ${PATHBADGER_TILE_DATA_SCOPE:-starter}
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - ./data/tiles:/runtime-data

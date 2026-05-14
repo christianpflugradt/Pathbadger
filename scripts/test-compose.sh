@@ -66,7 +66,7 @@ wait_for_api_health() {
   return 1
 }
 
-wait_for_tileserver_style() {
+wait_for_tileserver_style_inside_stack() {
   local attempts="${1:-30}"
 
   for ((attempt = 1; attempt <= attempts; attempt += 1)); do
@@ -80,6 +80,25 @@ wait_for_tileserver_style() {
 
   echo "Timed out waiting for the tileserver style endpoint." >&2
   print_service_logs "tileserver"
+  return 1
+}
+
+wait_for_frontend_proxy() {
+  local url="$1"
+  local label="$2"
+  local attempts="${3:-30}"
+
+  for ((attempt = 1; attempt <= attempts; attempt += 1)); do
+    if node -e "fetch(process.argv[1]).then(async (response) => { if (!response.ok) throw new Error('unexpected status ' + response.status); if (response.headers.get('content-type')?.includes('application/json')) { await response.json(); } else { await response.text(); } }).catch(() => process.exit(1));" "$url" >/dev/null 2>&1; then
+      echo "${label} responded successfully through the frontend proxy."
+      return 0
+    fi
+
+    sleep 2
+  done
+
+  echo "Timed out waiting for ${label} through the frontend proxy." >&2
+  print_service_logs "web"
   return 1
 }
 
@@ -99,7 +118,9 @@ wait_for_running_service "api"
 wait_for_running_service "web"
 wait_for_running_service "tileserver"
 wait_for_api_health
-wait_for_tileserver_style
+wait_for_tileserver_style_inside_stack
+wait_for_frontend_proxy "http://127.0.0.1:5173/api/health" "api health"
+wait_for_frontend_proxy "http://127.0.0.1:5173/styles/basic/style.json" "tile style"
 
 docker compose ps
-echo "Runtime smoke passed for the scaffolded api, web, and tileserver services."
+echo "Runtime smoke passed for the scaffolded web front controller and its internal api and tileserver services."

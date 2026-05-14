@@ -41,14 +41,6 @@ const server = createServer((request, response) => {
   const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
   const { pathname } = requestUrl;
 
-  setCorsHeaders(response);
-
-  if (request.method === "OPTIONS") {
-    response.writeHead(204);
-    response.end();
-    return;
-  }
-
   if (pathname === "/health") {
     respondJson(response, 200, {
       featureCount: dataset.features.length,
@@ -68,7 +60,6 @@ const server = createServer((request, response) => {
           DATA_SCOPE === "schleswig_holstein"
             ? "Schleswig-Holstein basemap"
             : "Bad Bramstedt 50 km starter",
-        tileUrl: buildPublicUrl(request, "/tiles/basic/{z}/{x}/{y}.pbf"),
       }),
     );
     return;
@@ -126,12 +117,6 @@ function resolveDatasetUrl(options) {
   );
 }
 
-function setCorsHeaders(response) {
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  response.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-  response.setHeader("Access-Control-Allow-Origin", "*");
-}
-
 function respondJson(response, statusCode, payload) {
   const body = JSON.stringify(payload);
 
@@ -140,10 +125,4 @@ function respondJson(response, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8",
   });
   response.end(body);
-}
-
-function buildPublicUrl(request, pathname) {
-  const host = request.headers.host ?? `127.0.0.1:${PORT}`;
-
-  return `http://${host}${pathname}`;
 }

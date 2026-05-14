@@ -48,7 +48,7 @@ describe("requestRoutePreview", () => {
     );
 
     const response = await requestRoutePreview({
-      apiBaseUrl: "http://localhost:3001",
+      apiBaseUrl: "/api",
       fetchImpl: fetchMock,
       request: {
         activity: "running_walking",
@@ -66,7 +66,7 @@ describe("requestRoutePreview", () => {
 
     const [requestUrl, requestInit] = fetchMock.mock.calls[0] ?? [];
 
-    expect(String(requestUrl)).toBe("http://localhost:3001/routes/generate");
+    expect(String(requestUrl)).toBe("/api/routes/generate");
     expect(requestInit).toMatchObject({
       method: "POST",
       headers: {
@@ -93,7 +93,7 @@ describe("requestRoutePreview", () => {
 
     await expect(
       requestRoutePreview({
-        apiBaseUrl: "http://localhost:3001",
+        apiBaseUrl: "/api/",
         fetchImpl: fetchMock,
         request: {
           activity: "running_walking",
@@ -132,7 +132,7 @@ describe("requestRoutePreview", () => {
 
     await expect(
       requestRoutePreview({
-        apiBaseUrl: "http://localhost:3001",
+        apiBaseUrl: "/api",
         fetchImpl: fetchMock,
         request: {
           activity: "running_walking",
@@ -145,5 +145,46 @@ describe("requestRoutePreview", () => {
         },
       }),
     ).rejects.toThrow("API returned an unexpected route preview payload.");
+  });
+
+  it("supports an absolute API base URL when a caller provides one", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          routeId: "preview-seed-clockwise",
+          status: "failed",
+          warnings: [],
+          summary: null,
+          geometry: null,
+          instructions: null,
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+      ),
+    );
+
+    await requestRoutePreview({
+      apiBaseUrl: "http://localhost:3001/api",
+      fetchImpl: fetchMock,
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "trail",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      },
+    });
+
+    const [requestUrl] = fetchMock.mock.calls[0] ?? [];
+
+    expect(String(requestUrl)).toBe(
+      "http://localhost:3001/api/routes/generate",
+    );
   });
 });

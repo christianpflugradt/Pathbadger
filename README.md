@@ -37,6 +37,7 @@ This repository is initialized for an agent-driven workflow with four recurring 
 ## Docker notes
 
 - `docker-compose.yml` defines the target service topology from day one.
+- Only `web` is intended to be internet facing in the compose topology. Browser traffic for route previews, map styles, and tile data must stay same-origin through the frontend proxy, while `api`, `tileserver`, and `graphhopper` stay on the Docker internal network.
 - `graphhopper` now stays behind the explicit routing-capable local flow instead of the default map-only boot, while the `tileserver` continues to boot in the default app flow.
 - `npm run compose:test` now builds and starts `api`, `web`, and `tileserver`, checks the api `/health` endpoint, verifies the tile style endpoint from inside the stack, and tears everything down again.
 - `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default map-only compose workflow for local app startup, shutdown, and forced rebuilds.
@@ -46,7 +47,8 @@ This repository is initialized for an agent-driven workflow with four recurring 
 - The supported routing-capable flow currently keeps `GRAPHHOPPER_HAS_ELEVATION=false`, so live preview elevation stays honestly unavailable until a later elevation-capable GraphHopper setup is introduced.
 - `PATHBADGER_TILE_DATA_SCOPE=starter` is the default and uses a real 50 km Bad Bramstedt slice. `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` switches the tile service to a whole-state dataset file under `data/tiles/`.
 - `PATHBADGER_TILE_DATA_FILE=/absolute/path/to/custom.geojson` overrides the default file for either scope when you want the tile service to use another generated dataset.
-- `PUBLIC_TILE_STYLE_URL` is the frontend map-style contract. It points at the self-hosted local style endpoint `http://localhost:8080/styles/basic/style.json`, and the app should fail honestly when that style is unreachable instead of drawing a fake fallback map.
+- `PUBLIC_API_BASE_URL` defaults to `/api`, and `PUBLIC_TILE_STYLE_URL` defaults to `/styles/basic/style.json`, so browser calls stay on the frontend origin and the web container can act as the front controller.
+- Do not reintroduce direct browser calls to `api`, `tileserver`, or `graphhopper`, and do not add client-side CORS dependencies for those services. In the supported topology they are internal-only backends behind the frontend proxy.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` is the browser-level gate for map work. It passes only when the planning map uses a real self-hosted style contract and the page can reach tile-backed map assets without silently falling back.
 - `make run-routing-app` is the supported local navigation-verification flow. Its first run is heavier because it downloads about 150 MB of Schleswig-Holstein OSM data and imports the GraphHopper cache before route previews can succeed.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` remains the intended whole-state live-map configuration once you are ready to build and use the broader tile dataset locally.

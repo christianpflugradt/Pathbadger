@@ -1,6 +1,5 @@
-export const DEFAULT_PUBLIC_API_BASE_URL = "http://localhost:3001";
-export const DEFAULT_PUBLIC_TILE_STYLE_URL =
-  "http://localhost:8080/styles/basic/style.json";
+export const DEFAULT_PUBLIC_API_BASE_URL = "/api";
+export const DEFAULT_PUBLIC_TILE_STYLE_URL = "/styles/basic/style.json";
 
 export function resolvePublicTileStyleUrl(
   rawStyleUrl: string | undefined,

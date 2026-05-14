@@ -14,16 +14,13 @@ export async function requestRoutePreview(
   options: RequestRoutePreviewOptions,
 ): Promise<RouteGenerateResponse> {
   const fetchImpl = options.fetchImpl ?? fetch;
-  const response = await fetchImpl(
-    new URL("/routes/generate", withTrailingSlash(options.apiBaseUrl)),
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(options.request),
+  const response = await fetchImpl(buildRoutePreviewUrl(options.apiBaseUrl), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
     },
-  );
+    body: JSON.stringify(options.request),
+  });
   const payload = await parseResponsePayload(response);
 
   if (!response.ok) {
@@ -61,6 +58,10 @@ function getRoutePreviewErrorMessage(response: Response, payload: unknown) {
   return `Route preview request failed with ${response.status}.`;
 }
 
-function withTrailingSlash(value: string) {
-  return value.endsWith("/") ? value : `${value}/`;
+function buildRoutePreviewUrl(apiBaseUrl: string) {
+  const normalizedApiBaseUrl = apiBaseUrl.trim().replace(/\/+$/, "");
+
+  return normalizedApiBaseUrl.length > 0
+    ? `${normalizedApiBaseUrl}/routes/generate`
+    : "/routes/generate";
 }

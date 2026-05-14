@@ -132,7 +132,10 @@ describe("createApp", () => {
     await app.close();
   });
 
-  it("returns browser-safe CORS headers for local web origins", async () => {
+  it("reports the configured region name through the health endpoint", async () => {
+    const previousRegionName = process.env.REGION_NAME;
+
+    process.env.REGION_NAME = "Custom Region";
     const app = createApp({
       routeGenerationService: {
         generateRoute: vi.fn(),
@@ -140,24 +143,24 @@ describe("createApp", () => {
     });
 
     const response = await app.inject({
-      method: "OPTIONS",
-      url: "/routes/generate",
-      headers: {
-        origin: "http://localhost:5173",
-      },
+      method: "GET",
+      url: "/health",
     });
 
-    expect(response.statusCode).toBe(204);
-    expect(response.headers["access-control-allow-origin"]).toBe(
-      "http://localhost:5173",
-    );
-    expect(response.headers["access-control-allow-methods"]).toBe(
-      "GET,POST,OPTIONS",
-    );
-    expect(response.headers["access-control-allow-headers"]).toBe(
-      "content-type",
-    );
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      region: "Custom Region",
+      service: "api",
+      status: "ok",
+    });
 
     await app.close();
+
+    if (previousRegionName === undefined) {
+      delete process.env.REGION_NAME;
+      return;
+    }
+
+    process.env.REGION_NAME = previousRegionName;
   });
 });

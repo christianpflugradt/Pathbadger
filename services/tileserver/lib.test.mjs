@@ -69,6 +69,14 @@ describe("classifyWayTags", () => {
 });
 
 describe("createStyleDocument", () => {
+  it("defaults to the frontend-routed tile path", () => {
+    const style = createStyleDocument();
+
+    expect(style.sources.basemap.tiles).toEqual([
+      "/tiles/basic/{z}/{x}/{y}.pbf",
+    ]);
+  });
+
   it("points at the dedicated local tile service path", () => {
     const style = createStyleDocument({
       regionLabel: "Bad Bramstedt 50 km starter",

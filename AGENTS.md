@@ -20,6 +20,8 @@ This repository also defines four primary agent commands that must be interprete
 - `implement`
 - `review`
 
+When a repo task changes files, the agent must stage and create a git commit before finishing unless the user explicitly says not to commit yet. Treat commits as part of completing the task, not as an optional follow-up reminder.
+
 When the user says `review`, or `review` followed by extra tokens, the agent must still perform a whole-workspace audit.
 Any extra tokens after `review` are optional focus hints only and must never narrow the audit to a commit, diff, or file subset.
 Never interpret `review <number>` as "review the latest N commits" or any other commit-limited review mode.

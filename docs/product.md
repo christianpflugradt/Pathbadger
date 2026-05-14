@@ -1794,7 +1794,7 @@ The app is private but still must avoid obvious mistakes:
 - validate API inputs with schemas
 - avoid arbitrary file path access
 - avoid arbitrary shell execution
-- configure CORS deliberately
+- keep browser-facing traffic same-origin through the frontend proxy and only add CORS deliberately when that proxy contract is intentionally changed
 - avoid exposing GraphHopper or tile server publicly unless intended
 - document production reverse proxy assumptions
 
@@ -2218,7 +2218,7 @@ security_baseline:
   - production_exposure_documented
 ```
 
-If GraphHopper or TileServer is exposed through a reverse proxy, the agent must document that they are internal services by default and should not be unintentionally public.
+If GraphHopper or TileServer is exposed through a reverse proxy, the agent must document that they are internal services by default and should not be unintentionally public. The supported browser-facing topology keeps them behind the frontend proxy instead of calling them directly from the client.
 
 ## 20D. Initial setup exact deliverables
 
