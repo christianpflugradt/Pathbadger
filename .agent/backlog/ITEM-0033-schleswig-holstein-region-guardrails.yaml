@@ -1,7 +1,7 @@
 id: ITEM-0033
 type: feature
 priority: P1
-status: open
+status: done
 scope: api
 origin: refine
 parent_epic: EPIC-0013
@@ -18,6 +18,9 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: the current product contract restricts Pathbadger to Schleswig-Holstein, but the implemented code currently exposes that region only as display copy in `apps/web/src/config.ts`, `apps/web/src/App.tsx`, and the api health payload."
   - "2026-05-14 refine: `docs/product.md` lists `out_of_region_warning_or_rejection` as a diagnostics requirement, but no active backlog item now tracks that behavior."
+  - "2026-05-14 implement: added a checked-in Schleswig-Holstein MultiPolygon fixture plus `apps/api/src/routing/supported-region.ts` so the api can validate request coordinates and routed preview geometries against a deterministic supported-region boundary without live network dependencies."
+  - "2026-05-14 implement: `apps/api/src/routing/route-generation-service.ts` now fails early when the start or any pass-through point is outside the supported region and rejects routed candidates whose returned geometry leaves Schleswig-Holstein before scoring them as valid previews."
+  - "2026-05-14 implement: added automated coverage for fixture-backed region membership, request rejection, routed-candidate rejection, and all-out-of-region failure handling, then verified the item with `npm run verify`, `make run-routing-app`, an in-region local `/api/routes/generate` request that returned geometry, and an out-of-region Berlin request that failed with `request_points_out_of_supported_region`."
 created_at: 2026-05-14T12:05:00+02:00
-updated_at: 2026-05-14T12:05:00+02:00
-closed_at: null
+updated_at: 2026-05-14T13:40:07+02:00
+closed_at: 2026-05-14T13:40:07+02:00

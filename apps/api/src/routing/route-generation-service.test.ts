@@ -64,6 +64,76 @@ function createInstructions(points: Array<[number, number]>) {
 }
 
 describe("createRouteGenerationService", () => {
+  it("fails before routing when the requested start point is outside the supported region", async () => {
+    const getRoute = vi.fn();
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: "region-request-seed",
+        start: { lat: 52.52, lon: 13.405 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "unsupported-region-request",
+      status: "failed",
+      warnings: [
+        {
+          code: "request_points_out_of_supported_region",
+          message:
+            "The requested start point is outside the supported Schleswig-Holstein region.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+    expect(getRoute).not.toHaveBeenCalled();
+  });
+
+  it("fails before routing when a pass-through point is outside the supported region", async () => {
+    const getRoute = vi.fn();
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [{ lat: 52.52, lon: 13.405 }],
+        randomSeed: "region-pass-through-seed",
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "unsupported-region-request",
+      status: "failed",
+      warnings: [
+        {
+          code: "request_points_out_of_supported_region",
+          message:
+            "A requested pass-through point is outside the supported Schleswig-Holstein region.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+    expect(getRoute).not.toHaveBeenCalled();
+  });
+
   it("returns a successful routed preview when the best routed candidate fits the request", async () => {
     const service = createRouteGenerationService({
       routingEngine: {
@@ -691,6 +761,164 @@ describe("createRouteGenerationService", () => {
           code: "route_contains_prohibited_access",
           message:
             "GraphHopper reported bicycle or access restrictions that make this routed candidate unsuitable for cycling.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+  });
+
+  it("skips routed candidates whose geometry leaves the supported region and returns a later in-region preview", async () => {
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute: vi
+          .fn()
+          .mockResolvedValueOnce({
+            distanceMeters: 10_020,
+            durationMs: 2_340_000,
+            elevationGainMeters: 120,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [13.405, 52.52],
+                [10.1228, 54.3233],
+              ],
+            },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [13.405, 52.52],
+            ]),
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 10_020,
+                surface: "asphalt",
+                roadClass: "secondary",
+              },
+            ]),
+          })
+          .mockResolvedValueOnce({
+            distanceMeters: 10_080,
+            durationMs: 2_360_000,
+            elevationGainMeters: 124,
+            geometry: {
+              type: "LineString",
+              coordinates: [
+                [10.1228, 54.3233],
+                [10.141, 54.332],
+                [10.1228, 54.3233],
+              ],
+            },
+            instructions: createInstructions([
+              [10.1228, 54.3233],
+              [10.141, 54.332],
+            ]),
+            surfaceDetails: createSurfaceDetails([
+              {
+                distanceMeters: 6_048,
+                surface: "gravel",
+                roadClass: "track",
+              },
+              {
+                distanceMeters: 4_032,
+                surface: "asphalt",
+                roadClass: "residential",
+              },
+            ]),
+          }),
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "cycling",
+        passThroughPoints: [],
+        randomSeed: "region-route-seed",
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 10,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "region-route-seed-counter",
+      status: "success",
+      warnings: [],
+      summary: {
+        totalDistanceKm: 10.08,
+        targetDistanceKm: 10,
+        distanceDeltaMeters: 80,
+        elevationGainMeters: 124,
+        surface: {
+          asphaltPercent: 40,
+          trailUnpavedPercent: 60,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 0,
+        },
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.141, 54.332],
+          [10.1228, 54.3233],
+        ],
+      },
+      instructions: createInstructions([
+        [10.1228, 54.3233],
+        [10.141, 54.332],
+      ]),
+    });
+  });
+
+  it("returns a failed response when every routed candidate leaves the supported region", async () => {
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute: vi.fn().mockResolvedValue({
+          distanceMeters: 12_040,
+          durationMs: 4_910_000,
+          elevationGainMeters: 82,
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [10.1228, 54.3233],
+              [13.405, 52.52],
+              [10.1228, 54.3233],
+            ],
+          },
+          instructions: createInstructions([
+            [10.1228, 54.3233],
+            [13.405, 52.52],
+          ]),
+          surfaceDetails: createSurfaceDetails([
+            {
+              distanceMeters: 12_040,
+              surface: "asphalt",
+              roadClass: "secondary",
+            },
+          ]),
+        }),
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "cycling",
+        passThroughPoints: [],
+        randomSeed: "region-failure-seed",
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "indifferent",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "region-failure-seed-clockwise",
+      status: "failed",
+      warnings: [
+        {
+          code: "route_leaves_supported_region",
+          message:
+            "GraphHopper returned a routed preview that leaves the supported Schleswig-Holstein region.",
         },
       ],
       summary: null,

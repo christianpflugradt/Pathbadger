@@ -15,8 +15,14 @@ import {
 import type { RoutingEngineAdapter } from "./graphhopper-adapter.js";
 import {
   findKnownLegalityWarning,
+  type RoutedCandidateForScoring,
   scoreRoutedCandidate,
 } from "./routed-candidate-scoring.js";
+import {
+  DEFAULT_SUPPORTED_REGION_NAME,
+  createSchleswigHolsteinSupportedRegion,
+} from "./supported-region.js";
+import type { SupportedRegion } from "./supported-region.js";
 
 export interface RouteGenerationService {
   generateRoute(request: RouteGenerateRequest): Promise<RouteGenerateResponse>;
@@ -24,14 +30,36 @@ export interface RouteGenerationService {
 
 export interface CreateRouteGenerationServiceOptions {
   routingEngine: RoutingEngineAdapter;
+  supportedRegion?: SupportedRegion;
 }
 
 export function createRouteGenerationService(
   options: CreateRouteGenerationServiceOptions,
 ): RouteGenerationService {
+  const supportedRegion =
+    options.supportedRegion ??
+    createSchleswigHolsteinSupportedRegion(
+      process.env.REGION_NAME ?? DEFAULT_SUPPORTED_REGION_NAME,
+    );
+
   return {
     async generateRoute(request) {
       const parsedRequest = routeGenerateRequestSchema.parse(request);
+      const requestRegionWarning = findRequestRegionWarning(
+        parsedRequest,
+        supportedRegion,
+      );
+
+      if (requestRegionWarning) {
+        return routeGenerateResponseSchema.parse(
+          createFailedRouteResponse(
+            "unsupported-region-request",
+            requestRegionWarning.code,
+            requestRegionWarning.message,
+          ),
+        );
+      }
+
       const candidates = createRouteCandidateWaypointSeeds(parsedRequest);
       const scoredCandidates = [];
       const failures = [];
@@ -63,6 +91,19 @@ export function createRouteGenerationService(
             routeId: candidate.id,
             ...routedCandidate,
           };
+          const regionWarning = findRouteRegionWarning(
+            candidateWithRouteId,
+            supportedRegion,
+          );
+
+          if (regionWarning) {
+            rejections.push({
+              routeId: candidate.id,
+              warning: regionWarning,
+            });
+            continue;
+          }
+
           const legalityWarning = findKnownLegalityWarning({
             request: parsedRequest,
             candidate: candidateWithRouteId,
@@ -117,6 +158,46 @@ export function createRouteGenerationService(
               ),
       );
     },
+  };
+}
+
+function findRequestRegionWarning(
+  request: RouteGenerateRequest,
+  supportedRegion: SupportedRegion,
+) {
+  if (!supportedRegion.containsCoordinate(request.start)) {
+    return {
+      code: "request_points_out_of_supported_region",
+      message: `The requested start point is outside the supported ${supportedRegion.name} region.`,
+    };
+  }
+
+  if (
+    request.passThroughPoints.some(
+      (passThroughPoint) =>
+        !supportedRegion.containsCoordinate(passThroughPoint),
+    )
+  ) {
+    return {
+      code: "request_points_out_of_supported_region",
+      message: `A requested pass-through point is outside the supported ${supportedRegion.name} region.`,
+    };
+  }
+
+  return null;
+}
+
+function findRouteRegionWarning(
+  candidate: RoutedCandidateForScoring,
+  supportedRegion: SupportedRegion,
+) {
+  if (supportedRegion.containsRouteGeometry(candidate.geometry)) {
+    return null;
+  }
+
+  return {
+    code: "route_leaves_supported_region",
+    message: `GraphHopper returned a routed preview that leaves the supported ${supportedRegion.name} region.`,
   };
 }
 
