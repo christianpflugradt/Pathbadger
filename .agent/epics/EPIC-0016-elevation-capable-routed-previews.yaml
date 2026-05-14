@@ -1,0 +1,14 @@
+id: EPIC-0016
+status: open
+phase: post-mvp-elevation-routing
+title: Add elevation-capable routed preview support
+objective: extend the self-hosted routing workflow so the existing route summary can surface real elevation gain when terrain data is available, without regressing the lighter default local stack or pretending 2D imports already provide climb data
+success_criteria:
+  - the repo exposes a supported elevation-capable local routing workflow that can return non-null elevation gain through the existing route preview contract when terrain data is available
+  - route summary behavior and docs stay honest about when elevation is available versus unknown instead of over-claiming climb precision
+  - the heavier elevation path remains explicit until resource and startup costs justify promoting it into the default supported routing workflow
+items:
+  - ITEM-0040
+created_at: 2026-05-14T17:02:20+02:00
+updated_at: 2026-05-14T17:02:20+02:00
+closed_at: null

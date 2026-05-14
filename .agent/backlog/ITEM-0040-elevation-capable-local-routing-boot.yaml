@@ -1,0 +1,25 @@
+id: ITEM-0040
+type: feature
+priority: P1
+status: open
+scope: docker
+origin: refine
+parent_epic: EPIC-0016
+title: Add a supported elevation-capable local routing workflow
+summary: Introduce an explicit elevation-capable local routing boot that can return real `summary.elevationGainMeters` through the existing preview flow, while keeping the lighter default routing stack honest and unchanged.
+acceptance_criteria:
+  - the repo exposes a supported elevation-capable local routing workflow or target distinct from the lighter default `make run-routing-app` flow
+  - when that elevation-capable workflow is used and terrain data is available, a supported routed preview request can return non-null `summary.elevationGainMeters` instead of always `null`
+  - docs and operational copy explain the heavier elevation-data path, its setup/runtime costs, and any remaining honest fallback behavior
+verification:
+  - npm run verify
+  - supported elevation-capable local boot command
+  - supported routed preview evidence showing non-null elevation gain on the local stack
+implementation_notes:
+  - "2026-05-14 refine: the shared route contract, GraphHopper adapter, route-generation service, and web summary UI already propagate `elevationGainMeters: number | null`, so the main missing capability is the supported local runtime path rather than a new frontend surface."
+  - "2026-05-14 refine: `services/graphhopper/README.md`, `README.md`, and `docs/operations.md` all explicitly document `GRAPHHOPPER_HAS_ELEVATION=false` in the supported routing workflow today, which keeps elevation honest but leaves a clear additive gap for real climb data."
+  - "2026-05-14 refine: the product brief calls for route-summary elevation gain when available, and `docs/routing.md` already names elevation-capable previews as the most grounded remaining routing addition."
+  - "2026-05-14 refine: a separate explicit elevation-capable boot is the safest first slice because it preserves the current proven routing workflow until the heavier terrain-data path has live startup and resource evidence."
+created_at: 2026-05-14T17:02:20+02:00
+updated_at: 2026-05-14T17:02:20+02:00
+closed_at: null

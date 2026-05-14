@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 100
+  overall_progress_percent: 98
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -88,7 +88,12 @@ roadmap:
       status: done
       progress_percent: 100
       target_outcome: additive post-MVP navigation polish such as optional heading-aware map behavior and feasible remaining-time estimates without compromising the stable self-hosted browser flow
-  current_epic: null
+    - id: post-mvp-elevation-routing
+      title: Elevation-capable routed previews
+      status: active
+      progress_percent: 0
+      target_outcome: explicit heavier local routing support that can surface real elevation gain through the existing preview summary without regressing the lighter default self-hosted stack
+  current_epic: EPIC-0016
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -129,4 +134,5 @@ roadmap:
     - the supported live map proof now serves frontend-resolvable self-hosted tile template URLs and `npm run test:browser-smoke -- --app-url http://localhost:5173` confirms real tile-stack requests through the proxied planning map boot
     - navigation now surfaces estimated remaining time only when fresh route progress and speed evidence are strong enough to support it, while keeping ETA explicitly unavailable when browser geolocation or pace signals are too weak to trust
   remaining_summary:
-    - broader additive ideas such as self-hosted place search, elevation-capable previews, and rerouting remain intentionally deferred until this smaller navigation-polish line is proven
+    - the active `EPIC-0016` now targets elevation-capable routed previews, starting with an explicit supported local boot that can return non-null elevation gain through the existing preview contract without regressing the lighter default routing stack
+    - broader additive ideas such as self-hosted place search and rerouting remain intentionally deferred until the heavier elevation-data path is proven

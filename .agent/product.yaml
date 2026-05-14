@@ -41,6 +41,7 @@ product:
       - generate_single_route_candidate
       - generate_another_variation
       - route_summary_with_distance_surface_and_warnings
+      - elevation_gain_when_available
       - impossible_or_too_long_route_handling
     navigation:
       - route_line_visible
