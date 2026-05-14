@@ -51,7 +51,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 98
+  overall_progress_percent: 100
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -85,10 +85,10 @@ roadmap:
       target_outcome: stable self-hosted operation with honest warnings, browser-local persistence, and conservative battery behavior
     - id: post-mvp-navigation-polish
       title: Optional navigation orientation and trip cues
-      status: active
-      progress_percent: 50
+      status: done
+      progress_percent: 100
       target_outcome: additive post-MVP navigation polish such as optional heading-aware map behavior and feasible remaining-time estimates without compromising the stable self-hosted browser flow
-  current_epic: EPIC-0015
+  current_epic: null
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -127,6 +127,6 @@ roadmap:
     - the scoped MVP backlog for the supported self-hosted browser flow is complete, so any newly opened work is additive post-MVP scope rather than a missing required capability
     - navigation now exposes an explicit `Heading up` mode alongside the north-up default, rotates only when browser heading data is fresh and trustworthy, and falls back honestly when heading support, GPS confidence, or Battery saver constraints are weak
     - the supported live map proof now serves frontend-resolvable self-hosted tile template URLs and `npm run test:browser-smoke -- --app-url http://localhost:5173` confirms real tile-stack requests through the proxied planning map boot
+    - navigation now surfaces estimated remaining time only when fresh route progress and speed evidence are strong enough to support it, while keeping ETA explicitly unavailable when browser geolocation or pace signals are too weak to trust
   remaining_summary:
-    - the active `EPIC-0015` now has one remaining planned slice: surface estimated remaining time only when the existing remaining-distance, speed, and GPS-confidence signals are strong enough to justify it
     - broader additive ideas such as self-hosted place search, elevation-capable previews, and rerouting remain intentionally deferred until this smaller navigation-polish line is proven

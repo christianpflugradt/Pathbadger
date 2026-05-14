@@ -1,7 +1,7 @@
 id: ITEM-0039
 type: feature
 priority: P2
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0015
@@ -18,6 +18,9 @@ implementation_notes:
   - "2026-05-14 refine: `apps/web/src/navigation-session.ts` already computes `remainingDistanceMeters`, and `apps/web/src/navigation-speed-state.ts` already derives current and average speed, but `App.tsx` does not yet combine them into the estimated remaining time called out in the product brief."
   - "2026-05-14 refine: `docs/product.md` section 4.2 describes estimated remaining time as part of the route-execution state when feasible, making this a grounded follow-up that reuses current local navigation calculations instead of demanding a new backend dependency."
   - "2026-05-14 refine: low-confidence or stale GPS handling is already explicit in the navigation UI, so this estimate should key off the same honesty rules rather than manufacturing a precise ETA from weak browser data."
+  - "2026-05-14 implement: added `apps/web/src/navigation-eta-state.ts` and deterministic tests so ETA selection stays centralized, preferring timestamped average route progress when available, falling back to a fresh live speed sample when needed, and refusing to estimate when GPS freshness, confidence, or speed evidence is weak."
+  - "2026-05-14 implement: updated `apps/web/src/App.tsx` to surface `Est. remaining time` in the active navigation card, including an explicit unavailable state before route progress exists and helper copy that explains when ETA is based on average pace versus a live speed sample."
+  - "2026-05-14 implement: verified with focused ETA tests, `npm run verify`, and a supported local browser walkthrough on `make run-routing-app`, where the live session surfaced `Est. remaining time: Unavailable` plus honest fallback copy while desktop browser geolocation permission was unavailable."
 created_at: 2026-05-14T16:02:15+02:00
-updated_at: 2026-05-14T16:02:15+02:00
-closed_at: null
+updated_at: 2026-05-14T16:56:27+02:00
+closed_at: 2026-05-14T16:56:27+02:00

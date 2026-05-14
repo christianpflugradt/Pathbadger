@@ -8,7 +8,7 @@ Navigation is the second major product state after route planning.
 - track current GPS position
 - compute progress locally in the browser
 - show next instruction and distance to it
-- show completed km, remaining km, total km, current speed, average speed, and progress percent
+- show completed km, remaining km, total km, current speed, average speed, estimated remaining time when feasible, and progress percent
 - warn when the user is off route
 
 ## Energy constraints
@@ -25,6 +25,7 @@ The navigation runtime is now implemented for the supported local browser flow:
 - a routed preview can start navigation
 - live browser geolocation drives current-position updates
 - progress, next instruction, off-route warnings, and speed metrics stay local in the frontend
+- estimated remaining time now appears only when fresh route progress and speed evidence are strong enough to justify it, and stays explicitly unavailable when GPS or pace evidence is weak
 - map follow stays enabled by default, pauses after a manual pan, and can be explicitly recentered
 - navigation can optionally switch into a guarded heading-up mode, but it stays north-up by default and falls back honestly when heading data is weak or Battery saver is active
 - low-confidence or stale live GPS fixes now stay conservative, so off-route and progress cues become approximate until a tighter browser update arrives
@@ -42,4 +43,4 @@ The supported navigation flow is still browser-first rather than native:
 
 The MVP is still expected to be useful with the screen on and the app active.
 
-Current additive navigation work is now centered on ETA-style trip cues and broader platform experiments rather than on first-pass live orientation support.
+Current additive navigation work is now centered on broader platform experiments rather than on first-pass live orientation or ETA support.

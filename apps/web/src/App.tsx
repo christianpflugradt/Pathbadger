@@ -45,6 +45,7 @@ import {
   getNavigationTrackingStatusLabel,
   getNavigationTrackingStatusPillClassName,
 } from "./navigation-tracking-state";
+import { getNavigationEtaState } from "./navigation-eta-state";
 import {
   createNavigationSpeedBaseline,
   formatNavigationSpeedKmh,
@@ -378,6 +379,15 @@ export function App() {
         hasFreshPosition: navigationHasFreshPosition,
       })
     : null;
+  const navigationEtaState = getNavigationEtaState({
+    averageSpeedKmh: navigationSpeedMetrics?.averageSpeedKmh ?? null,
+    currentSpeedKmh: navigationSpeedMetrics?.currentSpeedKmh ?? null,
+    hasFreshPosition: navigationHasFreshPosition,
+    hasLowConfidencePosition: navigationHasLowConfidencePosition,
+    hasTrackedPosition: navigationHasTrackedPosition,
+    remainingDistanceMeters:
+      navigationSnapshot?.remainingDistanceMeters ?? null,
+  });
   const navigationTrackingStatusPillClassName =
     getNavigationTrackingStatusPillClassName({
       browserGeolocation,
@@ -1675,6 +1685,12 @@ export function App() {
                         </strong>
                       </div>
                       <div className="preview-stat">
+                        <span>Est. remaining time</span>
+                        <strong data-testid="navigation-eta-value">
+                          {navigationEtaState.estimateLabel}
+                        </strong>
+                      </div>
+                      <div className="preview-stat">
                         <span>Total</span>
                         <strong>
                           {formatDistanceKilometers(
@@ -1736,6 +1752,16 @@ export function App() {
                     {navigationSpeedHelperCopy ? (
                       <p className="helper-copy">{navigationSpeedHelperCopy}</p>
                     ) : null}
+                    <p
+                      className={`helper-copy ${
+                        navigationEtaState.isAvailable
+                          ? "helper-copy--active"
+                          : "helper-copy--warning"
+                      }`}
+                      data-testid="navigation-eta-copy"
+                    >
+                      {navigationEtaState.helperCopy}
+                    </p>
                     {navigationGpsConfidence.lowConfidenceCopy ? (
                       <p
                         className="helper-copy helper-copy--warning"
@@ -1794,6 +1820,12 @@ export function App() {
                         <span>Runtime mode</span>
                         <strong>{navigationRuntimeModeLabel}</strong>
                       </div>
+                      <div className="preview-stat">
+                        <span>Est. remaining time</span>
+                        <strong data-testid="navigation-eta-value">
+                          {navigationEtaState.estimateLabel}
+                        </strong>
+                      </div>
                     </div>
                     <ul className="handoff-list">
                       <li>
@@ -1828,6 +1860,12 @@ export function App() {
                       }`}
                     >
                       {navigationOrientationState.helperCopy}
+                    </p>
+                    <p
+                      className="helper-copy helper-copy--warning"
+                      data-testid="navigation-eta-copy"
+                    >
+                      {navigationEtaState.helperCopy}
                     </p>
                   </>
                 )}
