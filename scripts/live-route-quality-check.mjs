@@ -28,7 +28,7 @@ const previewResponse = await postRouteGenerate(previewRequest);
 const failureResponse = await postRouteGenerate(outOfRegionRequest);
 
 const checks = [
-  checkPreviewGeometryAndInstructions(previewResponse),
+  checkPreviewGeometryAndInstructionEndpoints(previewResponse),
   checkPreviewDistanceAndSurfaceHonesty(previewRequest, previewResponse),
   checkOutOfRegionFailure(failureResponse),
 ];
@@ -70,7 +70,7 @@ async function postRouteGenerate(request) {
   };
 }
 
-function checkPreviewGeometryAndInstructions(response) {
+function checkPreviewGeometryAndInstructionEndpoints(response) {
   const geometryCoordinates = response.body.geometry?.coordinates;
   const instructions = response.body.instructions;
   const firstInstructionCoordinate = instructions?.[0]?.coordinate ?? null;
@@ -91,8 +91,10 @@ function checkPreviewGeometryAndInstructions(response) {
     coordinatesEqual(lastInstructionCoordinate, lastGeometryCoordinate);
 
   return {
-    id: "preview_geometry_and_instructions",
+    id: "preview_geometry_and_instruction_endpoints",
     ok,
+    description:
+      "Verifies only the first and last instruction coordinates against the returned route geometry endpoints.",
     evidence: {
       firstGeometryCoordinate,
       firstInstructionCoordinate,

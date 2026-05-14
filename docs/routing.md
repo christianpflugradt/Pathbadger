@@ -28,7 +28,7 @@ The repository now implements a GraphHopper-backed routed-preview loop end to en
 
 ## Supported live route-quality evidence
 
-Use this repo-native flow when you need to prove that route quality still holds on live Schleswig-Holstein data:
+Use this repo-native flow when you need to capture supported live route-quality evidence on Schleswig-Holstein data:
 
 1. Run `npm run verify`.
 2. Run `make run-routing-app`.
@@ -40,6 +40,8 @@ Use this repo-native flow when you need to prove that route quality still holds 
 - a geometry-backed preview still returns instructions whose first and last instruction coordinates match the returned route geometry
 - the same preview reports a distance delta and surface percentages that stay internally honest, including warning codes when distance tolerance or unknown-surface coverage require them
 - an out-of-region Berlin request fails explicitly with `request_points_out_of_supported_region` instead of pretending that the Schleswig-Holstein-only product scope is supported
+
+The command does not yet validate intermediate instruction ordering or full cue-by-cue alignment along the route geometry, so treat it as endpoint-anchoring evidence rather than end-to-end instruction-alignment proof.
 
 ## Browser walkthrough
 
