@@ -21,6 +21,14 @@ import {
 } from "./browser-geolocation";
 import { webRuntimeConfig } from "./config";
 import { createNavigationSnapshot } from "./navigation-session";
+import {
+  getNavigationTrackingBannerClassName,
+  getNavigationTrackingBannerCopy,
+  getNavigationTrackingBannerTitle,
+  getNavigationTrackingPanelCopy,
+  getNavigationTrackingStatusLabel,
+  getNavigationTrackingStatusPillClassName,
+} from "./navigation-tracking-state";
 import { PlanningMap } from "./PlanningMap";
 import { requestRoutePreview } from "./route-preview-client";
 import {
@@ -1456,168 +1464,6 @@ function getCurrentPositionRouteBlockingMessage(
     case "ready":
     default:
       return "Route generation waits for the current browser location.";
-  }
-}
-
-function getNavigationTrackingPanelCopy(options: {
-  browserGeolocation: BrowserGeolocationState;
-  hasFreshPosition: boolean;
-  hasTrackedPosition: boolean;
-}) {
-  if (options.hasFreshPosition) {
-    return "This execution shell is now following the route from live browser geolocation while keeping progress, remaining distance, and off-route checks fully local in the frontend.";
-  }
-
-  if (options.hasTrackedPosition) {
-    return "This execution shell is holding the last known browser GPS fix while it waits for a fresh browser geolocation update.";
-  }
-
-  return "This navigation session is active, but it is waiting for a usable browser GPS fix before current-position metrics can begin.";
-}
-
-function getNavigationTrackingStatusLabel(options: {
-  browserGeolocation: BrowserGeolocationState;
-  hasFreshPosition: boolean;
-  hasTrackedPosition: boolean;
-}) {
-  if (options.hasFreshPosition) {
-    return "Live GPS feed";
-  }
-
-  if (options.hasTrackedPosition) {
-    return "Last GPS fix held";
-  }
-
-  switch (options.browserGeolocation.status) {
-    case "requesting":
-      return "Waiting for GPS";
-    case "denied":
-      return "Permission denied";
-    case "unsupported":
-      return "Geolocation unsupported";
-    case "unavailable":
-      return "GPS unavailable";
-    case "idle":
-    case "ready":
-    default:
-      return "GPS pending";
-  }
-}
-
-function getNavigationTrackingStatusPillClassName(options: {
-  browserGeolocation: BrowserGeolocationState;
-  hasFreshPosition: boolean;
-  hasTrackedPosition: boolean;
-}) {
-  if (options.hasFreshPosition) {
-    return "status-pill--active";
-  }
-
-  if (
-    options.hasTrackedPosition ||
-    options.browserGeolocation.status === "requesting"
-  ) {
-    return "status-pill--warning";
-  }
-
-  if (
-    options.browserGeolocation.status === "denied" ||
-    options.browserGeolocation.status === "unsupported" ||
-    options.browserGeolocation.status === "unavailable"
-  ) {
-    return "status-pill--error";
-  }
-
-  return "status-pill--warning";
-}
-
-function getNavigationTrackingBannerClassName(options: {
-  browserGeolocation: BrowserGeolocationState;
-  hasFreshPosition: boolean;
-  hasTrackedPosition: boolean;
-}) {
-  if (options.hasFreshPosition) {
-    return "";
-  }
-
-  if (
-    options.hasTrackedPosition ||
-    options.browserGeolocation.status === "requesting"
-  ) {
-    return " response-banner--pending";
-  }
-
-  if (
-    options.browserGeolocation.status === "denied" ||
-    options.browserGeolocation.status === "unsupported" ||
-    options.browserGeolocation.status === "unavailable"
-  ) {
-    return " response-banner--error";
-  }
-
-  return " response-banner--pending";
-}
-
-function getNavigationTrackingBannerTitle(options: {
-  browserGeolocation: BrowserGeolocationState;
-  hasFreshPosition: boolean;
-  hasTrackedPosition: boolean;
-}) {
-  if (options.hasFreshPosition) {
-    return "Live browser geolocation active";
-  }
-
-  if (options.hasTrackedPosition) {
-    return "Holding the last known GPS fix";
-  }
-
-  switch (options.browserGeolocation.status) {
-    case "denied":
-      return "Browser location permission denied";
-    case "unsupported":
-      return "Browser geolocation unavailable";
-    case "unavailable":
-      return "No usable GPS fix yet";
-    case "requesting":
-      return "Waiting for browser GPS";
-    case "idle":
-    case "ready":
-    default:
-      return "Preparing browser geolocation";
-  }
-}
-
-function getNavigationTrackingBannerCopy(options: {
-  browserGeolocation: BrowserGeolocationState;
-  hasFreshPosition: boolean;
-  hasTrackedPosition: boolean;
-}) {
-  if (options.hasFreshPosition) {
-    return "The current-position marker and navigation metrics are updating from the browser GPS feed without backend polling.";
-  }
-
-  if (options.hasTrackedPosition) {
-    return options.browserGeolocation.message
-      ? `Pathbadger is retaining the last real GPS fix while it waits for a fresh update. ${options.browserGeolocation.message}`
-      : "Pathbadger is retaining the last real GPS fix while it waits for a fresh update.";
-  }
-
-  switch (options.browserGeolocation.status) {
-    case "requesting":
-      return "Navigation is waiting for browser permission and a usable GPS fix before it can render a current-position marker.";
-    case "denied":
-      return "Navigation is paused because browser location permission is denied. Re-enable permission or stop the session.";
-    case "unsupported":
-      return "Navigation is blocked because this browser does not expose geolocation.";
-    case "unavailable":
-      return (
-        options.browserGeolocation.message ??
-        "Navigation is waiting for a usable browser GPS fix."
-      );
-    case "idle":
-    case "ready":
-    default:
-      return "Navigation is preparing to request browser geolocation.";
   }
 }
 

@@ -1,5 +1,5 @@
 id: EPIC-0011
-status: open
+status: done
 phase: map-ui
 title: Restore real self-hosted map value in the supported app flow
 objective: replace the current hard-failing missing-map state with real self-hosted cartography and a browser-verified planning flow so the app delivers visible route-planning value before more adjacent navigation polish
@@ -11,5 +11,5 @@ items:
   - ITEM-0025
   - ITEM-0026
 created_at: 2026-05-13T22:01:03+02:00
-updated_at: 2026-05-13T22:01:03+02:00
-closed_at: null
+updated_at: 2026-05-14T09:05:23+02:00
+closed_at: 2026-05-14T09:05:23+02:00

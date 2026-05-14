@@ -145,4 +145,59 @@ describe("subscribeToBrowserGeolocation", () => {
       status: "denied",
     });
   });
+
+  it("retains the last real GPS fix when a later update becomes unavailable", () => {
+    let successCallback: WatchSuccessCallback | null = null;
+    let errorCallback: WatchErrorCallback | null = null;
+    const geolocation: BrowserGeolocationApi = {
+      clearWatch: vi.fn(),
+      watchPosition: vi.fn((success, error) => {
+        successCallback = success;
+        errorCallback = error ?? null;
+        return 13;
+      }),
+    };
+    const updates: BrowserGeolocationState[] = [];
+
+    subscribeToBrowserGeolocation({
+      geolocation,
+      onChange: (state) => updates.push(state),
+    });
+
+    if (!successCallback || !errorCallback) {
+      throw new Error("Expected geolocation watchPosition to register.");
+    }
+
+    (successCallback as WatchSuccessCallback)({
+      coords: {
+        accuracy: 5.4,
+        heading: null,
+        latitude: 54.331,
+        longitude: 10.125,
+        speed: null,
+      } as GeolocationCoordinates,
+      timestamp: 1_762_744_900_000,
+    } as GeolocationPosition);
+
+    (errorCallback as WatchErrorCallback)({
+      code: 2,
+      message: "Signal lost",
+    } as GeolocationPositionError);
+
+    expect(updates[2]).toMatchObject({
+      errorCode: "position_unavailable",
+      message: "Signal lost",
+      position: {
+        accuracyMeters: 5.4,
+        coordinate: {
+          lat: 54.331,
+          lon: 10.125,
+        },
+        headingDegrees: null,
+        speedMetersPerSecond: null,
+        timestampMs: 1_762_744_900_000,
+      },
+      status: "unavailable",
+    });
+  });
 });
