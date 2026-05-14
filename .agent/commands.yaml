@@ -15,6 +15,7 @@ commands:
     applies_to:
       - refine
       - implement
+      - fix
       - review
     commit_policy:
       commit_required_when_files_change: true
@@ -59,9 +60,8 @@ commands:
       - create_or_refresh_exit_items_for_temporary_placeholders
       - keep_epic_and_phase_incomplete_while_placeholder_exit_items_remain_open
   implement:
-    purpose: implement_exactly_one_actionable_item
+    purpose: implement_exactly_one_actionable_backlog_item
     selection_order:
-      - critical_or_high_open_findings
       - p0_items_in_current_epic
       - p1_items_in_current_epic
       - smallest_unblocking_chore
@@ -76,6 +76,26 @@ commands:
       - update_item_status
       - stage_and_commit_before_report_unless_user_explicitly_defers_commit
       - push_when_remote_available
+  fix:
+    purpose: resolve_exactly_one_open_finding
+    selection_order:
+      - critical_open_findings
+      - high_open_findings
+      - medium_open_findings
+      - low_open_findings
+    must:
+      - make_smallest_viable_correction_for_one_finding
+      - update_tests
+      - run_quality_checks
+      - do_not_mark_core_map_fix_done_without_browser_evidence_from_supported_local_boot
+      - do_not_close_finding_without_verification
+      - update_finding_status
+      - stage_and_commit_before_report_unless_user_explicitly_defers_commit
+      - push_when_remote_available
+    must_not:
+      - silently_fix_multiple_unrelated_findings
+      - rewrite_roadmap
+      - close_finding_without_evidence
   review:
     purpose: workspace_audit_and_findings_only
     scope: full_workspace_only

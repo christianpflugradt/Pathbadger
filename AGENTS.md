@@ -13,14 +13,19 @@ source ~/.zprofile >/dev/null 2>&1; source ~/.zshrc >/dev/null 2>&1; rtk <comman
 
 Do not report missing `npm`, `node`, or `rtk` until that bootstrap step has been attempted in the current shell.
 
-This repository also defines four primary agent commands that must be interpreted as repo tasks, not generic natural-language requests:
+This repository also defines five primary agent commands that must be interpreted as repo tasks, not generic natural-language requests:
 
 - `show`
 - `refine`
 - `implement`
+- `fix`
 - `review`
 
 When a repo task changes files, the agent must stage and create a git commit before finishing unless the user explicitly says not to commit yet. Treat commits as part of completing the task, not as an optional follow-up reminder.
+
+When the user says `implement`, or `implement` followed by extra tokens, the agent must implement exactly one actionable backlog item.
+When the user says `fix`, or `fix` followed by extra tokens, the agent must resolve exactly one open finding from `.agent/findings/*`.
+Any extra tokens after `implement` or `fix` are optional focus hints only and must never widen the task into multiple unrelated changes.
 
 When the user says `review`, or `review` followed by extra tokens, the agent must still perform a whole-workspace audit.
 Any extra tokens after `review` are optional focus hints only and must never narrow the audit to a commit, diff, or file subset.

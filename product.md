@@ -20,7 +20,7 @@ Success means:
 - each iteration leaves the repository healthier than before
 - the architecture remains simple and consistent
 - route generation quality improves over time without breaking navigation
-- the user can usually give only one of four commands: `show`, `refine`, `implement`, or `review`
+- the user can usually give only one of five commands: `show`, `refine`, `implement`, `fix`, or `review`
 - the agent does not require frequent clarification because the project rules are explicit
 
 ### 0.2 Non-negotiable priorities
@@ -942,18 +942,19 @@ For product behavior, prefer visible honest feedback over silent failure:
 
 ## 11. Agent operating model
 
-The agent must operate the repository through four primary commands:
+The agent must operate the repository through five primary commands:
 
 ```text
 show
 refine
 implement
+fix
 review
 ```
 
 The agent may also perform initial repository setup from this document. During initial setup, it must not commit.
 
-After the repository is connected to a remote Git repository by the user, every subsequent `refine`, `implement`, and `review` command must end with a successful commit and push unless explicitly instructed otherwise or technically impossible.
+After the repository is connected to a remote Git repository by the user, every subsequent `refine`, `implement`, `fix`, and `review` command must end with a successful commit and push unless explicitly instructed otherwise or technically impossible.
 The read-only `show` command must not modify files, commit, or push.
 
 ### 11.1 Initial setup command
@@ -1006,11 +1007,11 @@ Purpose: update planning state only.
 
 ### 11.3 `implement`
 
-Purpose: implement exactly one actionable item.
+Purpose: implement exactly one actionable backlog item.
 
 `implement` must:
 
-1. Select exactly one open backlog item or finding item.
+1. Select exactly one open backlog item.
 2. Prefer highest priority and unblocked status.
 3. Read acceptance criteria.
 4. Modify code/config/tests/docs needed for that one item.
@@ -1030,6 +1031,30 @@ Purpose: implement exactly one actionable item.
 - commit broken code
 
 If hooks or tests fail, the agent must fix the issue and retry until the quality gate passes or a genuine blocker is documented.
+
+### 11.3A `fix`
+
+Purpose: resolve exactly one open finding.
+
+`fix` must:
+
+1. Select exactly one open finding from `.agent/findings/`.
+2. Prefer the highest-severity unblocked finding.
+3. Read the finding evidence, recommendation, acceptance criteria, and verification steps.
+4. Make the smallest viable change that resolves that one finding.
+5. Add or update tests.
+6. Run quality checks.
+7. Start Docker Compose if the finding requires integration verification.
+8. Stop Docker Compose after verification.
+9. Update the finding status and closure notes.
+10. Commit and push.
+
+`fix` must not:
+
+- silently resolve multiple unrelated findings
+- rewrite the roadmap
+- close a finding without verification evidence
+- commit broken code
 
 ### 11.4 `review`
 
@@ -1087,13 +1112,22 @@ If a phase fails, the agent must not pretend success. It must either fix the fai
 
 When `implement` is invoked, choose exactly one item using this order:
 
-1. critical or high severity open findings that block correctness/security/builds;
-2. P0 backlog items in current epic;
-3. P1 backlog items in current epic;
-4. blocked-item unblocking chores if they are the smallest next step;
-5. ask for `refine` if no actionable item exists.
+1. P0 backlog items in current epic;
+2. P1 backlog items in current epic;
+3. blocked-item unblocking chores if they are the smallest next step;
+4. ask for `refine` if no actionable backlog item exists.
 
-Tie-breakers:
+### 11.6A `fix` finding selection algorithm
+
+When `fix` is invoked, choose exactly one finding using this order:
+
+1. critical severity open findings;
+2. high severity open findings;
+3. medium severity open findings;
+4. low severity open findings;
+5. ask for `review` or `refine` if no open finding exists.
+
+Shared tie-breakers for `implement` and `fix`:
 
 - choose the smallest item that moves the product forward;
 - prefer foundation and verification work before feature work;
@@ -2271,7 +2305,7 @@ When this document is given to the coding agent in an empty directory, the user 
 Initialize the Trail Router project from this briefing.
 Create the repository structure, agent workspace, YAML specifications, initial roadmap, first epic, initial backlog, tooling skeleton, Docker Compose skeleton, and documentation.
 Do not commit during this initial setup.
-After setup, report what was created and what the user should do before running show, refine, implement, or review.
+After setup, report what was created and what the user should do before running show, refine, implement, fix, or review.
 ```
 
 After the user connects a Git remote, the recurring commands are:
@@ -2280,6 +2314,7 @@ After the user connects a Git remote, the recurring commands are:
 show
 refine
 implement
+fix
 review
 ```
 
@@ -2316,6 +2351,7 @@ After initial setup, the user should be able to use simple commands:
 show
 refine
 implement
+fix
 review
 ```
 
@@ -2325,13 +2361,13 @@ Optional user command variants may be supported:
 
 ```text
 implement next
-implement highest-priority finding
+fix highest-priority finding
 review security
 review architecture
 refine roadmap
 ```
 
-But the plain three commands must remain sufficient.
+But the plain commands must remain sufficient.
 
 ## 24. Expected first several iterations
 
