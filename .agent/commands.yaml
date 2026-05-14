@@ -122,12 +122,15 @@ commands:
       - .agent/roadmap.yaml
       - .agent/epics/*
       - .agent/backlog/*
+      - .agent/findings/*
     counts:
       open_items: backlog_items_with_status_other_than_done
       incomplete_epics: epics_with_status_other_than_done
+      unfixed_findings: findings_with_status_other_than_done_or_accepted_risk
     reports:
       - open_item_count
       - incomplete_epic_count
+      - unfixed_finding_count
       - roadmap_overall_progress_percent_from_.agent/roadmap.yaml
     writes: []
     code_changes_allowed: false

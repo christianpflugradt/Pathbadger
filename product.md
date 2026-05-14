@@ -1082,12 +1082,13 @@ Purpose: report a brief workspace summary without changing repository state.
 
 `show` must:
 
-1. Read `.agent/roadmap.yaml`, `.agent/epics/*`, and `.agent/backlog/*`.
+1. Read `.agent/roadmap.yaml`, `.agent/epics/*`, `.agent/backlog/*`, and `.agent/findings/*`.
 2. Count open items as backlog items whose status is not `done`.
 3. Count incomplete epics as epics whose status is not `done`.
-4. Read overall roadmap progress from `.agent/roadmap.yaml` `overall_progress_percent`, not from secondary metrics files.
-5. Reply briefly with the open item count, incomplete epic count, and overall roadmap progress percent.
-6. Do not modify files, commit, or push.
+4. Count unfixed findings as findings whose status is neither `done` nor `accepted_risk`.
+5. Read overall roadmap progress from `.agent/roadmap.yaml` `overall_progress_percent`, not from secondary metrics files.
+6. Reply briefly with the open item count, incomplete epic count, unfixed finding count, and overall roadmap progress percent.
+7. Do not modify files, commit, or push.
 
 ### 11.5 Command transaction model
 

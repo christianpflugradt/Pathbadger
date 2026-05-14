@@ -35,6 +35,7 @@ When the user says exactly `show`, do not ask what they want to inspect. Read th
 
 - open backlog item count from `.agent/backlog/*` where `status != done`
 - incomplete epic count from `.agent/epics/*` where `status != done`
+- unfixed finding count from `.agent/findings/*` where `status` is neither `done` nor `accepted_risk`
 - overall roadmap progress percent from `.agent/roadmap.yaml` `roadmap.overall_progress_percent`
 
 `show` is read-only. It must not modify files, commit, or push.
