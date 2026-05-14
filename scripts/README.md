@@ -1,6 +1,7 @@
 # Scripts
 
 - `verify.sh`: lint, typecheck, test, and format checks
+- `show-workspace-summary.sh`: deterministic workspace summary for `show` and `make show`
 - `test-compose.sh`: docker compose validation plus runtime smoke for the `api`, `web`, and `tileserver` services
 - `browser-smoke.mjs`: fixture-backed Playwright smoke plus live-app map contract checks
 - `dev-up.sh`: start the compose stack, with optional `--with-routing` GraphHopper boot

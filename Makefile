@@ -2,8 +2,11 @@ SHELL := /bin/bash
 
 APP_URL ?= http://localhost:5173
 
-.PHONY: run-app stopp-app rebuild-app
+.PHONY: show run-app stopp-app rebuild-app
 .PHONY: run-routing-app rebuild-routing-app
+
+show:
+	@./scripts/show-workspace-summary.sh
 
 run-app:
 	@./scripts/dev-up.sh

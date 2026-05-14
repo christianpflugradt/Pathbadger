@@ -40,5 +40,5 @@ When the user says exactly `show`, do not ask what they want to inspect. Read th
 
 `show` is read-only. It must not modify files, commit, or push.
 
-Use `scripts/show-workspace-summary.sh` after the shell bootstrap step when you want the repo-native summary output.
+Use `make show` after the shell bootstrap step when you want the deterministic repo-native summary output. `make show` delegates to `scripts/show-workspace-summary.sh`.
 </INSTRUCTIONS>
