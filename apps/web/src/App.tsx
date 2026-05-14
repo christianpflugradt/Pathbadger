@@ -27,6 +27,10 @@ import {
   getNavigationFollowModeStatusPillClassName,
 } from "./navigation-follow-state";
 import type { NavigationFollowMode } from "./navigation-follow-state";
+import {
+  getNavigationGpsConfidenceState,
+  getNavigationGpsGuardrailPreviewCopy,
+} from "./navigation-gps-confidence";
 import { createNavigationSnapshot } from "./navigation-session";
 import {
   getNavigationTrackingBannerClassName,
@@ -309,8 +313,16 @@ export function App() {
   const navigationTrackedPosition = isNavigationActive
     ? browserGeolocation.position
     : null;
+  const navigationGpsConfidence = getNavigationGpsConfidenceState({
+    browserGeolocation,
+    nowMs: Date.now(),
+  });
   const navigationHasFreshPosition =
-    browserGeolocation.status === "ready" && navigationTrackedPosition !== null;
+    navigationGpsConfidence.hasHighConfidencePosition &&
+    navigationTrackedPosition !== null;
+  const navigationHasLowConfidencePosition =
+    navigationGpsConfidence.hasLowConfidencePosition &&
+    navigationTrackedPosition !== null;
   const navigationSnapshot =
     navigationSession && navigationTrackedPosition
       ? createNavigationSnapshot(navigationSession.routeGeometry, {
@@ -341,28 +353,38 @@ export function App() {
     getNavigationTrackingStatusPillClassName({
       browserGeolocation,
       hasFreshPosition: navigationHasFreshPosition,
+      hasLowConfidencePosition: navigationHasLowConfidencePosition,
       hasTrackedPosition: navigationHasTrackedPosition,
+      lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
     });
   const navigationTrackingStatusLabel = getNavigationTrackingStatusLabel({
     browserGeolocation,
     hasFreshPosition: navigationHasFreshPosition,
+    hasLowConfidencePosition: navigationHasLowConfidencePosition,
     hasTrackedPosition: navigationHasTrackedPosition,
+    lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
   });
   const navigationTrackingBannerClassName =
     getNavigationTrackingBannerClassName({
       browserGeolocation,
       hasFreshPosition: navigationHasFreshPosition,
+      hasLowConfidencePosition: navigationHasLowConfidencePosition,
       hasTrackedPosition: navigationHasTrackedPosition,
+      lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
     });
   const navigationTrackingBannerTitle = getNavigationTrackingBannerTitle({
     browserGeolocation,
     hasFreshPosition: navigationHasFreshPosition,
+    hasLowConfidencePosition: navigationHasLowConfidencePosition,
     hasTrackedPosition: navigationHasTrackedPosition,
+    lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
   });
   const navigationTrackingBannerCopy = getNavigationTrackingBannerCopy({
     browserGeolocation,
     hasFreshPosition: navigationHasFreshPosition,
+    hasLowConfidencePosition: navigationHasLowConfidencePosition,
     hasTrackedPosition: navigationHasTrackedPosition,
+    lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
   });
   const isNavigationFollowingPosition =
     navigationFollowMode === "follow_position";
@@ -372,6 +394,7 @@ export function App() {
     getNavigationFollowModeStatusPillClassName(navigationFollowMode);
   const navigationFollowHelperCopy = getNavigationFollowModeHelperCopy({
     hasFreshPosition: navigationHasFreshPosition,
+    hasLowConfidencePosition: navigationHasLowConfidencePosition,
     hasTrackedPosition: navigationHasTrackedPosition,
     mode: navigationFollowMode,
   });
@@ -1342,13 +1365,23 @@ export function App() {
                 ))}
               </ul>
             </div>
+            <p
+              className="helper-copy helper-copy--warning"
+              data-testid="navigation-gps-guardrail-summary"
+            >
+              {getNavigationGpsGuardrailPreviewCopy()}
+            </p>
             {isNavigationActive && navigationSession ? (
               <>
                 <p className="panel-copy">
                   {getNavigationTrackingPanelCopy({
                     browserGeolocation,
                     hasFreshPosition: navigationHasFreshPosition,
+                    hasLowConfidencePosition:
+                      navigationHasLowConfidencePosition,
                     hasTrackedPosition: navigationHasTrackedPosition,
+                    lowConfidenceCopy:
+                      navigationGpsConfidence.lowConfidenceCopy,
                   })}
                 </p>
                 <div className="status-row">
@@ -1389,7 +1422,20 @@ export function App() {
                 </div>
                 {navigationSnapshot ? (
                   <>
-                    {navigationSnapshot.isOffRoute ? (
+                    {navigationHasLowConfidencePosition ? (
+                      <div className="response-banner response-banner--pending">
+                        <strong>Approximate route state</strong>
+                        <span>
+                          {navigationGpsConfidence.lowConfidenceCopy} Current
+                          route deviation is about{" "}
+                          {formatWholeMeters(
+                            navigationSnapshot.offRouteDistanceMeters,
+                          )}
+                          , so Pathbadger is not escalating a hard off-route
+                          warning until a tighter browser fix arrives.
+                        </span>
+                      </div>
+                    ) : navigationSnapshot.isOffRoute ? (
                       <div className="response-banner response-banner--error">
                         <strong>Off-route warning</strong>
                         <span>
@@ -1451,9 +1497,11 @@ export function App() {
                       <div className="preview-stat">
                         <span>Position source</span>
                         <strong>
-                          {navigationHasFreshPosition
-                            ? "Live browser GPS"
-                            : "Last known GPS fix"}
+                          {navigationHasLowConfidencePosition
+                            ? "Low-confidence live GPS"
+                            : navigationHasFreshPosition
+                              ? "Live browser GPS"
+                              : "Last known GPS fix"}
                         </strong>
                       </div>
                       <div className="preview-stat">
@@ -1485,7 +1533,11 @@ export function App() {
                         </strong>
                       </div>
                       <div className="preview-stat">
-                        <span>Progress</span>
+                        <span>
+                          {navigationHasLowConfidencePosition
+                            ? "Approx. progress"
+                            : "Progress"}
+                        </span>
                         <strong>{navigationSnapshot.progressPercent}%</strong>
                       </div>
                       <div className="preview-stat">
@@ -1493,7 +1545,11 @@ export function App() {
                         <strong>{navigationSession.routeId}</strong>
                       </div>
                       <div className="preview-stat">
-                        <span>Route deviation</span>
+                        <span>
+                          {navigationHasLowConfidencePosition
+                            ? "Approx. route deviation"
+                            : "Route deviation"}
+                        </span>
                         <strong>
                           {formatWholeMeters(
                             navigationSnapshot.offRouteDistanceMeters,
@@ -1529,6 +1585,14 @@ export function App() {
                     </div>
                     {navigationSpeedHelperCopy ? (
                       <p className="helper-copy">{navigationSpeedHelperCopy}</p>
+                    ) : null}
+                    {navigationGpsConfidence.lowConfidenceCopy ? (
+                      <p
+                        className="helper-copy helper-copy--warning"
+                        data-testid="navigation-gps-confidence-copy"
+                      >
+                        {navigationGpsConfidence.lowConfidenceCopy}
+                      </p>
                     ) : null}
                     <p
                       className={`helper-copy ${
@@ -1668,6 +1732,9 @@ export function App() {
                     ? "Browser geolocation is already available, so starting navigation will follow the live GPS marker immediately."
                     : "Starting navigation now will request browser geolocation for live position updates. If the browser cannot provide a usable fix, the session will pause with an explicit GPS error instead of inventing a fallback marker."}
                 </p>
+                <p className="helper-copy helper-copy--warning">
+                  {getNavigationGpsGuardrailPreviewCopy()}
+                </p>
                 <button
                   type="button"
                   className="button button--primary"
@@ -1702,6 +1769,9 @@ export function App() {
                   {isRoutePreviewStale
                     ? "The latest routed preview is stale. Generate again to refresh the route before starting navigation."
                     : "No navigable routed preview is available yet."}
+                </p>
+                <p className="helper-copy helper-copy--warning">
+                  {getNavigationGpsGuardrailPreviewCopy()}
                 </p>
                 <button type="button" className="button button--ghost" disabled>
                   Start navigation

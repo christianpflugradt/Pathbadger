@@ -26,6 +26,7 @@ The navigation runtime is now implemented for the supported local browser flow:
 - live browser geolocation drives current-position updates
 - progress, next instruction, off-route warnings, and speed metrics stay local in the frontend
 - map follow stays enabled by default, pauses after a manual pan, and can be explicitly recentered
+- low-confidence or stale live GPS fixes now stay conservative, so off-route and progress cues become approximate until a tighter browser update arrives
 
 ## Browser and PWA caveats
 

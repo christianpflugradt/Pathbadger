@@ -38,6 +38,7 @@ describe("getNavigationFollowModeHelperCopy", () => {
     expect(
       getNavigationFollowModeHelperCopy({
         hasFreshPosition: true,
+        hasLowConfidencePosition: false,
         hasTrackedPosition: true,
         mode: "manual_pan",
       }),
@@ -48,6 +49,7 @@ describe("getNavigationFollowModeHelperCopy", () => {
     expect(
       getNavigationFollowModeHelperCopy({
         hasFreshPosition: true,
+        hasLowConfidencePosition: false,
         hasTrackedPosition: true,
         mode: "follow_position",
       }),
@@ -58,6 +60,7 @@ describe("getNavigationFollowModeHelperCopy", () => {
     expect(
       getNavigationFollowModeHelperCopy({
         hasFreshPosition: false,
+        hasLowConfidencePosition: false,
         hasTrackedPosition: false,
         mode: "follow_position",
       }),
@@ -68,10 +71,22 @@ describe("getNavigationFollowModeHelperCopy", () => {
     expect(
       getNavigationFollowModeHelperCopy({
         hasFreshPosition: false,
+        hasLowConfidencePosition: false,
         hasTrackedPosition: true,
         mode: "follow_position",
       }),
     ).toContain("last known GPS fix");
+  });
+
+  it("describes approximate follow guidance when the live fix is low confidence", () => {
+    expect(
+      getNavigationFollowModeHelperCopy({
+        hasFreshPosition: false,
+        hasLowConfidencePosition: true,
+        hasTrackedPosition: true,
+        mode: "follow_position",
+      }),
+    ).toContain("low-confidence live GPS fix");
   });
 });
 

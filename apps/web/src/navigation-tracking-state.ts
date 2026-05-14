@@ -3,7 +3,9 @@ import type { BrowserGeolocationState } from "./browser-geolocation";
 type NavigationTrackingStateOptions = {
   browserGeolocation: BrowserGeolocationState;
   hasFreshPosition: boolean;
+  hasLowConfidencePosition: boolean;
   hasTrackedPosition: boolean;
+  lowConfidenceCopy?: string | null;
 };
 
 export function getNavigationTrackingPanelCopy(
@@ -11,6 +13,10 @@ export function getNavigationTrackingPanelCopy(
 ) {
   if (options.hasFreshPosition) {
     return "This execution shell is now following the route from live browser geolocation while keeping progress, remaining distance, and off-route checks fully local in the frontend.";
+  }
+
+  if (options.hasLowConfidencePosition) {
+    return "This execution shell is following the route from live browser geolocation, but the current fix is low confidence, so Pathbadger is keeping progress and off-route cues conservative until a tighter browser update arrives.";
   }
 
   if (options.hasTrackedPosition) {
@@ -37,6 +43,10 @@ export function getNavigationTrackingStatusLabel(
 ) {
   if (options.hasFreshPosition) {
     return "Live GPS feed";
+  }
+
+  if (options.hasLowConfidencePosition) {
+    return "Low-confidence GPS";
   }
 
   if (options.hasTrackedPosition) {
@@ -78,6 +88,10 @@ export function getNavigationTrackingStatusPillClassName(
     return "status-pill--active";
   }
 
+  if (options.hasLowConfidencePosition) {
+    return "status-pill--warning";
+  }
+
   if (
     options.hasTrackedPosition &&
     hasBlockingBrowserGeolocationStatus(options.browserGeolocation.status)
@@ -106,6 +120,10 @@ export function getNavigationTrackingBannerClassName(
     return "";
   }
 
+  if (options.hasLowConfidencePosition) {
+    return " response-banner--pending";
+  }
+
   if (
     options.hasTrackedPosition &&
     hasBlockingBrowserGeolocationStatus(options.browserGeolocation.status)
@@ -132,6 +150,10 @@ export function getNavigationTrackingBannerTitle(
 ) {
   if (options.hasFreshPosition) {
     return "Live browser geolocation active";
+  }
+
+  if (options.hasLowConfidencePosition) {
+    return "Low-confidence GPS fix";
   }
 
   if (options.hasTrackedPosition) {
@@ -171,6 +193,13 @@ export function getNavigationTrackingBannerCopy(
 ) {
   if (options.hasFreshPosition) {
     return "The current-position marker and navigation metrics are updating from the browser GPS feed without backend polling.";
+  }
+
+  if (options.hasLowConfidencePosition) {
+    return (
+      options.lowConfidenceCopy ??
+      "Pathbadger is using the live browser GPS fix cautiously because it is too noisy for precise progress or off-route reactions."
+    );
   }
 
   if (options.hasTrackedPosition) {

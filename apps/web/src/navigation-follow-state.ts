@@ -14,6 +14,7 @@ export function getNavigationFollowModeStatusPillClassName(
 
 export function getNavigationFollowModeHelperCopy(options: {
   hasFreshPosition: boolean;
+  hasLowConfidencePosition: boolean;
   hasTrackedPosition: boolean;
   mode: NavigationFollowMode;
 }) {
@@ -23,6 +24,10 @@ export function getNavigationFollowModeHelperCopy(options: {
 
   if (!options.hasTrackedPosition) {
     return "Follow-position is armed. The map will recenter itself once browser geolocation produces a usable current position.";
+  }
+
+  if (options.hasLowConfidencePosition) {
+    return "The map is following a low-confidence live GPS fix. Pathbadger is keeping progress and off-route cues approximate until the browser reports a tighter update.";
   }
 
   if (options.hasFreshPosition) {

@@ -19,6 +19,7 @@ describe("navigation tracking state", () => {
         status: "ready" as const,
       },
       hasFreshPosition: true,
+      hasLowConfidencePosition: false,
       hasTrackedPosition: true,
     };
 
@@ -53,6 +54,7 @@ describe("navigation tracking state", () => {
         status: "denied" as const,
       },
       hasFreshPosition: false,
+      hasLowConfidencePosition: false,
       hasTrackedPosition: true,
     };
 
@@ -92,6 +94,7 @@ describe("navigation tracking state", () => {
         status: "requesting" as const,
       },
       hasFreshPosition: false,
+      hasLowConfidencePosition: false,
       hasTrackedPosition: true,
     };
 
@@ -104,6 +107,47 @@ describe("navigation tracking state", () => {
     );
     expect(getNavigationTrackingBannerTitle(options)).toBe(
       "Holding the last known GPS fix",
+    );
+  });
+
+  it("surfaces an explicit low-confidence state when a live fix is too noisy for precise guidance", () => {
+    const options = {
+      browserGeolocation: {
+        errorCode: null,
+        message: "Using the latest browser GPS fix.",
+        position: {
+          accuracyMeters: 68,
+          coordinate: { lat: 54.33, lon: 10.12 },
+          headingDegrees: null,
+          speedMetersPerSecond: null,
+          timestampMs: 1_762_744_900_000,
+        },
+        status: "ready" as const,
+      },
+      hasFreshPosition: false,
+      hasLowConfidencePosition: true,
+      hasTrackedPosition: true,
+      lowConfidenceCopy:
+        "This live browser GPS fix is being treated conservatively because reported accuracy is +/-68 m. Progress and off-route cues stay approximate until a tighter update arrives.",
+    };
+
+    expect(getNavigationTrackingPanelCopy(options)).toContain(
+      "current fix is low confidence",
+    );
+    expect(getNavigationTrackingStatusLabel(options)).toBe(
+      "Low-confidence GPS",
+    );
+    expect(getNavigationTrackingStatusPillClassName(options)).toBe(
+      "status-pill--warning",
+    );
+    expect(getNavigationTrackingBannerClassName(options)).toBe(
+      " response-banner--pending",
+    );
+    expect(getNavigationTrackingBannerTitle(options)).toBe(
+      "Low-confidence GPS fix",
+    );
+    expect(getNavigationTrackingBannerCopy(options)).toContain(
+      "reported accuracy is +/-68 m",
     );
   });
 });

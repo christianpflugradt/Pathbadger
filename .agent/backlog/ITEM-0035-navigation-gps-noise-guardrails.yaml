@@ -1,7 +1,7 @@
 id: ITEM-0035
 type: feature
 priority: P1
-status: open
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0014
@@ -17,6 +17,10 @@ verification:
 implementation_notes:
   - "2026-05-14 refine: `apps/web/src/browser-geolocation.ts` already normalizes `accuracyMeters`, but the current navigation tracking state and execution UI do not yet use that field to distinguish trustworthy fixes from noisy ones."
   - "2026-05-14 refine: `docs/product.md` section 20B.2 explicitly calls for using accuracy data to avoid overreacting to noisy GPS, making this the first hardening item with direct product backing and a narrow write scope in the web runtime."
+  - "2026-05-14 implement: added `apps/web/src/navigation-gps-confidence.ts` plus deterministic unit coverage so the web runtime can classify live fixes by accuracy and age instead of treating every `ready` update as equally precise."
+  - "2026-05-14 implement: updated `apps/web/src/navigation-tracking-state.ts`, `navigation-follow-state.ts`, and `App.tsx` so low-confidence ready fixes surface explicit conservative copy, downgrade progress and route-deviation cues to approximate guidance, and stop escalating a hard off-route warning until a tighter update arrives."
+  - "2026-05-14 implement: updated `docs/navigation.md` so the supported navigation flow now documents conservative handling for noisy or stale live GPS fixes."
+  - "2026-05-14 implement: verified the item with `npm run verify` and the supported `make run-app` browser flow, confirming the live app renders the new GPS guardrail summary copy in the navigation card."
 created_at: 2026-05-14T14:46:58+02:00
-updated_at: 2026-05-14T14:46:58+02:00
-closed_at: null
+updated_at: 2026-05-14T15:37:37+02:00
+closed_at: 2026-05-14T15:37:37+02:00
