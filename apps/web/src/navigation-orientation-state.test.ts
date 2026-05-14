@@ -45,6 +45,50 @@ describe("navigation orientation state", () => {
     });
   });
 
+  it("describes north-up behavior in the helper summary when north-up is selected", () => {
+    expect(
+      getNavigationOrientationState({
+        followMode: "follow_position",
+        hasFreshPosition: false,
+        hasLowConfidencePosition: false,
+        hasTrackedPosition: false,
+        isNavigationActive: false,
+        mode: "north_up",
+        position: null,
+        runtimeMode: "normal",
+      }).helperCopy,
+    ).toBe(
+      "North-up is selected. Once navigation starts, Pathbadger will keep the map aligned to north instead of rotating around browser heading data.",
+    );
+  });
+
+  it("keeps the helper summary north-up even when live heading data exists", () => {
+    const helperCopy = getNavigationOrientationState({
+      followMode: "follow_position",
+      hasFreshPosition: true,
+      hasLowConfidencePosition: false,
+      hasTrackedPosition: true,
+      isNavigationActive: true,
+      mode: "north_up",
+      position: {
+        accuracyMeters: 6,
+        coordinate: {
+          lat: 53.9167,
+          lon: 9.8833,
+        },
+        headingDegrees: 91,
+        speedMetersPerSecond: MIN_HEADING_SPEED_MPS + 1,
+        timestampMs: 1_762_700_000_000,
+      },
+      runtimeMode: "normal",
+    }).helperCopy;
+
+    expect(helperCopy).toBe(
+      "North-up is active. Pathbadger is keeping the map aligned to north instead of rotating around browser heading data.",
+    );
+    expect(helperCopy).not.toContain("Heading-up is armed");
+  });
+
   it("activates heading-up when heading data is fresh and trustworthy", () => {
     expect(
       getNavigationOrientationState({
@@ -73,6 +117,23 @@ describe("navigation orientation state", () => {
       statusLabel: "Heading up 91° E",
       statusPillClassName: "status-pill--active",
     });
+  });
+
+  it("describes heading-up as armed only when heading-up is the selected mode", () => {
+    expect(
+      getNavigationOrientationState({
+        followMode: "follow_position",
+        hasFreshPosition: false,
+        hasLowConfidencePosition: false,
+        hasTrackedPosition: false,
+        isNavigationActive: false,
+        mode: "heading_up",
+        position: null,
+        runtimeMode: "normal",
+      }).helperCopy,
+    ).toBe(
+      "Heading-up is armed. Once navigation starts, Pathbadger will rotate the map only after the browser reports a fresh current position and heading.",
+    );
   });
 
   it("falls back honestly when battery saver is active", () => {

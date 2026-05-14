@@ -68,6 +68,7 @@ export function getNavigationOrientationState(options: {
       isBatterySaver,
       isHeadingUpActive,
       isNavigationActive: options.isNavigationActive,
+      mode: options.mode,
       normalizedHeadingDegrees,
       speedMetersPerSecond,
     }),
@@ -97,9 +98,18 @@ function getNavigationOrientationHelperCopy(options: {
   isBatterySaver: boolean;
   isHeadingUpActive: boolean;
   isNavigationActive: boolean;
+  mode: NavigationOrientationMode;
   normalizedHeadingDegrees: number | null;
   speedMetersPerSecond: number | null;
 }) {
+  if (options.mode === "north_up") {
+    if (options.isNavigationActive) {
+      return "North-up is active. Pathbadger is keeping the map aligned to north instead of rotating around browser heading data.";
+    }
+
+    return "North-up is selected. Once navigation starts, Pathbadger will keep the map aligned to north instead of rotating around browser heading data.";
+  }
+
   if (options.isHeadingUpActive) {
     return `Heading-up is active. Pathbadger is rotating the map around the live ${formatHeadingCue(options.normalizedHeadingDegrees)} heading while keeping north explicit in the orientation status.`;
   }
