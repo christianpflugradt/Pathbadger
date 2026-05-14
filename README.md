@@ -36,13 +36,15 @@ This repository is initialized for an agent-driven workflow with four recurring 
 ## Docker notes
 
 - `docker-compose.yml` defines the target service topology from day one.
-- `graphhopper` and `tileserver` are behind the `maps` profile until real regional data is prepared.
-- `npm run compose:test` now builds and starts the scaffolded `api` and `web` services, checks the api `/health` endpoint, and tears the stack down again.
-- The compose smoke covers only the default `api` and `web` services; the `maps` profile remains excluded until real regional data is prepared.
+- `graphhopper` stays behind the `maps` profile until regional routing data is prepared, but the `tileserver` now boots in the default app flow.
+- `npm run compose:test` now builds and starts `api`, `web`, and `tileserver`, checks the api `/health` endpoint, verifies the tile style endpoint from inside the stack, and tears everything down again.
 - `make run-app`, `make stopp-app`, and `make rebuild-app` wrap the default compose workflow for local app startup, shutdown, and forced rebuilds.
-- `PUBLIC_TILE_STYLE_URL` is the frontend map-style contract. It must point at a self-hosted style JSON endpoint such as `http://localhost:8080/styles/basic/style.json`, and the app should fail honestly when that style is unreachable instead of drawing a fake fallback map.
+- `make run-app` and `make rebuild-app` call `scripts/ensure-map-data.sh`, which generates the selected ignored map dataset under `data/tiles/` when it is missing.
+- `PATHBADGER_TILE_DATA_SCOPE=starter` is the default and uses a real 50 km Bad Bramstedt slice. `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` switches the tile service to a whole-state dataset file under `data/tiles/`.
+- `PATHBADGER_TILE_DATA_FILE=/absolute/path/to/custom.geojson` overrides the default file for either scope when you want the tile service to use another generated dataset.
+- `PUBLIC_TILE_STYLE_URL` is the frontend map-style contract. It points at the self-hosted local style endpoint `http://localhost:8080/styles/basic/style.json`, and the app should fail honestly when that style is unreachable instead of drawing a fake fallback map.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` is the browser-level gate for map work. It passes only when the planning map uses a real self-hosted style contract and the page can reach tile-backed map assets without silently falling back.
-- While `ITEM-0025` remains open, `npm run test:browser-smoke -- --app-url http://localhost:5173 --expect-cause unreachable_style_json` is the expected supported-app result after `make run-app`, because the default stack still excludes the map profile and should fail honestly.
+- `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` is the intended live-map configuration once you are ready to build and use the whole-state dataset locally.
 
 ## Agent workflow
 

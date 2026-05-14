@@ -21,6 +21,7 @@ services:
       REGION_NAME: ${REGION_NAME:-Schleswig-Holstein}
     depends_on:
       - api
+      - tileserver
     ports:
       - "5173:5173"
 
@@ -39,11 +40,13 @@ services:
       - ./services/graphhopper/custom-models:/custom-models:ro
 
   tileserver:
-    image: maptiler/tileserver-gl:latest
-    profiles:
-      - maps
+    build:
+      context: .
+      dockerfile: services/tileserver/Dockerfile
+    environment:
+      PATHBADGER_TILE_DATA_FILE: ${PATHBADGER_TILE_DATA_FILE:-}
+      PATHBADGER_TILE_DATA_SCOPE: ${PATHBADGER_TILE_DATA_SCOPE:-starter}
     ports:
       - "8080:8080"
     volumes:
-      - ./data/tiles:/data
-      - ./services/tileserver/config.json:/config/config.json:ro
+      - ./data/tiles:/runtime-data

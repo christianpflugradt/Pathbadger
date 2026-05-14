@@ -66,16 +66,37 @@ wait_for_api_health() {
   return 1
 }
 
+wait_for_tileserver_style() {
+  local attempts="${1:-30}"
+
+  for ((attempt = 1; attempt <= attempts; attempt += 1)); do
+    if docker compose exec -T web node -e "fetch('http://tileserver:8080/styles/basic/style.json').then(async (response) => { if (!response.ok) throw new Error('unexpected status ' + response.status); const body = await response.json(); if (!body.sources || !body.sources.basemap) throw new Error('missing basemap source'); }).catch((error) => { console.error(error.message); process.exit(1); });" >/dev/null 2>&1; then
+      echo "Tile style endpoint responded successfully from inside the web container."
+      return 0
+    fi
+
+    sleep 2
+  done
+
+  echo "Timed out waiting for the tileserver style endpoint." >&2
+  print_service_logs "tileserver"
+  return 1
+}
+
 trap cleanup EXIT
+
+./scripts/ensure-map-data.sh
 
 docker compose config >/dev/null
 echo "docker compose configuration is valid."
 
-docker compose up -d --build api web
+docker compose up -d --build api web tileserver
 
 wait_for_running_service "api"
 wait_for_running_service "web"
+wait_for_running_service "tileserver"
 wait_for_api_health
+wait_for_tileserver_style
 
 docker compose ps
-echo "Runtime smoke passed for the scaffolded api and web services."
+echo "Runtime smoke passed for the scaffolded api, web, and tileserver services."

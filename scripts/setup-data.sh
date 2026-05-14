@@ -6,9 +6,17 @@ cat <<'EOF'
 Expected local data inputs:
 
 - data/osm/schleswig-holstein-latest.osm.pbf
-- data/tiles/ for self-hosted tile artifacts
+- data/tiles/bad-bramstedt-50km.geojson for the default starter map slice
+- data/tiles/schleswig-holstein-basemap.geojson for the whole-state map slice
 - data/graphhopper/ for generated GraphHopper cache data
 
-This setup script is intentionally informational during initialization.
-Later routing-core items should evolve it into a reproducible import workflow.
+Useful commands:
+
+- ./scripts/ensure-map-data.sh
+- PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein ./scripts/ensure-map-data.sh
+- PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app
+
+The starter map file is generated on demand into the ignored data directory.
+The Schleswig-Holstein file uses the same workflow, but the first build is much
+heavier and is intended for the broader live map experience.
 EOF

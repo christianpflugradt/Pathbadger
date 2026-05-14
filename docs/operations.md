@@ -10,13 +10,16 @@
 6. `make stopp-app` when you want to stop that stack again
 7. `make rebuild-app` when you want to rebuild and recreate the local app stack
 
-`npm run compose:test` validates the compose file, builds the scaffolded `api` and `web` services, waits for them to stay running, verifies the api `/health` response from inside the container, and then tears the stack down.
+`npm run compose:test` validates the compose file, builds the `api`, `web`, and
+`tileserver` services, waits for them to stay running, verifies the api
+`/health` response and the tile style endpoint from inside the stack, and then
+tears the stack down.
 
 The Make targets wrap the default compose flow:
 
-- `make run-app`: `docker compose up -d --build`
+- `make run-app`: generate the selected ignored map dataset if needed, then `docker compose up -d --build`
 - `make stopp-app`: `docker compose down --remove-orphans`
-- `make rebuild-app`: stop the current stack, rebuild the default services, and recreate them so the browser sees the latest local changes
+- `make rebuild-app`: stop the current stack, regenerate missing map data if needed, rebuild the default services, and recreate them so the browser sees the latest local changes
 
 ## Package manager policy
 
@@ -33,21 +36,37 @@ This repository is npm-only by explicit user instruction.
 - GraphHopper cache lives under `data/graphhopper/`
 - tile artifacts live under `data/tiles/`
 
-The `maps` profile is reserved for the real self-hosted map stack once data-preparation items are implemented.
-The compose smoke does not start `graphhopper` or `tileserver` yet, so map-data validation remains later work.
+`data/tiles/` stays ignored and now holds generated GeoJSON basemap files for the
+local tile service:
+
+- `bad-bramstedt-50km.geojson` for the default starter map
+- `schleswig-holstein-basemap.geojson` for the broader live map
+
+`graphhopper` remains behind the `maps` profile for later routing-data work.
+The default supported app flow now includes the tile service directly.
+
+## Tile data scope
+
+- `PATHBADGER_TILE_DATA_SCOPE=starter` is the default supported flow.
+- `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` switches the local tile
+  service to the whole-state dataset.
+- `PATHBADGER_TILE_DATA_FILE=/absolute/path/to/custom.geojson` overrides the
+  file used by either scope.
+- `scripts/ensure-map-data.sh` generates the selected dataset into `data/tiles/`
+  when it is missing.
 
 ## Tile style contract
 
 - `PUBLIC_TILE_STYLE_URL` is the web-facing map-style contract for future MapLibre integration.
 - It must point to a self-hosted style JSON document served by the local tile stack, not a hosted third-party style URL.
 - If that style endpoint is unreachable, the planning map must fail honestly instead of substituting bundled placeholder cartography.
-- Override it with `http://localhost:8080/styles/basic/style.json` or another self-hosted TileServer GL style document once the local tile stack is running.
+- The supported local endpoint is `http://localhost:8080/styles/basic/style.json`.
 
 ## Browser smoke
 
 - `npm run test:browser-smoke` runs a fixture-backed Playwright smoke that proves the repo can distinguish four outcomes: a healthy self-hosted map, unreachable style JSON, missing tile data, and an unintended fallback path.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` points that same smoke at the live local app and expects a passing real-map result.
-- `npm run test:browser-smoke -- --app-url http://localhost:5173 --expect-cause unreachable_style_json` is the honest expected result for the current default `make run-app` flow while the tile-stack bootstrap item is still open.
+- `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` is the intended whole-state live-map configuration once the broader dataset is prepared.
 - Map-centered `implement` and `review` work should cite this smoke output alongside any manual browser evidence instead of relying only on unit tests or fixture responses.
 
 ## Agent command behavior

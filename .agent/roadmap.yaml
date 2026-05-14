@@ -44,7 +44,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 63
+  overall_progress_percent: 69
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -59,7 +59,7 @@ roadmap:
     - id: map-ui
       title: MapLibre map UI and route display
       status: active
-      progress_percent: 60
+      progress_percent: 85
       target_outcome: browser-verified planning map with real self-hosted cartography and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
@@ -80,7 +80,7 @@ roadmap:
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
-    - npm run compose:test now builds and boots the scaffolded api and web containers, verifies the api health endpoint, and tears the stack down again
+    - npm run compose:test now builds and boots the api, web, and tileserver containers, verifies the api health endpoint and the self-hosted style endpoint, and tears the stack down again
     - api, web, shared, and geo packages all have typed starter scaffolds that compile cleanly
     - shared route-generation contracts and a mocked GraphHopper adapter boundary are in place for future api route work
     - the web app and docs now expose an explicit self-hosted tile-style contract through `PUBLIC_TILE_STYLE_URL`
@@ -96,13 +96,12 @@ roadmap:
     - the planner now renders routed surface composition cards and unknown-coverage messaging, so surface-aware route previews are visible end to end in the web UI
     - the default local app workflow now includes `make run-app`, `make stopp-app`, and `make rebuild-app`, with docs aligned to the compose-based browser startup flow
     - the planning map now fails honestly when the configured self-hosted style is missing or unreachable instead of drawing bundled fallback cartography
+    - the supported local app boot now auto-generates ignored map data under `data/tiles/`, starts the self-hosted tile service by default, and passes the live browser smoke on a real Bad Bramstedt-centered planning map
     - "`packages/geo` now exports `calculateRouteProgress`, giving later navigation UI a tested local primitive for snapped route position, completed distance, remaining distance, progress fraction, and off-route distance"
     - route previews now carry normalized instruction arrays end to end from GraphHopper through the shared response contract and into the web app
     - the web app can now start a first local navigation session from a routed preview, compute progress locally, show next-instruction cues, and surface conservative off-route warnings without backend polling
   remaining_summary:
-    - current focus is ITEM-0025 in EPIC-0011, which must make the supported local app boot show real self-hosted roads and trails instead of the current hard-failure map state before adjacent navigation polish counts as meaningful product progress
-    - the current supported local boot now hard-fails the planning map honestly when real cartography is unavailable, so the app no longer fakes success but still does not yet deliver its core map-centered value
-    - a dedicated browser smoke and review gate is still missing for core map journeys and undeclared fallbacks, so the agent workflow can currently over-credit map work unless that gap is fixed explicitly
+    - the supported local boot now shows real self-hosted roads and trails through the default Bad Bramstedt starter slice, while `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein` is the heavier whole-state configuration for broader live-map use
     - routing-core and route-generation now reach an honest preview loop with surface-aware summaries and instruction data, but live GraphHopper route quality against a prepared Schleswig-Holstein graph is still proven mostly through mocked coverage
     - active navigation still relies partly on simulated local movement instead of live browser geolocation, so current-position following on real devices is not yet proven end to end
     - current speed and average speed are still absent from the execution UI, and follow-position map behavior with manual pan escape remains intentionally paused behind the real-map blocker

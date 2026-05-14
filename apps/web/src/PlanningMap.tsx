@@ -286,6 +286,60 @@ export function PlanningMap({
               : loadState === "ready"
                 ? "The live planning surface is mounted. Choose `Map-selected point` or arm a pass-through pick to make the map interactive."
                 : "Connecting to the configured style document before route overlays and point selection are added.";
+  const statusFacts =
+    loadState === "ready"
+      ? [
+          {
+            label: "Interaction",
+            value: interactionLabel,
+          },
+          {
+            label: "Waypoints",
+            value: String(passThroughPoints.length),
+          },
+          {
+            label: "Route line",
+            value: routeGeometry
+              ? `${routeGeometry.coordinates.length} points`
+              : "Not available",
+          },
+        ]
+      : [
+          {
+            label: "Region",
+            value: regionName,
+          },
+          {
+            label: "Center",
+            value: centerLabel,
+          },
+          {
+            label: "Coordinate",
+            value: formatCoordinate(center),
+          },
+          {
+            label: "Interaction",
+            value: interactionLabel,
+          },
+          {
+            label: "Waypoints",
+            value: String(passThroughPoints.length),
+          },
+          {
+            label: "Route line",
+            value: routeGeometry
+              ? `${routeGeometry.coordinates.length} points`
+              : "Not available",
+          },
+          {
+            label: "Style",
+            value: (
+              <code data-testid="planning-map-style">
+                {getStyleLabel(styleUrl)}
+              </code>
+            ),
+          },
+        ];
 
   return (
     <section
@@ -301,42 +355,12 @@ export function PlanningMap({
         <h3 data-testid="planning-map-heading">{statusHeading}</h3>
         <p data-testid="planning-map-body">{statusBody}</p>
         <dl className="planning-map__facts">
-          <div>
-            <dt>Region</dt>
-            <dd>{regionName}</dd>
-          </div>
-          <div>
-            <dt>Center</dt>
-            <dd>{centerLabel}</dd>
-          </div>
-          <div>
-            <dt>Coordinate</dt>
-            <dd>{formatCoordinate(center)}</dd>
-          </div>
-          <div>
-            <dt>Interaction</dt>
-            <dd>{interactionLabel}</dd>
-          </div>
-          <div>
-            <dt>Waypoints</dt>
-            <dd>{passThroughPoints.length}</dd>
-          </div>
-          <div>
-            <dt>Route line</dt>
-            <dd>
-              {routeGeometry
-                ? `${routeGeometry.coordinates.length} points`
-                : "Not available"}
-            </dd>
-          </div>
-          <div>
-            <dt>Style</dt>
-            <dd>
-              <code data-testid="planning-map-style">
-                {getStyleLabel(styleUrl)}
-              </code>
-            </dd>
-          </div>
+          {statusFacts.map((fact) => (
+            <div key={fact.label}>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
         </dl>
       </div>
     </section>

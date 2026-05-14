@@ -2,6 +2,7 @@
 
 - `data/osm/`: Schleswig-Holstein OSM extracts
 - `data/graphhopper/`: GraphHopper import cache and runtime graph data
-- `data/tiles/`: self-hosted tile artifacts such as MBTiles or style assets
+- `data/tiles/`: ignored self-hosted tile artifacts and generated GeoJSON
+  basemap files used by the local tile service
 
 Large generated artifacts stay out of Git.

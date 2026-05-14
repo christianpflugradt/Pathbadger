@@ -1,7 +1,7 @@
 id: ITEM-0025
 type: feature
 priority: P0
-status: open
+status: done
 scope: tileserver
 origin: refine
 parent_epic: EPIC-0011
@@ -17,6 +17,9 @@ verification:
 implementation_notes:
   - "2026-05-13 refine: the current supported local boot now fails the planning map honestly when the self-hosted style endpoint is missing or unreachable, which is preferable to fake fallback cartography but still does not deliver the map-centered value promised by the product brief."
   - "2026-05-13 refine: this item intentionally restores real self-hosted cartography before more navigation polish, because route planning and route following are low-value when users cannot see meaningful roads or trails."
+  - "2026-05-13 implement: Replaced the placeholder tile-server setup with a dedicated local vector-tile service that serves a self-hosted style document plus real OpenStreetMap-derived road and trail geometry from ignored data files under `data/tiles/`."
+  - "2026-05-13 implement: Added `scripts/ensure-map-data.sh` and the `PATHBADGER_TILE_DATA_SCOPE` / `PATHBADGER_TILE_DATA_FILE` compose knobs so the supported default boot auto-generates a 50 km Bad Bramstedt starter slice while the broader live configuration can switch to a whole-Schleswig-Holstein dataset."
+  - "2026-05-13 implement: Updated the planner defaults to the Bad Bramstedt area, reduced the ready-state map overlay to a compact status card, and verified the finished flow with `npm run verify`, `npm run compose:test`, `make run-app`, and `npm run test:browser-smoke -- --app-url http://localhost:5173`."
 created_at: 2026-05-13T22:01:03+02:00
-updated_at: 2026-05-13T22:01:03+02:00
-closed_at: null
+updated_at: 2026-05-13T23:09:15+02:00
+closed_at: 2026-05-13T23:09:15+02:00

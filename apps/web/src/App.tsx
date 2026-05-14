@@ -63,22 +63,22 @@ const startPointCatalog: Record<
   current_position: {
     label: "Current GPS position",
     detail: "Fastest option once location permission is granted.",
-    coordinate: { lat: 54.3233, lon: 10.1228 },
+    coordinate: { lat: 53.9167, lon: 9.8833 },
   },
   map_point: {
     label: "Map-selected point",
     detail: "Live map clicks set the planning start.",
-    coordinate: { lat: 54.3362, lon: 10.1464 },
+    coordinate: { lat: 53.9188, lon: 9.8872 },
   },
   saved_default: {
     label: "Remembered default",
     detail: "Useful for repeated trailheads or home starts.",
-    coordinate: { lat: 54.2981, lon: 10.1714 },
+    coordinate: { lat: 53.9094, lon: 9.8748 },
   },
   last_used: {
     label: "Last used start",
     detail: "Reuse the previous origin without clicking the map again.",
-    coordinate: { lat: 54.3448, lon: 10.1021 },
+    coordinate: { lat: 53.9261, lon: 9.8967 },
   },
 };
 const activityLabels: Record<Activity, string> = {
