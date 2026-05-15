@@ -37,14 +37,7 @@ export interface CreateRouteGenerationServiceOptions {
 }
 
 const DISTANCE_FIT_FALLBACK_FACTORS = [0.85, 0.75, 0.6875, 0.6];
-const AUTOMATIC_CANDIDATE_RETRY_SEEDS = [
-  "draft-variation-1",
-  "draft-variation-2",
-  "draft-variation-3",
-  "draft-variation-4",
-  "draft-variation-5",
-  "draft-variation-6",
-];
+const AUTOMATIC_CANDIDATE_RETRY_COUNT = 20;
 
 export function createRouteGenerationService(
   options: CreateRouteGenerationServiceOptions,
@@ -281,10 +274,10 @@ async function evaluateCandidateRequest(options: {
 }
 
 function createAutomaticCandidateRetryRequests(request: RouteGenerateRequest) {
-  return AUTOMATIC_CANDIDATE_RETRY_SEEDS.map((randomSeed) =>
+  return Array.from({ length: AUTOMATIC_CANDIDATE_RETRY_COUNT }, (_, index) =>
     routeGenerateRequestSchema.parse({
       ...request,
-      randomSeed,
+      randomSeed: `draft-variation-${index + 1}`,
     }),
   );
 }
