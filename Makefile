@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 APP_URL ?= http://localhost:5173
 
-.PHONY: show run-app stopp-app rebuild-app
+.PHONY: show run-app run-map-app stopp-app rebuild-app rebuild-map-app
 .PHONY: run-routing-app rebuild-routing-app
 .PHONY: run-routing-app-elevation rebuild-routing-app-elevation
 
@@ -11,7 +11,11 @@ show:
 
 run-app:
 	@./scripts/dev-up.sh
-	@printf 'App should be available at %s\n' "$(APP_URL)"
+	@printf 'Routing-capable app should be available at %s\n' "$(APP_URL)"
+
+run-map-app:
+	@./scripts/dev-up.sh --without-routing
+	@printf 'Map-only app should be available at %s\n' "$(APP_URL)"
 
 run-routing-app:
 	@./scripts/dev-up.sh --with-routing
@@ -27,7 +31,12 @@ stopp-app:
 rebuild-app:
 	@./scripts/dev-down.sh
 	@./scripts/dev-up.sh --force-recreate
-	@printf 'App should be available at %s\n' "$(APP_URL)"
+	@printf 'Routing-capable app should be available at %s\n' "$(APP_URL)"
+
+rebuild-map-app:
+	@./scripts/dev-down.sh
+	@./scripts/dev-up.sh --without-routing --force-recreate
+	@printf 'Map-only app should be available at %s\n' "$(APP_URL)"
 
 rebuild-routing-app:
 	@./scripts/dev-down.sh

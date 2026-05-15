@@ -2,12 +2,15 @@
 
 set -euo pipefail
 
-with_routing=0
+with_routing=1
 with_routing_elevation=0
 compose_args=()
 
 for arg in "$@"; do
   case "$arg" in
+    --without-routing)
+      with_routing=0
+      ;;
     --with-routing)
       with_routing=1
       ;;

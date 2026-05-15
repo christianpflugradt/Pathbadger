@@ -6,16 +6,18 @@
 2. `npm run verify`
 3. `npm run compose:test`
 4. `npm run test:browser-smoke` to run the stable fixture-backed browser smoke suite
-5. `make run-app` when you want the local app stack in the browser
-6. `make run-routing-app` when you need a real routed preview and navigation start in the browser
-7. `npm run test:live-route-quality` after `make run-routing-app` when you need repeatable live evidence for instruction-endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure handling
+5. `make run-app` when you want the full local app stack in the browser, including real route generation
+6. `make run-routing-app` when you want the same routing-capable boot through an explicit route-focused alias
+7. `npm run test:live-route-quality` after `make run-app` or `make run-routing-app` when you need repeatable live evidence for instruction-endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure handling
 8. `make run-routing-app-elevation` when you need a supported local preview that can return non-null elevation gain
 9. `npm run test:live-route-elevation` after `make run-routing-app-elevation` when you need repeatable climb-data evidence through the supported frontend proxy
 10. `make stopp-app` when you want to stop either local app stack again
-11. `make rebuild-app` when you want to rebuild and recreate the map-only local app stack
-12. `make rebuild-routing-app` when you want to rebuild and recreate the routing-capable local app stack
+11. `make rebuild-app` when you want to rebuild and recreate the default routing-capable local app stack
+12. `make rebuild-routing-app` when you want the same rebuild through the explicit route-focused alias
 13. `make rebuild-routing-app-elevation` when you want to rebuild and recreate the elevation-capable local app stack
-14. `make show` when you want the deterministic workspace summary
+14. `make run-map-app` when you intentionally want a lighter map-only boot without GraphHopper
+15. `make rebuild-map-app` when you intentionally want to rebuild that lighter map-only boot
+16. `make show` when you want the deterministic workspace summary
 
 `npm run compose:test` validates both the default compose graph and the `maps`
 profile configuration, builds the `api`, `web`, and `tileserver` services,
@@ -23,17 +25,20 @@ waits for them to stay running, verifies the internal api and tile endpoints
 inside the stack, verifies the frontend proxy for `/api/health` and
 `/styles/basic/style.json`, and then tears the stack down.
 
-The Make targets split the lighter planning boot from the heavier routing boot:
+The Make targets now default to a working routing-capable product boot and keep
+the lighter map-only path as an explicit opt-out:
 
-- `make run-app`: generate the selected ignored map dataset if needed, then `docker compose up -d --build`
-- `make run-routing-app`: generate map data, download the Schleswig-Holstein routing extract if needed, boot `docker compose --profile maps up -d --build`, and wait until `/routes/generate` can return a real preview with geometry
+- `make run-app`: generate map data, download the Schleswig-Holstein routing extract if needed, boot `docker compose --profile maps up -d --build`, and wait until `/routes/generate` can return a real preview with geometry
+- `make run-routing-app`: use the same routing-capable boot as `make run-app`
 - `make run-routing-app-elevation`: reuse the supported routing boot but switch GraphHopper to the explicit elevation config, a separate graph cache, and a readiness check that waits for non-null `summary.elevationGainMeters`
+- `make run-map-app`: generate map data if needed, then boot the lighter map-only compose stack without GraphHopper
 - `npm run test:live-route-quality`: hit the frontend-proxied `/api/routes/generate` contract with supported live requests and fail if route geometry, first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, or explicit out-of-region failure behavior drift
 - `npm run test:live-route-elevation`: rerun the same live route-quality contract with an extra assertion that the preview summary exposes non-null elevation gain
 - `make stopp-app`: `docker compose --profile maps down --remove-orphans`, so the same stop command fully tears down both the default stack and the routing-capable stack
-- `make rebuild-app`: stop the current stack, regenerate missing map data if needed, rebuild the default services, and recreate them so the browser sees the latest local changes
-- `make rebuild-routing-app`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack, and wait for routed-preview readiness again
+- `make rebuild-app`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the default routing-capable stack, and wait for routed-preview readiness again
+- `make rebuild-routing-app`: use the same routing-capable rebuild as `make rebuild-app`
 - `make rebuild-routing-app-elevation`: stop the current stack, regenerate missing map data if needed, ensure routing data exists, rebuild the `maps` profile stack with the elevation config, and wait for routed-preview elevation readiness again
+- `make rebuild-map-app`: stop the current stack, regenerate missing map data if needed, and rebuild the lighter map-only stack without GraphHopper
 
 ## Package manager policy
 
@@ -67,9 +72,10 @@ the routing-capable boot reuses:
 - `cache-elevation/` for the explicit elevation-capable routed-preview workflow
 - `elevation/` for cached SRTM tiles downloaded during the elevation-capable import
 
-`graphhopper` stays out of the default map-only app flow and only boots through
-the explicit routing-capable workflow. The tile service remains part of the
-default supported app flow.
+`graphhopper` stays behind the compose `maps` profile, but the default
+`make run-app` flow now activates that profile so the normal product boot can
+generate routes. The tile service remains part of both the routing-capable and
+map-only local flows.
 
 ## Tile data scope
 
@@ -94,9 +100,10 @@ default supported app flow.
   switches GraphHopper to `services/graphhopper/config-elevation.yml`, persists
   downloaded SRTM tiles under `data/graphhopper/elevation`, and keeps its
   imported graph separate under `data/graphhopper/cache-elevation`.
-- The first `make run-routing-app` is significantly heavier than `make run-app`
+- The first `make run-app` is significantly heavier than `make run-map-app`
   because GraphHopper must import the extract into `data/graphhopper/cache`
   before route previews can succeed.
+- `make run-routing-app` is an explicit alias for that same default runtime.
 - The first `make run-routing-app-elevation` is heavier again because GraphHopper
   must also fetch elevation tiles and build a second elevation-enabled graph
   import before the route summary can expose climb data.
@@ -126,13 +133,13 @@ default supported app flow.
 
 - `npm run test:browser-smoke` runs a fixture-backed Playwright smoke that proves the repo can distinguish five outcomes: a healthy self-hosted map, unreachable style JSON, missing tile data, post-load map runtime errors, and an unintended fallback path.
 - `npm run test:browser-smoke -- --app-url http://localhost:5173` points that same smoke at the live local app and expects a passing real-map result.
-- Navigation-map work also requires the routing-capable local flow because a real browser session cannot enter navigation until `/routes/generate` returns geometry.
+- Navigation-map work requires the routing-capable local flow, which `make run-app` now provides by default, because a real browser session cannot enter navigation until `/routes/generate` returns geometry.
 - `PATHBADGER_TILE_DATA_SCOPE=schleswig_holstein make run-app` is the intended whole-state live-map configuration once the broader dataset is prepared.
 - Map-centered `implement`, `fix`, and `review` work should cite this smoke output alongside any manual browser evidence instead of relying only on unit tests or fixture responses.
 
 ## Live route-quality evidence
 
-- `npm run test:live-route-quality` is the supported repeatable evidence command after `make run-routing-app`.
+- `npm run test:live-route-quality` is the supported repeatable evidence command after `make run-app` or `make run-routing-app`.
 - It proves three live behaviors through the frontend proxy: geometry-backed previews keep the first and last instruction coordinates anchored to the route geometry endpoints, distance and surface summaries stay internally honest, and out-of-region requests fail explicitly.
 - It does not yet prove intermediate instruction ordering or full cue-by-cue alignment along the route geometry.
 - Keep the command output together with any browser screenshots when route-quality work changes scoring, legality, region, warning, or instruction behavior.

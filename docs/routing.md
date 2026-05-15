@@ -24,7 +24,7 @@ The repository now implements a GraphHopper-backed routed-preview loop end to en
 - planning requests reach the api boundary from the web app
 - the api scores routed candidates and returns warnings, summary data, geometry, and instructions
 - legality and Schleswig-Holstein region guardrails reject unsupported routed candidates before they are presented as acceptable previews
-- the supported `make run-routing-app` flow can start a real navigation session from that preview in the browser, and `npm run test:live-route-quality` now captures repeatable live evidence through the frontend proxy
+- the supported `make run-app` flow can start a real navigation session from that preview in the browser, while `make run-routing-app` remains an explicit alias for the same runtime, and `npm run test:live-route-quality` now captures repeatable live evidence through the frontend proxy
 - the explicit `make run-routing-app-elevation` flow can boot a heavier local GraphHopper import that returns non-null `summary.elevationGainMeters` when terrain data is available
 
 ## Supported live route-quality evidence
@@ -32,7 +32,7 @@ The repository now implements a GraphHopper-backed routed-preview loop end to en
 Use this repo-native flow when you need to capture supported live route-quality evidence on Schleswig-Holstein data:
 
 1. Run `npm run verify`.
-2. Run `make run-routing-app`.
+2. Run `make run-app`.
 3. Run `npm run test:live-route-quality`.
 4. Capture the JSON evidence from that command alongside any manual browser screenshots.
 
@@ -59,7 +59,7 @@ Use this repo-native flow when you need supported evidence that the heavier loca
 
 When you want a human-readable local browser walkthrough in addition to the command output:
 
-1. Open `http://localhost:5173/` after `make run-routing-app` finishes.
+1. Open `http://localhost:5173/` after `make run-app` or `make run-routing-app` finishes.
 2. Keep the default Bad Bramstedt starter area, choose `Running / walking`, `8.0 km`, and `Mixed`, then generate a preview.
 3. Capture the rendered route line plus the summary and warnings area.
 
