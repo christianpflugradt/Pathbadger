@@ -2,13 +2,14 @@ id: EPIC-0019
 status: active
 phase: route-generation
 title: Enforce round-trip route generation and distance-fit limits
-objective: make the core route generator produce round courses that return to the same start and keep normal route results within a few hundred meters of the requested distance, with 400 meters as the hard outer limit unless explicit feasibility constraints make that impossible
+objective: make the core route generator produce true round courses that return to the same start, avoid meaningful out-and-back overlap, and keep normal route results within a few hundred meters of the requested distance, with 400 meters as the hard outer limit unless explicit feasibility constraints make that impossible
 success_criteria:
   - the supported generator returns routes that begin and end at the same start point instead of behaving like a point-to-point trip
+  - the supported generator prefers loop courses with no repeated-path overlap and never treats routes with more than 500 meters of bidirectional overlap as acceptable default round trips
   - a normal generated route is not presented as acceptable when it exceeds the target distance by more than 400 meters in either direction
   - when mandatory pass-through points or legal-routing constraints make the target impossible, the product explains that feasibility limit explicitly instead of silently returning an oversized loop as if it met the request
 items:
   - ITEM-0045
   - ITEM-0046
 created_at: 2026-05-15T11:30:47+02:00
-updated_at: 2026-05-15T11:30:47+02:00
+updated_at: 2026-05-15T12:00:27+02:00

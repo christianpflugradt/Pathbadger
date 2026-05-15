@@ -64,6 +64,7 @@ governance:
     review_scope_is_full_workspace: true
     review_focus_hints_do_not_limit_scope: true
     review_must_raise_a_blocking_defect_when_supported_generation_is_not_round_trip: true
+    review_must_raise_a_blocking_defect_when_supported_round_trips_reuse_more_than_500_meters_of_the_same_path: true
     review_must_raise_a_blocking_defect_when_normal_supported_routes_break_the_400_meter_distance_policy: true
     review_must_raise_a_blocking_defect_when_default_supported_boot_cannot_generate_routes: true
     review_must_raise_a_blocking_defect_for_fallback_only_core_map_states: true

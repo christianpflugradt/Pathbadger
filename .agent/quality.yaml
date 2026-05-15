@@ -42,6 +42,7 @@ quality:
       - placeholder_surviving_into_done_epic_or_done_phase
   release_blockers:
     - supported_default_route_generation_returns_point_to_point_routes
+    - supported_default_round_trip_generation_reuses_more_than_500_meters_of_the_same_path_in_opposite_directions
     - supported_default_route_generation_accepts_normal_routes_more_than_400_meters_off_target_without_explicit_feasibility_reason
     - default_supported_boot_cannot_generate_real_routes_for_core_journeys
     - supported_local_boot_only_shows_placeholder_or_fallback_cartography_for_core_map_journeys

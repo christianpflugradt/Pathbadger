@@ -122,6 +122,7 @@ ambiguity_defaults:
   default_activity: running_walking
   default_surface_preference: mixed
   default_distance_tolerance_meters: 150
+  maximum_bidirectional_overlap_meters: 500
   maximum_acceptable_distance_delta_meters: 400
   default_region: Schleswig-Holstein
   default_start_point: last_used_start_point_else_map_click_required
@@ -205,9 +206,9 @@ The default intended journey is simple and map-first:
 1. The user begins from the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, unless a supported remembered or manually chosen start overrides it.
 2. The user optionally adds one or more pass-through points on the map, but this is secondary and often unnecessary.
 3. The user sets only the basic route parameters they care about: distance in kilometers and surface preference.
-4. The user taps a primary `Generate route` action and receives a round course that returns to the same start point instead of a point-to-point trip.
+4. The user taps a primary `Generate route` action and receives a real round course that returns to the same start point instead of a point-to-point trip or obvious out-and-back line.
 5. If the random route is not appealing, the user can tap again to generate another variation within the same constraints.
-6. A normal generated route should stay within a few hundred meters of the requested length, with 400 meters as the hard outer limit for an acceptable default result.
+6. A normal generated route should stay within a few hundred meters of the requested length, with 400 meters as the hard outer limit for an acceptable default result, and it should ideally avoid any repeated-path overlap in opposite directions.
 7. Once a route looks good on the map, the user starts navigation from the same map-first screen.
 8. During navigation, the user mainly sees the route and current position on the map plus a compact set of essential guidance metrics.
 9. When navigation is finished or manually stopped, the user should be able to return directly to the planning state and start another route quickly.
@@ -241,6 +242,7 @@ Route planning must support:
 - target distance in kilometers
 - round-trip route shape:
   - the generated route must end back at the start point
+  - the generated route should ideally avoid reusing the same path in both directions and may repeat at most 500 meters total of the same path in opposite directions when no better connector exists
   - point-to-point generation is not the default product mode
 - surface preference:
   - mostly trail/unpaved
@@ -255,9 +257,11 @@ Route planning must support:
   - generate one route at a time in the MVP
   - allow generating a new variation
   - return a round course that comes back to the start point
+  - prefer true loop geometry over out-and-back retracing
   - keep the route visible on the map while the user decides whether to accept it or generate another one
 - route feasibility handling:
   - a normal generated route should stay within a few hundred meters of the requested distance, with 400 meters as the hard outer limit for an acceptable default result
+  - a normal generated route should also keep repeated-path overlap below 500 meters total and should ideally avoid any overlap in opposite directions
   - if the requested distance is impossible with mandatory pass-through points, show the shortest sensible route and explain that it exceeds the requested distance
   - if no legal route exists between required points, identify the problematic segment or point as clearly as possible
   - if the route leaves the Schleswig-Holstein data region, reject or warn depending on implementation constraints
@@ -312,6 +316,7 @@ Implement these first.
   - indifferent
 - Generate one random route candidate.
 - Ensure the generated route is a round course that returns to the same start.
+- Prefer true loop geometry over out-and-back routes, with repeated-path overlap ideally zero and never more than 500 meters total.
 - Generate another random variation.
 - Keep the normal generated result within a few hundred meters of the requested distance, with 400 meters as the hard outer limit unless explicit feasibility constraints are surfaced.
 - Display generated route on map.
@@ -639,7 +644,7 @@ The backend should generate route candidates using a strategy such as:
 8. Return the best candidate for MVP.
 9. On user request, generate a new candidate with a different random seed.
 
-For round trips, candidate generation may use triangles, loops, or multiple intermediate points. Avoid routes that simply go out and back along the same line unless no better route exists.
+For round trips, candidate generation may use triangles, loops, or multiple intermediate points. Avoid routes that simply go out and back along the same line. If a short unavoidable connector forces some retracing, the repeated-path overlap should stay below 500 meters total and should ideally be zero.
 Point-to-point generation is not the normal Pathbadger product mode.
 
 ### 8.4 Distance handling
@@ -650,12 +655,14 @@ Initial tolerance may be configurable, defaulting to something like:
 
 ```yaml
 distanceToleranceMeters: 150
+maximumBidirectionalOverlapMeters: 500
 maximumAcceptableDistanceDeltaMeters: 400
 ```
 
 Behavior:
 
 - Try to generate a round course within the internal tolerance.
+- Prefer routes with no repeated-path overlap in opposite directions; never accept a normal route that exceeds 500 meters total of such overlap.
 - Do not present a normal route as acceptable if it exceeds the target by more than 400 meters in either direction.
 - If not possible within the allowed effort budget, return an explicit failure or feasibility warning rather than silently accepting a much longer or shorter loop.
 - If mandatory points imply a route longer than target, return the shortest feasible route and explain the minimum distance.
@@ -2235,8 +2242,9 @@ The first implementation may not always hit the exact target, but it must be hon
 ```yaml
 distance_behavior:
   default_tolerance_meters: 150
+  maximum_bidirectional_overlap_meters: 500
   maximum_acceptable_distance_delta_meters: 400
-  success: within_tolerance_and_within_400_meter_limit
+  success: within_tolerance_within_400_meter_limit_and_within_500_meter_overlap_limit
   partial: only_when_explicit_feasibility_constraints_force_a_nonideal_round_trip
   minimum_route_exceeds_target: return_shortest_feasible_with_warning
   failed: no_legal_round_trip_within_allowed_distance_or_routing_engine_unavailable

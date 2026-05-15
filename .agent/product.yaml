@@ -19,6 +19,8 @@ product:
     route_generation:
       shape: round_trip
       must_return_to_start: true
+      prefer_zero_bidirectional_overlap: true
+      maximum_bidirectional_overlap_meters: 500
       maximum_target_distance_delta_meters: 400
       normal_goal: within_a_few_hundred_meters_of_target_distance
   canonical_user_workflow:
@@ -26,6 +28,7 @@ product:
     - the user usually sets only a start point, target distance, and surface preference before generating a route
     - optional pass-through points are important but secondary, and the common flow must still feel complete without them
     - every generated route is a round course that starts and ends at the same point rather than a point-to-point trip
+    - a real round course should avoid running the same path in both directions; repeated-path overlap should ideally be zero and must stay below 500 meters total
     - generate route and generate another variation are the primary planning actions
     - a normal generated route should stay within a few hundred meters of the target distance, with 400 meters as the hard outer limit for an acceptable default result
     - start navigation is the primary handoff once an acceptable route preview is visible on the map
@@ -65,6 +68,7 @@ product:
       - activity_selection
       - target_distance_km
       - round_trip_route_returns_to_same_start
+      - round_trip_avoids_bidirectional_overlap_except_short_connectors_under_500_meters
       - normal_route_distance_delta_stays_within_400_meters
       - surface_preference_selection
       - common_planning_flow_works_without_pass_through_points

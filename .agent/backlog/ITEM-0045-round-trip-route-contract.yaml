@@ -5,18 +5,20 @@ status: todo
 scope: shared_api
 origin: refine
 parent_epic: EPIC-0019
-title: Make round-trip return-to-start behavior an explicit route-generation contract
-summary: Update the supported route-generation boundaries so the product and verification layers treat every normal generated route as a round course that starts and ends at the same point, rather than as an arbitrary routed preview through waypoints.
+title: Make true loop round-trip behavior an explicit route-generation contract
+summary: Update the supported route-generation boundaries so the product and verification layers treat every normal generated route as a real loop course that starts and ends at the same point without meaningful out-and-back retracing, rather than as an arbitrary routed preview through waypoints.
 acceptance_criteria:
-  - the shared and api route-generation behavior makes return-to-start round-course output an explicit supported requirement rather than an implicit implementation detail
+  - the shared and api route-generation behavior makes low-overlap return-to-start loop output an explicit supported requirement rather than an implicit implementation detail
   - supported verification proves the generated route geometry begins and ends at the same start area within honest mapping tolerance instead of drifting into a point-to-point interpretation
+  - supported verification proves a normal accepted round trip does not reuse more than 500 meters of the same path in opposite directions, while still preferring zero repeated-path overlap
   - warnings or failure states stay explicit if legal-routing constraints prevent an acceptable round course from being produced
 verification:
   - npm run verify
   - make run-app
-  - supported live route evidence showing the route returns to the same start area
+  - supported live route evidence showing the route returns to the same start area with no more than 500 meters of bidirectional overlap
 implementation_notes:
   - "2026-05-15 refine: user clarification made the route shape non-negotiable: Pathbadger generates round courses from and back to the same start, not point-to-point trips."
-  - "2026-05-15 refine: `apps/api/src/routing/candidate-waypoint-seeds.ts` already hints at round-trip behavior by ending seeded waypoint sets at the start coordinate, so the main gap is making that product contract explicit across scoring, warnings, and verification."
+  - "2026-05-15 refine: `apps/api/src/routing/candidate-waypoint-seeds.ts` already hints at round-trip behavior by ending seeded waypoint sets at the start coordinate, so the main gap is making the low-overlap loop requirement explicit across scoring, warnings, and verification."
+  - "2026-05-15 refine: user clarified that a round trip is not an out-and-back line; repeated-path overlap should ideally be zero and must stay below 500 meters total if a short connector is unavoidable."
 created_at: 2026-05-15T11:30:47+02:00
-updated_at: 2026-05-15T11:30:47+02:00
+updated_at: 2026-05-15T12:00:27+02:00

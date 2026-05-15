@@ -17,6 +17,7 @@ roadmap:
         - choose_activity_running_walking_or_cycling
         - enter_target_distance_in_km
         - generate_round_trip_routes_that_return_to_start
+        - avoid_out_and_back_overlap_and_keep_repeated_path_under_500_meters
         - keep_normal_route_distance_delta_within_400_meters
         - choose_surface_preference_trail_mixed_asphalt_or_indifferent
         - keep_map_visible_while_adjusting_route_parameters
@@ -61,7 +62,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 95
+  overall_progress_percent: 94
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -81,8 +82,8 @@ roadmap:
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: active
-      progress_percent: 85
-      target_outcome: candidate generation and scoring that produce round-trip routes returning to the start and staying near the requested distance instead of drifting into oversized loops
+      progress_percent: 80
+      target_outcome: candidate generation and scoring that produce true low-overlap round-trip routes returning to the start and staying near the requested distance instead of drifting into oversized or out-and-back loops
     - id: navigation
       title: GPS route following and navigation metrics
       status: done
@@ -157,7 +158,7 @@ roadmap:
     - the api now exposes a supported same-origin `GET /api/places/search` boundary with shared contracts and honest `empty` or `unavailable` states, so later planner UI work can add local place search without direct browser calls to any provider
     - the planner now exposes a supported same-origin local place-search workflow, keeps Schleswig-Holstein routing guardrails and unavailable-provider states explicit, and can apply a searched place directly as the route start or a pass-through point
   remaining_summary:
-    - route generation is now explicitly constrained to round courses that return to the same start and should normally stay within 400 meters of the requested distance, so future work must not treat long point-to-point or oversized-loop outputs as acceptable default results
+    - route generation is now explicitly constrained to true round courses that return to the same start, avoid retracing the same path in both directions beyond 500 meters total, and should normally stay within 400 meters of the requested distance, so future work must not treat out-and-back lines or oversized loops as acceptable default results
     - rerouting after off-route detection remains intentionally deferred until a new additive execution epic is opened
     - user feedback has reopened the map-first mobile workflow, because the current planner and navigation shell still need less chrome, clearer primary actions, and a cleaner return to planning to match the intended product
     - future work must keep route generation working in the default supported boot and treat persistent map-obscuring overlays or diagnostics as product defects rather than acceptable polish gaps
