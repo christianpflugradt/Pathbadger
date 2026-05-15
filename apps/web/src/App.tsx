@@ -128,7 +128,12 @@ type StartPointOption = {
 };
 
 const DEFAULT_CURRENT_POSITION_COORDINATE = { lat: 53.9167, lon: 9.8833 };
-const DEFAULT_MAP_SELECTED_START_COORDINATE = { lat: 53.9188, lon: 9.8872 };
+const DEFAULT_MAP_SELECTED_START_COORDINATE = {
+  lat: 53.9015262,
+  lon: 9.8325138,
+};
+const DEFAULT_MAP_SELECTED_START_LABEL =
+  "Heidmoorer Straße 18, 24576 Weddelbrook";
 const startPointCatalog: Record<
   StartPointMode,
   {
@@ -196,9 +201,7 @@ export function App() {
     string | null
   >(null);
   const [mapSelectedStart, setMapSelectedStart] =
-    useState<PlannerMapStartSelection>(() =>
-      createMapStartSelection(DEFAULT_MAP_SELECTED_START_COORDINATE),
-    );
+    useState<PlannerMapStartSelection>(() => createDefaultMapStartSelection());
   const [mapInteractionMode, setMapInteractionMode] =
     useState<MapInteractionMode>("idle");
   const [activity, setActivity] = useState<Activity>(
@@ -302,10 +305,9 @@ export function App() {
     },
     map_point: {
       ...startPointCatalog.map_point,
-      detail:
-        mapSelectedStart.source === "search" && mapSelectedStart.label
-          ? `Currently set from local search: ${mapSelectedStart.label}.`
-          : startPointCatalog.map_point.detail,
+      detail: mapSelectedStart.label
+        ? `Currently set to ${mapSelectedStart.label}.`
+        : startPointCatalog.map_point.detail,
       coordinate: mapSelectedStart.coordinate,
     },
     saved_default: {
@@ -329,7 +331,9 @@ export function App() {
           detail:
             mapSelectedStart.source === "search" && mapSelectedStart.label
               ? "Choose another local result or click the live map to replace this searched origin."
-              : "Click the live map to set the route origin.",
+              : mapSelectedStart.label
+                ? `Tap the live map to move the route origin away from ${mapSelectedStart.label}.`
+                : "Click the live map to set the route origin.",
         }
       : startPointOptions[startPointMode];
   const canSaveRememberedDefault = startPointMode !== "current_position";
@@ -358,10 +362,6 @@ export function App() {
   const isRoutePreviewStale =
     submittedRequestSignature !== null &&
     submittedRequestSignature !== currentRequestSignature;
-  const requestPreviewCode = JSON.stringify(planningRequest, null, 2);
-  const responsePreviewCode = routePreview
-    ? JSON.stringify(routePreview, null, 2)
-    : null;
   const routeSurfaceSummaryCards = getRouteSurfaceSummaryCards(
     routePreview?.summary ?? null,
   );
@@ -711,6 +711,9 @@ export function App() {
       : isRoutePreviewStale
         ? "The last route preview is stale. Regenerate it from the map before starting navigation."
         : "Navigation stays locked until you generate a routed preview with geometry from the map.";
+  const routeDetailsSummaryLabel = routePreview
+    ? getRouteDetailsSummaryLabel(routePreview)
+    : null;
 
   useEffect(() => {
     if (!navigationSession) {
@@ -1072,16 +1075,16 @@ export function App() {
 
   return (
     <main className="planner-shell">
-      <section className="hero">
-        <div className="hero-copy">
+      <section className="planner-header card">
+        <div className="planner-header__copy">
           <p className="eyebrow">Pathbadger</p>
-          <h1>Map first. Plan fast. Start navigation without hunting.</h1>
-          <p className="lead">
-            Tap the map or search for a place, generate a route, then start
-            navigation from the same map-focused screen.
+          <p className="planner-header__summary">
+            Start from Heidmoorer Straße 18 in Weddelbrook, add optional map
+            waypoints, choose distance and surface, generate or regenerate, and
+            then start navigation.
           </p>
         </div>
-        <div className="hero-status card">
+        <div className="planner-header__meta">
           <div className="status-row">
             <span className="status-pill status-pill--active">
               Planning state active
@@ -1092,7 +1095,7 @@ export function App() {
               {navigationHeroStatus.label}
             </span>
           </div>
-          <p>
+          <p className="contract-line">
             Region target: <strong>{webRuntimeConfig.regionName}</strong>
           </p>
           <p className="panel-copy">
@@ -1216,6 +1219,15 @@ export function App() {
                       </code>
                       . Click the planning map or choose another local result to
                       replace it.
+                    </>
+                  ) : mapSelectedStart.label ? (
+                    <>
+                      Default start: <strong>{mapSelectedStart.label}</strong>{" "}
+                      at{" "}
+                      <code>
+                        {formatCoordinate(mapSelectedStart.coordinate)}
+                      </code>
+                      . Click the planning map to move it.
                     </>
                   ) : (
                     <>
@@ -1736,61 +1748,43 @@ export function App() {
               />
             </div>
 
-            <div className="preview-grid preview-grid--planning-overview">
-              <div className="preview-stat">
-                <span>Start mode</span>
-                <strong>{startPoint.label}</strong>
+            {routePreviewRequestError ? (
+              <div className="response-banner response-banner--error">
+                <strong>Preview request failed.</strong>
+                <span>{routePreviewRequestError}</span>
               </div>
-              <div className="preview-stat">
-                <span>Activity</span>
-                <strong>{activityLabels[activity]}</strong>
-              </div>
-              <div className="preview-stat">
-                <span>Distance</span>
-                <strong>{targetDistanceKm.toFixed(1)} km</strong>
-              </div>
-              <div className="preview-stat">
-                <span>Surface</span>
-                <strong>{surfaceLabels[surfacePreference]}</strong>
-              </div>
-            </div>
+            ) : null}
 
-            <div className="route-response">
-              <div className="section-heading">
-                <h3>Routed preview response</h3>
-                <p>
-                  The first backend preview now returns summary data, warnings,
-                  and route geometry through the shared response contract.
-                </p>
+            {isRequestingRoutePreview ? (
+              <div className="response-banner response-banner--pending">
+                <strong>Requesting routed preview.</strong>
+                <span>
+                  Waiting for candidate {previewCandidateIndex} from{" "}
+                  <code>{webRuntimeConfig.apiBaseUrl}</code>.
+                </span>
               </div>
+            ) : null}
 
-              {routePreviewRequestError ? (
-                <div className="response-banner response-banner--error">
-                  <strong>Preview request failed.</strong>
-                  <span>{routePreviewRequestError}</span>
-                </div>
-              ) : null}
+            {routePreview && routeDetailsSummaryLabel ? (
+              <details className="disclosure-card">
+                <summary>{routeDetailsSummaryLabel}</summary>
+                <div className="disclosure-card__content route-response">
+                  <div className="section-heading">
+                    <h3>Route details</h3>
+                    <p>
+                      Open this only when you want to inspect backend route
+                      warnings, summary metrics, or surface breakdown.
+                    </p>
+                  </div>
 
-              {isRequestingRoutePreview ? (
-                <div className="response-banner response-banner--pending">
-                  <strong>Requesting routed preview.</strong>
-                  <span>
-                    Waiting for candidate {previewCandidateIndex} from{" "}
-                    <code>{webRuntimeConfig.apiBaseUrl}</code>.
-                  </span>
-                </div>
-              ) : null}
-
-              {routePreview ? (
-                <>
                   <div className="preview-grid">
                     <div className="preview-stat">
                       <span>Status</span>
                       <strong>{routeStatusLabels[routePreview.status]}</strong>
                     </div>
                     <div className="preview-stat">
-                      <span>Route id</span>
-                      <strong>{routePreview.routeId}</strong>
+                      <span>Warnings</span>
+                      <strong>{routePreview.warnings.length}</strong>
                     </div>
                     <div className="preview-stat">
                       <span>Distance</span>
@@ -1821,8 +1815,12 @@ export function App() {
                       </strong>
                     </div>
                     <div className="preview-stat">
-                      <span>Warnings</span>
-                      <strong>{routePreview.warnings.length}</strong>
+                      <span>Route line</span>
+                      <strong>
+                        {routePreview.geometry
+                          ? `${routePreview.geometry.coordinates.length} points`
+                          : "Unavailable"}
+                      </strong>
                     </div>
                   </div>
 
@@ -1886,54 +1884,9 @@ export function App() {
                       Generate again to refresh the map and summary.
                     </p>
                   ) : null}
-                </>
-              ) : !isRequestingRoutePreview && !routePreviewRequestError ? (
-                <p className="empty-state">
-                  No routed preview yet. Generate a route to call the backend
-                  and populate the map with real preview state.
-                </p>
-              ) : null}
-            </div>
-
-            <details className="disclosure-card">
-              <summary>Technical route details</summary>
-              <div className="disclosure-card__content">
-                <p className="contract-line">
-                  Route API: <code>{webRuntimeConfig.apiBaseUrl}</code>
-                </p>
-                <p className="contract-line">
-                  Tile style: <code>{webRuntimeConfig.tileStyleUrl}</code>
-                </p>
-                <div className="request-preview">
-                  <div className="section-heading">
-                    <h3>Current request payload</h3>
-                    <p>
-                      The current planner request is still available here when
-                      you need to inspect the exact API shape.
-                    </p>
-                  </div>
-                  <pre>
-                    <code>{requestPreviewCode}</code>
-                  </pre>
                 </div>
-
-                {responsePreviewCode ? (
-                  <div className="request-preview">
-                    <div className="section-heading">
-                      <h3>Latest response payload</h3>
-                      <p>
-                        The most recent backend response stays available here
-                        for debugging without taking over the main planning
-                        flow.
-                      </p>
-                    </div>
-                    <pre>
-                      <code>{responsePreviewCode}</code>
-                    </pre>
-                  </div>
-                ) : null}
-              </div>
-            </details>
+              </details>
+            ) : null}
           </article>
 
           <article className="card navigation-session">
@@ -2473,54 +2426,16 @@ export function App() {
               <>
                 <div className="navigation-session__body">
                   <p className="panel-copy">
-                    A routed preview is ready to enter execution mode. Starting
-                    navigation keeps the current route line mounted, freezes
-                    planning edits, and computes progress locally from the route
-                    geometry.
+                    The route is ready. Start navigation when you want the map
+                    to switch into live guidance mode.
                   </p>
-                  <div className="preview-grid preview-grid--navigation">
-                    <div className="preview-stat">
-                      <span>Route id</span>
-                      <strong>{navigableRoutePreview.routeId}</strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Status</span>
-                      <strong>
-                        {routeStatusLabels[navigableRoutePreview.status]}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Route line</span>
-                      <strong>
-                        {navigableRoutePreview.geometry.coordinates.length}{" "}
-                        points
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Total</span>
-                      <strong>
-                        {navigableRoutePreview.summary
-                          ? `${navigableRoutePreview.summary.totalDistanceKm.toFixed(2)} km`
-                          : "Unavailable"}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Instructions</span>
-                      <strong>
-                        {navigableRoutePreview.instructions?.length ?? 0}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Orientation</span>
-                      <strong>
-                        {navigationOrientationState.indicatorLabel}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Runtime mode</span>
-                      <strong>{navigationRuntimeModeLabel}</strong>
-                    </div>
-                  </div>
+                  <p className="helper-copy helper-copy--active">
+                    {navigableRoutePreview.summary
+                      ? `${navigableRoutePreview.summary.totalDistanceKm.toFixed(
+                          2,
+                        )} km routed preview on the map.`
+                      : "A routed preview line is visible on the map."}
+                  </p>
                   <p className="helper-copy">
                     {browserGeolocation.status === "ready"
                       ? "Browser geolocation is already available, so starting navigation will follow the live GPS marker immediately."
@@ -2544,25 +2459,9 @@ export function App() {
               <>
                 <div className="navigation-session__body">
                   <p className="panel-copy">
-                    Route execution now has its own real entry point, but it
-                    still waits for a usable routed preview with geometry before
-                    a session can start.
+                    Navigation is locked until you generate a route that renders
+                    on the map.
                   </p>
-                  <ul className="handoff-list">
-                    <li>
-                      Generate a successful or partial route preview with
-                      geometry before starting navigation.
-                    </li>
-                    <li>
-                      Planning edits stay separate from route-following once a
-                      navigation session is active.
-                    </li>
-                    <li>
-                      Once a usable route exists, navigation can surface next
-                      instruction cues and conservative off-route warnings
-                      locally in the browser.
-                    </li>
-                  </ul>
                   <p className="helper-copy">
                     {isRoutePreviewStale
                       ? "The latest routed preview is stale. Generate again to refresh the route before starting navigation."
@@ -2848,9 +2747,15 @@ function getPlannerStartPointStatusLabel(options: {
       return "Last used start";
     case "map_point":
     default:
-      return options.mapSelectedStart.source === "search"
-        ? "Search start"
-        : options.startPoint.label;
+      if (options.mapSelectedStart.source === "search") {
+        return "Search start";
+      }
+
+      if (options.mapSelectedStart.label) {
+        return "Home start";
+      }
+
+      return options.startPoint.label;
   }
 }
 
@@ -2913,6 +2818,32 @@ function getRouteStatusClass(status: RouteGenerateResponse["status"]) {
   }
 
   return "status-pill--error";
+}
+
+function getRouteDetailsSummaryLabel(routePreview: RouteGenerateResponse) {
+  const parts = [routeStatusLabels[routePreview.status]];
+
+  if (routePreview.summary) {
+    parts.push(`${routePreview.summary.totalDistanceKm.toFixed(1)} km`);
+  }
+
+  if (routePreview.warnings.length > 0) {
+    parts.push(
+      `${routePreview.warnings.length} warning${
+        routePreview.warnings.length === 1 ? "" : "s"
+      }`,
+    );
+  }
+
+  return `Route details: ${parts.join(" · ")}`;
+}
+
+function createDefaultMapStartSelection(): PlannerMapStartSelection {
+  return {
+    coordinate: DEFAULT_MAP_SELECTED_START_COORDINATE,
+    label: DEFAULT_MAP_SELECTED_START_LABEL,
+    source: "map",
+  };
 }
 
 function getCurrentPositionOptionDetail(

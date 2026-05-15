@@ -380,6 +380,7 @@ export function PlanningMap({
             }`,
             routeGeometry ? "Route line visible" : "No route line",
           ];
+  const shouldShowStatusOverlay = loadState !== "ready";
 
   return (
     <section
@@ -400,18 +401,20 @@ export function PlanningMap({
       data-testid="planning-map"
     >
       <div ref={containerRef} className="planning-map__canvas" />
-      <div className="planning-map__status" role="status" aria-live="polite">
-        <p className="map-label">{statusEyebrow}</p>
-        <h3 data-testid="planning-map-heading">{statusHeading}</h3>
-        <p data-testid="planning-map-body">{statusBody}</p>
-        <div className="planning-map__chips">
-          {statusChips.map((chip) => (
-            <span key={chip} className="planning-map__chip">
-              {chip}
-            </span>
-          ))}
+      {shouldShowStatusOverlay ? (
+        <div className="planning-map__status" role="status" aria-live="polite">
+          <p className="map-label">{statusEyebrow}</p>
+          <h3 data-testid="planning-map-heading">{statusHeading}</h3>
+          <p data-testid="planning-map-body">{statusBody}</p>
+          <div className="planning-map__chips">
+            {statusChips.map((chip) => (
+              <span key={chip} className="planning-map__chip">
+                {chip}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
       {footerOverlay ? (
         <div className="planning-map__footer-overlay">{footerOverlay}</div>
       ) : null}
