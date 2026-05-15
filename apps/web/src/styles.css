@@ -887,11 +887,15 @@ code {
     max-width: 92vw;
     overflow: auto;
     border-radius: 1.5rem 0 0 1.5rem;
+    visibility: hidden;
+    pointer-events: none;
     transform: translateX(102%);
     transition: transform 180ms ease;
   }
 
   .planner-grid--drawer-open .planner-panel {
+    visibility: visible;
+    pointer-events: auto;
     transform: translateX(0);
   }
 
@@ -917,6 +921,10 @@ code {
   .planner-panel__close {
     display: inline-flex;
     align-self: flex-start;
+  }
+
+  .form-section--actions {
+    display: none;
   }
 
   .planner-journey {
@@ -1042,6 +1050,10 @@ code {
   }
 
   .navigation-session__body {
+    display: none;
+  }
+
+  .navigation-session__controls {
     display: none;
   }
 

@@ -1,5 +1,5 @@
 id: FINDING-0011
-status: open
+status: done
 severity: medium
 category: mobile_usability
 title: Closed mobile route-settings drawer still leaves duplicate primary actions active off screen
@@ -18,4 +18,5 @@ verification:
   - make run-app
   - supported 390x844 browser walkthrough for initial planner state and route-ready state
 created_at: 2026-05-15T11:20:33+02:00
-updated_at: 2026-05-15T11:20:33+02:00
+updated_at: 2026-05-15T14:56:51+02:00
+closed_at: 2026-05-15T14:56:51+02:00
