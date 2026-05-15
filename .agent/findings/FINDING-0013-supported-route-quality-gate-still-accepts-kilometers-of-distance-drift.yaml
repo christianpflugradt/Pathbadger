@@ -1,0 +1,22 @@
+id: FINDING-0013
+status: open
+severity: high
+category: routing_correctness
+title: Supported route generation and its live quality gate still accept routes that miss the requested distance by kilometers
+evidence:
+  - "`npm run test:live-route-quality` currently passes on the supported stack while reporting `targetDistanceKm: 8`, `totalDistanceKm: 15.08`, and `computedDistanceDeltaMeters: 7080` with only a `distance_outside_tolerance` warning and `status: partial`."
+  - "`apps/api/src/routing/routed-candidate-scoring.ts` only compares distance delta against the request tolerance and converts any larger miss into a warning; it never applies the product's 400-meter outer limit or a failure path for grossly oversized default results."
+  - "`apps/api/src/routing/route-generation-service.ts` returns the highest-scoring routed candidate whenever any candidate can be scored, even if every scored candidate is far beyond the acceptable target-distance envelope."
+  - "`scripts/live-route-quality-check.mjs` treats these oversized results as passing so long as the distance warning is honest, which means the repo's own supported release gate currently green-lights routes that the product spec now forbids."
+impact: The supported product can present obviously wrong round courses as acceptable generated routes, and the main live routing gate will still report success for the stack even when the result is several kilometers outside the allowed distance policy.
+recommendation: Enforce the 400-meter maximum target-distance delta in the scoring and service layers, and update the live route-quality gate so default supported generation fails when no acceptable round course can be produced within that limit unless an explicit feasibility exception is part of the supported contract.
+acceptance_criteria:
+  - Supported default route generation does not return a normal `success` or `partial` result for routes more than 400 meters away from the requested distance.
+  - When no legal round course can be found within the allowed distance envelope, the API responds with an explicit failure or a narrowly defined feasibility-only exception instead of silently accepting a gross overshoot.
+  - "`npm run test:live-route-quality` fails on oversized default results and only passes when the returned route respects the supported distance policy."
+verification:
+  - npm run test:live-route-quality
+  - npm run verify
+  - make run-app
+created_at: 2026-05-15T11:51:19+02:00
+updated_at: 2026-05-15T11:51:19+02:00
