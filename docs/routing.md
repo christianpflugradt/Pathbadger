@@ -64,7 +64,7 @@ Use this repo-native flow when you need supported evidence that the heavier loca
 When you want a human-readable local browser walkthrough in addition to the command output:
 
 1. Open `http://localhost:5173/` after `make run-app` or `make run-routing-app` finishes.
-2. Keep the default Bad Bramstedt starter area, choose `Running / walking`, `8.0 km`, and `Mixed`, then generate a preview.
+2. Keep the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, choose `Running / walking`, `8.0 km`, and `Mixed`, then generate a preview.
 3. Capture the rendered route line plus the summary and warnings area.
 
 Evidence to capture by outcome:

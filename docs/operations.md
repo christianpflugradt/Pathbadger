@@ -143,7 +143,7 @@ map-only local flows.
 - It proves three live behaviors through the frontend proxy: geometry-backed previews keep the first and last instruction coordinates anchored to the route geometry endpoints, distance and surface summaries stay internally honest, and out-of-region requests fail explicitly.
 - It does not yet prove intermediate instruction ordering or full cue-by-cue alignment along the route geometry.
 - Keep the command output together with any browser screenshots when route-quality work changes scoring, legality, region, warning, or instruction behavior.
-- For manual browser capture, use the default Bad Bramstedt starter area, generate an `8.0 km` `Running / walking` `Mixed` preview, and record whether the outcome is `success`, `partial`, or `failed` along with the visible warnings, summary, and instruction state.
+- For manual browser capture, keep the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, generate an `8.0 km` `Running / walking` `Mixed` preview, and record whether the outcome is `success`, `partial`, or `failed` along with the visible warnings, summary, and instruction state.
 
 ## Live elevation evidence
 

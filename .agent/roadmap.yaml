@@ -134,7 +134,7 @@ roadmap:
     - the planner now renders routed surface composition cards and unknown-coverage messaging, so surface-aware route previews are visible end to end in the web UI
     - the default local app workflow now includes `make run-app`, `make stopp-app`, and `make rebuild-app`, with docs aligned to the compose-based browser startup flow
     - the planning map now fails honestly when the configured self-hosted style is missing or unreachable instead of drawing bundled fallback cartography
-    - the supported local app boot now auto-generates ignored map data under `data/tiles/`, starts the self-hosted tile service by default, and passes the live browser smoke on a real Bad Bramstedt-centered planning map
+    - the supported local app boot now auto-generates ignored map data under `data/tiles/`, starts the self-hosted tile service by default, and passes the live browser smoke on a real planning map whose default journey starts from Heidmoorer Straße 18, 24576 Weddelbrook
     - "`packages/geo` now exports `calculateRouteProgress`, giving later navigation UI a tested local primitive for snapped route position, completed distance, remaining distance, progress fraction, and off-route distance"
     - route previews now carry normalized instruction arrays end to end from GraphHopper through the shared response contract and into the web app
     - the web app can now start a first local navigation session from a routed preview, compute progress locally, show next-instruction cues, and surface conservative off-route warnings without backend polling
