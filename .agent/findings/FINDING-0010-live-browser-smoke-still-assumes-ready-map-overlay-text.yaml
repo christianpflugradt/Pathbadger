@@ -1,0 +1,20 @@
+id: FINDING-0010
+status: open
+severity: high
+category: testing
+title: Live browser smoke still assumes ready-state map overlay text that the supported map-first UI no longer renders
+evidence:
+  - "`npm run test:browser-smoke -- --app-url http://localhost:5173` now fails on the supported live app with `locator.textContent: Timeout 30000ms exceeded` while waiting for `getByTestId('planning-map-body')`."
+  - "`scripts/browser-smoke.mjs` calls `readPlanningMapDiagnostics(...)` before and after the map settles, and that helper unconditionally reads `planning-map-body` and `planning-map-heading` even when the healthy ready state does not expose the status overlay anymore."
+  - "`apps/web/src/PlanningMap.tsx` now renders the `planning-map-heading` and `planning-map-body` test ids only inside `shouldShowStatusOverlay ? ... : null`, while the ready state sets `shouldShowStatusOverlay` false so the map can remain unobstructed."
+impact: The repo's own required browser-level quality gate is stale against the current supported map-first UI, so map work can look broken when the live app is actually healthy and future agents lose a trustworthy automated check for core browser journeys.
+recommendation: Update the live browser smoke to treat the ready-state map overlay as optional, using the map load state and runtime request evidence as the primary health signal instead of timing out on absent ready-state overlay text.
+acceptance_criteria:
+  - "`npm run test:browser-smoke -- --app-url http://localhost:5173` passes against the supported live app when the planning map reaches the ready state without a visible status overlay."
+  - The smoke still fails explicitly for real style, tile, or map-runtime errors instead of silently skipping diagnostics.
+  - Regression coverage fails if the smoke reintroduces a hard dependency on ready-state overlay text that the supported unobstructed map no longer renders.
+verification:
+  - npm run test:browser-smoke -- --app-url http://localhost:5173
+  - make run-app
+created_at: 2026-05-15T11:20:33+02:00
+updated_at: 2026-05-15T11:20:33+02:00

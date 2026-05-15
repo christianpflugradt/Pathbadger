@@ -1,0 +1,21 @@
+id: FINDING-0011
+status: open
+severity: medium
+category: mobile_usability
+title: Closed mobile route-settings drawer still leaves duplicate primary actions active off screen
+evidence:
+  - "`apps/web/src/App.tsx` always renders the full `.planner-panel` form plus its `Generate route` and `Generate variation` actions, while the closed mobile state only moves that panel off canvas instead of removing it or making it inert."
+  - "`apps/web/src/styles.css` hides the mobile drawer with `transform: translateX(102%)` under the `@media (max-width: 820px)` rules, but it does not add `display: none`, `visibility: hidden`, `inert`, or an accessibility guard for the closed state."
+  - "In this review's 390x844 browser session on `http://127.0.0.1:5173/`, the closed drawer still exposed off-screen `Generate route` and `Generate variation` buttons at `x ≈ 414`, while another visible `Generate route` button remained on the map overlay at `x ≈ 26`."
+  - "After a visible route was generated in the same phone-sized session, the page exposed three separate `Start navigation` buttons: one hidden `0x0` duplicate, one visible map-overlay action at `y ≈ 551`, and one additional below-fold action at `y ≈ 1181`."
+impact: The supported phone planner violates the new map-first product rule that primary actions should be obvious and singular near the map, and it leaves the closed drawer's hidden controls in the interactive tree where they can confuse keyboard, screen-reader, and automation flows.
+recommendation: Make the closed mobile drawer inert or unmounted, then collapse the duplicate planning and navigation CTAs so the phone flow exposes one clear primary action cluster near the map instead of multiple off-screen or below-fold copies.
+acceptance_criteria:
+  - When the mobile route-settings drawer is closed, its controls are not focusable or otherwise active in the interaction tree.
+  - The phone-sized planner exposes one clear visible cluster for the primary route action state instead of duplicate `Generate route` or `Start navigation` buttons in separate hidden or below-fold regions.
+  - Supported phone-sized browser verification proves the user can generate a route and start navigation from the map-first screen without duplicate primary actions competing for attention.
+verification:
+  - make run-app
+  - supported 390x844 browser walkthrough for initial planner state and route-ready state
+created_at: 2026-05-15T11:20:33+02:00
+updated_at: 2026-05-15T11:20:33+02:00
