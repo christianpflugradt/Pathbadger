@@ -4,20 +4,20 @@ priority: P1
 status: todo
 scope: web
 origin: refine
-parent_epic: EPIC-0018
-title: Minimize the navigation HUD and restore a quick next-route reset
-summary: Keep the phone navigation view map-dominant with only essential turn and progress metrics visible, and provide a clean return to the main planning state when navigation finishes or the user stops it.
+parent_epic: EPIC-0020
+title: Enter a true navigation mode from the route preview
+summary: When the user starts navigation, switch from the route preview shell into a dedicated guidance mode that keeps the map and route dominant and removes nonessential planner, preview, and diagnostic chrome.
 acceptance_criteria:
-  - during active navigation on a phone-sized supported browser viewport, the map occupies most of the visible space and the persistent HUD is limited to essential cues such as next turn, distance to turn, completed and remaining km, progress percent, and speed or ETA when supported
-  - nonessential planner prose, preview diagnostics, and secondary chrome stay collapsed or out of the main guidance view during active navigation
-  - stopping navigation or reaching the route end gives the user a clear way to return to the planning state and begin a new route quickly
-  - supported browser verification proves the route line remains mostly visible during active navigation and that the user can stop or finish a session and start planning the next route without UI dead ends
+  - starting navigation on a phone-sized supported browser viewport transitions directly from the route preview into a dedicated guidance mode on the same map surface
+  - during active navigation, the map occupies most of the visible space, roughly 80 percent or more when practical, and the route line plus current position remain comfortably visible
+  - planner cards, preview diagnostics, and secondary route-summary chrome do not persist as competing blocks in the active guidance view
+  - supported browser verification proves active route following no longer feels like a planner or debug page layered on top of the map
 verification:
   - npm run verify
   - make run-app
-  - supported phone-sized browser walkthrough for active navigation HUD and return-to-planning flow
+  - supported phone-sized browser walkthrough for start-navigation transition and map-dominant active guidance
 implementation_notes:
-  - "2026-05-15 refine: user feedback clarified that the core phone guidance experience should feel closer to a map-first navigation app and should not leave large diagnostics or planning blocks on screen during navigation."
-  - "2026-05-15 refine: the product concept now treats a clean reset into the next planning session as part of the primary journey rather than as optional cleanup after navigation."
+  - "2026-05-15 refine: user feedback clarified that the current navigation screen still behaves like a planner or diagnostics shell rather than a dedicated guidance mode."
+  - "2026-05-15 refine: the navigation transition must make the route itself feel central immediately, without keeping large route-preview or settings blocks on screen."
 created_at: 2026-05-15T10:56:34+02:00
-updated_at: 2026-05-15T10:56:34+02:00
+updated_at: 2026-05-15T12:24:00+02:00

@@ -210,7 +210,7 @@ The default intended journey is simple and map-first:
 5. If the random route is not appealing, the user can tap again to generate another variation within the same constraints.
 6. A normal generated route should stay within a few hundred meters of the requested length, with 400 meters as the hard outer limit for an acceptable default result, and it should ideally avoid any repeated-path overlap in opposite directions.
 7. Once a route looks good on the map, the user starts navigation from the same map-first screen.
-8. During navigation, the user mainly sees the route and current position on the map plus a compact set of essential guidance metrics.
+8. During navigation, the user mainly sees the route and current position on the map plus one compact set of essential guidance metrics instead of a planner or debug-style page.
 9. When navigation is finished or manually stopped, the user should be able to return directly to the planning state and start another route quickly.
 
 ### 4.0.1 Map-first UX principles
@@ -223,6 +223,8 @@ These are durable product constraints, not optional polish:
 - The product must not leave persistent nonessential popups, verbose diagnostics, or explanatory prose on top of the map during the core journey.
 - `Generate route`, `Generate another route`, and `Start navigation` must be obvious primary actions without requiring the user to study long instructions first.
 - The generated route should remain mostly visible while the user adjusts parameters, regenerates a route, or follows navigation guidance.
+- Starting navigation should switch into a dedicated guidance mode rather than leaving large planning or preview surfaces active on top of the map.
+- Active guidance should use one compact HUD cluster instead of multiple competing cards or duplicated actions.
 
 ### 4.1 Route planning state
 
@@ -272,10 +274,12 @@ The user follows the generated route outdoors.
 
 Route execution must support:
 
+- direct transition from the planner preview into a dedicated navigation mode
 - map view centered on current position
 - route line visible on the map
 - current GPS position visible
 - map-dominant mobile guidance instead of form-heavy or diagnostics-heavy layout
+- one compact persistent guidance HUD instead of multiple large summary or preview blocks
 - optional heading-up mode
 - north indicator or compass indicator
 - distance already completed

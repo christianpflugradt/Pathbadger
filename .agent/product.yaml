@@ -32,6 +32,7 @@ product:
     - generate route and generate another variation are the primary planning actions
     - a normal generated route should stay within a few hundred meters of the target distance, with 400 meters as the hard outer limit for an acceptable default result
     - start navigation is the primary handoff once an acceptable route preview is visible on the map
+    - starting navigation should switch the same map into a dedicated guidance mode rather than leaving the user inside a planner or diagnostics-heavy shell
     - after the route is finished or manually stopped, the user should be able to return quickly to planning and begin a new route
   experience_principles:
     - the map is the center of the product during both planning and navigation
@@ -40,6 +41,8 @@ product:
     - persistent nonessential popups or prose must not cover the map during the core journey
     - generate route, generate variation, and start navigation must be obvious without requiring the user to read long explanatory text
     - the generated route should remain mostly visible while the user adjusts parameters, inspects the preview, or follows navigation cues
+    - active navigation should feel like a dedicated guidance mode, not a planner or debug page layered on top of the map
+    - active guidance should use one compact essential HUD cluster rather than multiple competing panels
   non_goals:
     - user_accounts
     - authentication
@@ -85,8 +88,11 @@ product:
       - route_line_visible
       - current_position_visible
       - map_dominates_phone_viewport_during_guidance
+      - direct_navigation_mode_handoff_from_route_preview
       - follow_position_default_behavior
       - north_indicator_or_compass_indicator
+      - single_compact_navigation_hud_cluster
+      - planner_preview_and_diagnostic_chrome_hidden_during_guidance
       - minimal_navigation_hud_with_turn_progress_and_speed
       - next_instruction_and_distance
       - completed_remaining_total_km

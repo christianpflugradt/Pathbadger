@@ -6,11 +6,12 @@ Navigation is the second major product state after route planning.
 
 - show the current route geometry
 - keep the map as the dominant surface on phone during active guidance
+- switch from the route preview into a dedicated guidance mode when navigation starts instead of leaving the user in a planner-like shell
 - track current GPS position
 - compute progress locally in the browser
 - show next instruction and distance to it
 - show completed km, remaining km, total km, current speed, average speed, estimated remaining time when feasible, and progress percent
-- keep the persistent HUD compact and focused on essential turn and progress metrics instead of large planning or diagnostics panels
+- keep one persistent HUD compact and focused on essential turn and progress metrics instead of large planning, preview, or diagnostics panels
 - warn when the user is off route
 - offer a clear return to planning when navigation ends or is stopped
 
@@ -33,7 +34,7 @@ The navigation runtime is now implemented for the supported local browser flow:
 - navigation can optionally switch into a guarded heading-up mode, but it stays north-up by default and falls back honestly when heading data is weak or Battery saver is active
 - low-confidence or stale live GPS fixes now stay conservative, so off-route and progress cues become approximate until a tighter browser update arrives
 - navigation now exposes `Normal GPS` and `Battery saver` runtime modes, with saver mode relaxing browser geolocation to lower live-update churn at the cost of older or rougher fixes
-- user feedback has now clarified that future iterations must further reduce non-map chrome on phone and keep the active guidance HUD tighter around the route and essential metrics
+- user feedback has now clarified that future iterations must turn active navigation into a real guidance mode, remove planner or diagnostics chrome from that mode, and keep one tighter HUD around only the essential route and progress metrics
 
 ## Browser and PWA caveats
 

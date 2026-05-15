@@ -1,0 +1,15 @@
+id: EPIC-0020
+status: queued
+phase: post-mvp-map-first-ux
+title: Align active navigation with the map-first guidance journey
+objective: convert active navigation from a planner or debug shell into a glanceable phone guidance mode where the map dominates, one compact essential HUD stays visible, and stop or completion cleanly reset into the next route
+success_criteria:
+  - active navigation on a phone-sized supported browser viewport shows the route and current position on a map-dominant canvas that takes roughly 80 percent or more of the viewport when practical
+  - the supported navigation view exposes one compact essential HUD for next turn, distance to turn, km done, km remaining, progress percent, current speed, and ETA only when reliable instead of large cards or duplicated actions
+  - starting navigation enters that guidance mode directly from the planner map, and stopping or finishing returns quickly to planning for the next route
+items:
+  - ITEM-0044
+  - ITEM-0047
+  - ITEM-0048
+created_at: 2026-05-15T12:24:00+02:00
+updated_at: 2026-05-15T12:24:00+02:00

@@ -1,0 +1,23 @@
+id: ITEM-0047
+type: feature
+priority: P1
+status: todo
+scope: web
+origin: refine
+parent_epic: EPIC-0020
+title: Build one compact essential navigation HUD
+summary: Reduce persistent guidance chrome to one glanceable HUD that exposes only the essential turn and progress metrics during active navigation.
+acceptance_criteria:
+  - active navigation exposes one visible persistent HUD cluster instead of multiple competing summary cards or panels
+  - the compact HUD shows next turn, distance to next turn, km done, km remaining, progress percent, and current speed, while ETA appears only when the existing confidence rules support it
+  - duplicate actions, long helper prose, and route-preview summary blocks are removed or collapsed from the active guidance view
+  - supported phone-sized browser verification proves the user can glance at the guidance state without losing most of the route behind chrome
+verification:
+  - npm run verify
+  - make run-app
+  - supported phone-sized browser walkthrough for active guidance HUD visibility and route visibility
+implementation_notes:
+  - "2026-05-15 refine: user feedback clarified that the phone navigation HUD should feel closer to a mainstream map guidance view, with only essential metrics visible while moving."
+  - "2026-05-15 refine: ETA should remain conditional on reliable speed and progress evidence rather than being forced into the HUD when confidence is weak."
+created_at: 2026-05-15T12:24:00+02:00
+updated_at: 2026-05-15T12:24:00+02:00

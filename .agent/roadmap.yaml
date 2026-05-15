@@ -62,7 +62,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 94
+  overall_progress_percent: 93
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -113,7 +113,7 @@ roadmap:
       title: Map-first planner and navigation workflow
       status: queued
       progress_percent: 0
-      target_outcome: phone-first map-dominant planning and navigation with obvious route-generation and start-navigation actions plus a quick reset into the next route
+      target_outcome: phone-first map-dominant planning and a dedicated active-guidance mode with obvious route-generation and start-navigation actions plus a quick reset into the next route
   current_epic: EPIC-0019
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
@@ -160,5 +160,5 @@ roadmap:
   remaining_summary:
     - route generation is now explicitly constrained to true round courses that return to the same start, avoid retracing the same path in both directions beyond 500 meters total, and should normally stay within 400 meters of the requested distance, so future work must not treat out-and-back lines or oversized loops as acceptable default results
     - rerouting after off-route detection remains intentionally deferred until a new additive execution epic is opened
-    - user feedback has reopened the map-first mobile workflow, because the current planner and navigation shell still need less chrome, clearer primary actions, and a cleaner return to planning to match the intended product
+    - user feedback has reopened the map-first mobile workflow, because the current planner still needs cleaner primary actions and the active navigation view still needs a dedicated guidance mode, one compact HUD, and a cleaner return to planning to match the intended product
     - future work must keep route generation working in the default supported boot and treat persistent map-obscuring overlays or diagnostics as product defects rather than acceptable polish gaps

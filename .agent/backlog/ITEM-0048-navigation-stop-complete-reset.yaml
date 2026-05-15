@@ -1,0 +1,23 @@
+id: ITEM-0048
+type: feature
+priority: P1
+status: todo
+scope: web
+origin: refine
+parent_epic: EPIC-0020
+title: Finish stop and completion reset back to planning
+summary: End navigation with a clean return to the main planning screen so the user can immediately generate the next route without stale navigation chrome or UI dead ends.
+acceptance_criteria:
+  - stopping navigation returns the user to a usable planning state on the map without leaving large navigation-mode blocks behind
+  - reaching the route end exposes a concise completion or reset handoff that lets the user begin planning the next route quickly
+  - the returned planning state keeps the map usable for a fresh route instead of trapping the user in a stale preview or guidance shell
+  - supported phone-sized browser verification proves the user can stop or finish a navigation session and immediately begin the next route-planning cycle
+verification:
+  - npm run verify
+  - make run-app
+  - supported phone-sized browser walkthrough for stop-navigation and route-complete reset flow
+implementation_notes:
+  - "2026-05-15 refine: user feedback clarified that ending navigation is part of the core journey because the product should make starting the next route feel immediate rather than awkward."
+  - "2026-05-15 refine: the reset flow should remove stale guidance chrome instead of simply revealing the old planner beneath overlapping navigation surfaces."
+created_at: 2026-05-15T12:24:00+02:00
+updated_at: 2026-05-15T12:24:00+02:00
