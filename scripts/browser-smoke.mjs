@@ -68,6 +68,10 @@ console.log(
 async function runFixtureSuite(options) {
   const scenarios = [
     { id: "healthy-self-hosted-map", expectedCause: SELF_HOSTED_PASS_CAUSE },
+    {
+      id: "healthy-self-hosted-map-without-ready-overlay",
+      expectedCause: SELF_HOSTED_PASS_CAUSE,
+    },
     { id: "post-load-map-runtime-error", expectedCause: "map_runtime_error" },
     { id: "unreachable-style-json", expectedCause: "unreachable_style_json" },
     { id: "missing-tile-data", expectedCause: "missing_tile_data" },
@@ -347,17 +351,19 @@ async function waitForSettledLoadState(options) {
 
 async function readPlanningMapDiagnostics(options) {
   return {
-    mapBody: await readLocatorText(
+    mapBody: await readOptionalLocatorText(
       options.page.getByTestId("planning-map-body"),
     ),
-    mapHeading: await readLocatorText(
+    mapHeading: await readOptionalLocatorText(
       options.page.getByTestId("planning-map-heading"),
     ),
     mapLoadState:
       (await options.locator.getAttribute("data-map-load-state")) ?? "unknown",
     styleUrl:
       (await options.locator.getAttribute("data-map-style-url")) ??
-      (await readLocatorText(options.page.getByTestId("planning-map-style"))),
+      (await readOptionalLocatorText(
+        options.page.getByTestId("planning-map-style"),
+      )),
   };
 }
 
@@ -700,6 +706,16 @@ async function readLocatorText(locator) {
   return text?.trim() ?? "";
 }
 
+async function readOptionalLocatorText(locator) {
+  const count = await locator.count();
+
+  if (count === 0) {
+    return "";
+  }
+
+  return readLocatorText(locator);
+}
+
 function getErrorMessage(error) {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -742,6 +758,19 @@ async function createFixtureScenario(id) {
   const mapOrigin = `http://127.0.0.1:${mapServer.port}`;
 
   if (id === "healthy-self-hosted-map") {
+    scenario.styleDocument = {
+      sources: {
+        base: {
+          tiles: ["/tiles/basic/0/0/0.pbf"],
+          type: "vector",
+        },
+      },
+      version: 8,
+    };
+  }
+
+  if (id === "healthy-self-hosted-map-without-ready-overlay") {
+    scenario.hideReadyOverlay = true;
     scenario.styleDocument = {
       sources: {
         base: {
@@ -839,6 +868,9 @@ async function createFixtureScenario(id) {
 }
 
 function renderFixturePage(options) {
+  const renderStatusOverlay =
+    options.loadState !== "ready" || !options.hideReadyOverlay;
+
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -852,14 +884,18 @@ function renderFixturePage(options) {
       data-map-style-url="${options.styleUrl}"
       data-testid="planning-map"
     >
-      <div role="status" aria-live="polite">
+      ${
+        renderStatusOverlay
+          ? `<div role="status" aria-live="polite">
         <p>Live MapLibre surface</p>
         <h3 data-testid="planning-map-heading">${options.statusHeading}</h3>
         <p data-testid="planning-map-body">${options.statusBody}</p>
         <p>
           <code data-testid="planning-map-style">${options.styleUrl}</code>
         </p>
-      </div>
+      </div>`
+          : ""
+      }
     </section>
     <script>
       window.addEventListener("load", () => {
