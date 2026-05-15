@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   Coordinate,
   RouteGeometry,
@@ -30,6 +30,7 @@ type PlanningMapProps = {
   onMapSelect: (coordinate: Coordinate) => void;
   onNavigationViewportChange: (center: Coordinate) => void;
   passThroughPoints: Array<{ coordinate: Coordinate; label: string }>;
+  footerOverlay?: ReactNode;
   regionName: string;
   routeGeometry: RouteGeometry | null;
   routeStatus: RouteStatus | null;
@@ -58,6 +59,7 @@ export function PlanningMap({
   onMapSelect,
   onNavigationViewportChange,
   passThroughPoints,
+  footerOverlay,
   regionName,
   routeGeometry,
   routeStatus,
@@ -410,6 +412,9 @@ export function PlanningMap({
           ))}
         </div>
       </div>
+      {footerOverlay ? (
+        <div className="planning-map__footer-overlay">{footerOverlay}</div>
+      ) : null}
     </section>
   );
 }
