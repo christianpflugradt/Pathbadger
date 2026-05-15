@@ -1,5 +1,5 @@
 id: EPIC-0019
-status: active
+status: done
 phase: route-generation
 title: Enforce round-trip route generation and distance-fit limits
 objective: make the core route generator produce true round courses that return to the same start, avoid meaningful out-and-back overlap, and keep normal route results within a few hundred meters of the requested distance, with 400 meters as the hard outer limit unless explicit feasibility constraints make that impossible
@@ -12,4 +12,4 @@ items:
   - ITEM-0045
   - ITEM-0046
 created_at: 2026-05-15T11:30:47+02:00
-updated_at: 2026-05-15T21:16:30+02:00
+updated_at: 2026-05-15T21:39:30+02:00

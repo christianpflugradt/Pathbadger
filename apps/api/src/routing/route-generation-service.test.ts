@@ -448,6 +448,107 @@ describe("createRouteGenerationService", () => {
     expect(getRoute.mock.calls.length).toBeGreaterThan(2);
   });
 
+  it("fails explicitly when requested pass-through points make the distance target infeasible", async () => {
+    const getRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 15_080,
+      durationMs: 4_920_000,
+      elevationGainMeters: 88,
+      geometry: createLoopGeometry([10.152, 54.3375]),
+      instructions: [],
+      surfaceDetails: createUnknownSurfaceDetails(15_080),
+    });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [{ lat: 54.3418, lon: 10.1644 }],
+        randomSeed: "distance-pass-through-seed",
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "distance-fit-constraints-unavailable",
+      status: "failed",
+      warnings: [
+        {
+          code: "route_cannot_meet_requested_constraints",
+          message:
+            "No legal round course could include the requested pass-through points and stay within 400 meters of the requested distance.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+    expect(getRoute.mock.calls.length).toBeGreaterThan(2);
+  });
+
+  it("fails explicitly when supported routing constraints prevent a distance-fitting legal loop", async () => {
+    const getRoute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        distanceMeters: 8_060,
+        durationMs: 3_380_000,
+        elevationGainMeters: 61,
+        geometry: createLoopGeometry([10.1341, 54.3288]),
+        instructions: [],
+        surfaceDetails: createSurfaceDetails([
+          {
+            bikeAccess: "no",
+            distanceMeters: 8_060,
+            surface: "asphalt",
+            roadClass: "secondary",
+          },
+        ]),
+      })
+      .mockResolvedValue({
+        distanceMeters: 15_080,
+        durationMs: 4_920_000,
+        elevationGainMeters: 88,
+        geometry: createLoopGeometry([10.152, 54.3375]),
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(15_080),
+      });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "cycling",
+        passThroughPoints: [],
+        randomSeed: "distance-legality-seed",
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "distance-fit-constraints-unavailable",
+      status: "failed",
+      warnings: [
+        {
+          code: "route_cannot_meet_requested_constraints",
+          message:
+            "No legal round course could stay within 400 meters of the requested distance once supported routing constraints were applied.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+    expect(getRoute.mock.calls.length).toBeGreaterThan(2);
+  });
+
   it("fails explicitly when every scored candidate reuses too much path in both directions", async () => {
     const getRoute = vi.fn().mockResolvedValue({
       distanceMeters: 8_060,

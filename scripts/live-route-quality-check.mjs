@@ -28,15 +28,28 @@ const outOfRegionRequest = {
   randomSeed: null,
   toleranceMeters: 150,
 };
+const constrainedPassThroughRequest = {
+  start: { lat: 53.9188, lon: 9.8872 },
+  targetDistanceKm: 8,
+  activity: "running_walking",
+  surfacePreference: "mixed",
+  passThroughPoints: [{ lat: 53.9395, lon: 9.934 }],
+  randomSeed: null,
+  toleranceMeters: 150,
+};
 
 const previewResponse = await postRouteGenerate(previewRequest);
 const failureResponse = await postRouteGenerate(outOfRegionRequest);
+const constrainedPassThroughResponse = await postRouteGenerate(
+  constrainedPassThroughRequest,
+);
 
 const checks = [
   checkPreviewGeometryAndInstructionEndpoints(previewResponse),
   checkPreviewDistanceAndSurfaceHonesty(previewRequest, previewResponse),
   checkPreviewRoundTripContract(previewRequest, previewResponse),
   ...(requireElevation ? [checkPreviewElevationGain(previewResponse)] : []),
+  checkConstrainedPassThroughFailure(constrainedPassThroughResponse),
   checkOutOfRegionFailure(failureResponse),
 ];
 
@@ -291,6 +304,37 @@ function checkOutOfRegionFailure(response) {
   };
 }
 
+function checkConstrainedPassThroughFailure(response) {
+  const warningMessages = listWarningMessages(response.body.warnings);
+  const ok =
+    response.httpStatus === 200 &&
+    response.body.status === "failed" &&
+    listWarningCodes(response.body.warnings).includes(
+      "route_cannot_meet_requested_constraints",
+    ) &&
+    warningMessages.some((message) =>
+      message.includes("requested pass-through points"),
+    ) &&
+    response.body.summary === null &&
+    response.body.geometry === null &&
+    response.body.instructions === null;
+
+  return {
+    id: "constrained_pass_through_failure_is_explicit",
+    ok,
+    evidence: {
+      geometry: response.body.geometry,
+      httpStatus: response.httpStatus,
+      instructions: response.body.instructions,
+      routeId: response.body.routeId,
+      status: response.body.status,
+      summary: response.body.summary,
+      warningCodes: listWarningCodes(response.body.warnings),
+      warningMessages,
+    },
+  };
+}
+
 function coordinatesEqual(left, right) {
   return (
     Array.isArray(left) &&
@@ -306,6 +350,14 @@ function listWarningCodes(warnings) {
   return Array.isArray(warnings)
     ? warnings.flatMap((warning) =>
         typeof warning?.code === "string" ? [warning.code] : [],
+      )
+    : [];
+}
+
+function listWarningMessages(warnings) {
+  return Array.isArray(warnings)
+    ? warnings.flatMap((warning) =>
+        typeof warning?.message === "string" ? [warning.message] : [],
       )
     : [];
 }

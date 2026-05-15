@@ -140,10 +140,10 @@ map-only local flows.
 ## Live route-quality evidence
 
 - `npm run test:live-route-quality` is the supported repeatable evidence command after `make run-app` or `make run-routing-app`.
-- It proves three live behaviors through the frontend proxy: geometry-backed previews keep the first and last instruction coordinates anchored to the route geometry endpoints, distance and surface summaries stay internally honest, and out-of-region requests fail explicitly.
+- It proves four live behaviors through the frontend proxy: geometry-backed previews keep the first and last instruction coordinates anchored to the route geometry endpoints, distance and surface summaries stay internally honest, impossible pass-through-constrained requests fail explicitly instead of returning oversized loops, and out-of-region requests fail explicitly.
 - It does not yet prove intermediate instruction ordering or full cue-by-cue alignment along the route geometry.
 - Keep the command output together with any browser screenshots when route-quality work changes scoring, legality, region, warning, or instruction behavior.
-- For manual browser capture, keep the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, generate an `8.0 km` `Running / walking` `Mixed` preview, and record whether the outcome is `success`, `partial`, or `failed` along with the visible warnings, summary, and instruction state.
+- For manual browser capture, keep the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, generate an `8.0 km` `Running / walking` `Mixed` preview, and record whether the outcome is `success`, `partial`, or `failed` along with the visible warnings, summary, and instruction state. If you need a human-checked infeasibility example, add a pass-through point east of Bimohlen near `53.9395, 9.9340` and confirm the route fails explicitly instead of returning an oversized loop.
 
 ## Live elevation evidence
 

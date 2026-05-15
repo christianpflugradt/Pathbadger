@@ -2895,6 +2895,16 @@ function getRouteWarningDisplay(
         title: "Route generation unavailable",
         body: "Pathbadger could not generate a route right now. Try again in a moment.",
       };
+    case "route_exceeds_supported_distance_limit":
+      return {
+        title: "Distance target unavailable",
+        body: "No supported round course could stay close enough to the requested distance. Try a different distance or generate another variation.",
+      };
+    case "route_cannot_meet_requested_constraints":
+      return {
+        title: "Route constraints too tight",
+        body: warning.message,
+      };
     case "routing_engine_invalid_response":
       return {
         title: "Route generation interrupted",

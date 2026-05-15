@@ -134,7 +134,11 @@ export function createRouteGenerationService(
         }
 
         return routeGenerateResponseSchema.parse(
-          createUnsupportedCandidateFailureResponse(unsupportedCandidates),
+          createUnsupportedCandidateFailureResponse({
+            request: parsedRequest,
+            rejections,
+            unsupportedCandidates,
+          }),
         );
       }
 
@@ -331,29 +335,64 @@ function roundTargetDistance(distanceKm: number) {
   return Number(distanceKm.toFixed(3));
 }
 
-function createUnsupportedCandidateFailureResponse(
-  unsupportedCandidates: ScoredRoutedCandidate[],
-) {
-  const hasDistanceOnlyCandidates = unsupportedCandidates.some(
+function createUnsupportedCandidateFailureResponse(options: {
+  request: RouteGenerateRequest;
+  rejections: Array<{
+    routeId: string;
+    warning: { code: string; message: string };
+  }>;
+  unsupportedCandidates: ScoredRoutedCandidate[];
+}) {
+  const hasDistanceOnlyCandidates = options.unsupportedCandidates.some(
     (candidate) => candidate.isWithinSupportedRoundTripContract,
   );
-  const hasLoopOnlyCandidates = unsupportedCandidates.some(
+  const hasLoopOnlyCandidates = options.unsupportedCandidates.some(
     (candidate) => candidate.isWithinSupportedDistanceLimit,
   );
+  const hasRequestedPassThroughPoints =
+    options.request.passThroughPoints.length > 0;
+  const hasSupportedRoutingConstraintRejections = options.rejections.some(
+    (rejection) =>
+      rejection.warning.code === "route_contains_prohibited_access" ||
+      rejection.warning.code === "route_contains_prohibited_road_class" ||
+      rejection.warning.code === "route_leaves_supported_region",
+  );
+  const hasExplicitFeasibilityConstraints =
+    hasRequestedPassThroughPoints || hasSupportedRoutingConstraintRejections;
 
   if (hasDistanceOnlyCandidates && hasLoopOnlyCandidates) {
     return createFailedRouteResponse(
-      "route-contract-unavailable",
-      "route_cannot_meet_supported_contract",
-      `No legal round course could be generated that both returned to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path and stayed within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+      hasExplicitFeasibilityConstraints
+        ? "route-contract-constraints-unavailable"
+        : "route-contract-unavailable",
+      hasExplicitFeasibilityConstraints
+        ? "route_cannot_meet_requested_constraints"
+        : "route_cannot_meet_supported_contract",
+      hasExplicitFeasibilityConstraints
+        ? createConstraintLimitedFailureMessage({
+            hasRequestedPassThroughPoints,
+            hasSupportedRoutingConstraintRejections,
+            includesLoopConstraint: true,
+          })
+        : `No legal round course could be generated that both returned to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path and stayed within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
     );
   }
 
   if (hasDistanceOnlyCandidates) {
     return createFailedRouteResponse(
-      "distance-fit-unavailable",
-      "route_exceeds_supported_distance_limit",
-      `No legal round course could be generated within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+      hasExplicitFeasibilityConstraints
+        ? "distance-fit-constraints-unavailable"
+        : "distance-fit-unavailable",
+      hasExplicitFeasibilityConstraints
+        ? "route_cannot_meet_requested_constraints"
+        : "route_exceeds_supported_distance_limit",
+      hasExplicitFeasibilityConstraints
+        ? createConstraintLimitedFailureMessage({
+            hasRequestedPassThroughPoints,
+            hasSupportedRoutingConstraintRejections,
+            includesLoopConstraint: false,
+          })
+        : `No legal round course could be generated within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
     );
   }
 
@@ -362,6 +401,31 @@ function createUnsupportedCandidateFailureResponse(
     "route_cannot_form_supported_round_trip",
     `No legal round course could be generated that returned to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path.`,
   );
+}
+
+function createConstraintLimitedFailureMessage(options: {
+  hasRequestedPassThroughPoints: boolean;
+  hasSupportedRoutingConstraintRejections: boolean;
+  includesLoopConstraint: boolean;
+}) {
+  if (
+    options.hasRequestedPassThroughPoints &&
+    options.hasSupportedRoutingConstraintRejections
+  ) {
+    return options.includesLoopConstraint
+      ? `No legal round course could include the requested pass-through points, honor supported routing constraints, return to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path, and stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`
+      : `No legal round course could include the requested pass-through points, honor supported routing constraints, and stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`;
+  }
+
+  if (options.hasRequestedPassThroughPoints) {
+    return options.includesLoopConstraint
+      ? `No legal round course could include the requested pass-through points while also returning to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path and staying within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`
+      : `No legal round course could include the requested pass-through points and stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`;
+  }
+
+  return options.includesLoopConstraint
+    ? `No legal round course could satisfy the supported routing constraints while also returning to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path and staying within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`
+    : `No legal round course could stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance once supported routing constraints were applied.`;
 }
 
 function mapFailureToResponse(routeId: string, error: unknown) {
