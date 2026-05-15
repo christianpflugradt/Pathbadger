@@ -6,6 +6,7 @@ import type {
   RouteGenerateRequest,
   RouteGeometry,
   RouteInstruction,
+  RouteLoopSummary,
   RouteSurfaceSummary,
   RouteStatus,
   RouteSummary,
@@ -17,6 +18,13 @@ import type {
   GraphHopperRouteResult,
   GraphHopperRouteSurfaceDetail,
 } from "./graphhopper-adapter.js";
+import {
+  MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS,
+  MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS,
+  MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS,
+  routeMeetsSupportedRoundTripContract,
+  summarizeRouteLoop,
+} from "./route-loop-analysis.js";
 
 const ASPHALT_SURFACES = new Set([
   "asphalt",
@@ -74,6 +82,7 @@ export interface ScoredRoutedCandidate {
   surfacePreferenceScore: number;
   isWithinTolerance: boolean;
   isWithinSupportedDistanceLimit: boolean;
+  isWithinSupportedRoundTripContract: boolean;
   status: Exclude<RouteStatus, "failed">;
   warnings: RouteWarning[];
   summary: RouteSummary;
@@ -151,6 +160,12 @@ export function scoreRoutedCandidate(
     Math.abs(distanceDeltaMeters) <= parsedRequest.toleranceMeters;
   const isWithinSupportedDistanceLimit =
     Math.abs(distanceDeltaMeters) <= MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS;
+  const loop = summarizeRouteLoop({
+    geometry: options.candidate.geometry,
+    requestedStart: parsedRequest.start,
+  });
+  const isWithinSupportedRoundTripContract =
+    routeMeetsSupportedRoundTripContract(loop);
   const surfaceSummary = summarizeRouteSurface(
     options.candidate.surfaceDetails,
     options.candidate.distanceMeters,
@@ -162,6 +177,7 @@ export function scoreRoutedCandidate(
   const distanceFitScore = -Math.abs(distanceDeltaMeters);
   const warnings = createScoringWarnings({
     distanceDeltaMeters,
+    loop,
     surfaceSummary,
     toleranceMeters: parsedRequest.toleranceMeters,
   });
@@ -170,6 +186,7 @@ export function scoreRoutedCandidate(
     targetDistanceKm: parsedRequest.targetDistanceKm,
     distanceDeltaMeters,
     elevationGainMeters: options.candidate.elevationGainMeters,
+    loop,
     surface: surfaceSummary,
   });
 
@@ -180,6 +197,7 @@ export function scoreRoutedCandidate(
     surfacePreferenceScore,
     isWithinTolerance,
     isWithinSupportedDistanceLimit,
+    isWithinSupportedRoundTripContract,
     status: warnings.length > 0 ? "partial" : "success",
     warnings,
     summary,
@@ -190,6 +208,7 @@ export function scoreRoutedCandidate(
 
 function createScoringWarnings(options: {
   distanceDeltaMeters: number;
+  loop: RouteLoopSummary;
   surfaceSummary: RouteSurfaceSummary;
   toleranceMeters: number;
 }): RouteWarning[] {
@@ -210,6 +229,33 @@ function createScoringWarnings(options: {
         options.surfaceSummary.unknownPercent ?? 0,
       )} of this routed preview.`,
     });
+  }
+
+  if (!routeMeetsSupportedRoundTripContract(options.loop)) {
+    if (
+      options.loop.startOffsetMeters >
+        MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS ||
+      options.loop.endOffsetMeters >
+        MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS ||
+      options.loop.closureGapMeters > MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS
+    ) {
+      warnings.push({
+        code: "route_does_not_return_to_start",
+        message:
+          "The routed preview does not return closely enough to the requested start area.",
+      });
+    }
+
+    if (
+      options.loop.bidirectionalOverlapMeters >
+      MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS
+    ) {
+      warnings.push({
+        code: "route_reuses_too_much_path",
+        message:
+          "The routed preview reuses more than 500 meters of the same path in opposite directions.",
+      });
+    }
   }
 
   return warnings;

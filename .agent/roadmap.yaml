@@ -62,7 +62,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 93
+  overall_progress_percent: 94
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -82,7 +82,7 @@ roadmap:
     - id: route-generation
       title: Random route generation, scoring, distance handling
       status: active
-      progress_percent: 80
+      progress_percent: 90
       target_outcome: candidate generation and scoring that produce true low-overlap round-trip routes returning to the start and staying near the requested distance instead of drifting into oversized or out-and-back loops
     - id: navigation
       title: GPS route following and navigation metrics
@@ -150,6 +150,7 @@ roadmap:
     - the planner now restores both activity and surface selections from browser-local storage, saves each change immediately, and warns honestly when browser-local persistence cannot be used
     - the supported planner now removes the orphaned `Place search later` control and keeps pass-through planning explicitly centered on live map clicks while documenting local place search as later scope
     - the routing core now includes legality and Schleswig-Holstein region guardrails plus `npm run test:live-route-quality`, a repeatable frontend-proxied live evidence command that proves first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior on `make run-app` or `make run-routing-app`
+    - shared contracts, api scoring, and live verification now treat a normal generated route as a true low-overlap round trip, including explicit `summary.loop` metrics for start-area return, closure gap, and bidirectional repeated-path overlap, while the supported default 8 km live proof returns to the start with 367 meters of overlap
     - the scoped MVP backlog for the supported self-hosted browser flow is complete, so any newly opened work is additive post-MVP scope rather than a missing required capability
     - navigation now exposes an explicit `Heading up` mode alongside the north-up default, rotates only when browser heading data is fresh and trustworthy, and falls back honestly when heading support, GPS confidence, or Battery saver constraints are weak
     - the supported live map proof now serves frontend-resolvable self-hosted tile template URLs and `npm run test:browser-smoke -- --app-url http://localhost:5173` confirms real tile-stack requests through the proxied planning map boot
@@ -158,7 +159,7 @@ roadmap:
     - the api now exposes a supported same-origin `GET /api/places/search` boundary with shared contracts and honest `empty` or `unavailable` states, so later planner UI work can add local place search without direct browser calls to any provider
     - the planner now exposes a supported same-origin local place-search workflow, keeps Schleswig-Holstein routing guardrails and unavailable-provider states explicit, and can apply a searched place directly as the route start or a pass-through point
   remaining_summary:
-    - route generation is now explicitly constrained to true round courses that return to the same start, avoid retracing the same path in both directions beyond 500 meters total, and should normally stay within 400 meters of the requested distance, so future work must not treat out-and-back lines or oversized loops as acceptable default results
+    - one remaining route-generation follow-up should keep tightening bounded search and feasibility handling around the 400 meter distance-fit policy, but out-and-back lines are no longer treated as acceptable default results
     - rerouting after off-route detection remains intentionally deferred until a new additive execution epic is opened
     - user feedback has reopened the map-first mobile workflow, because the current planner still needs cleaner primary actions and the active navigation view still needs a dedicated guidance mode, one compact HUD, and a cleaner return to planning to match the intended product
     - future work must keep route generation working in the default supported boot and treat persistent map-obscuring overlays or diagnostics as product defects rather than acceptable polish gaps

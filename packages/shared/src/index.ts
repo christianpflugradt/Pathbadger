@@ -25,11 +25,18 @@ export const routeSurfaceSummarySchema = z.object({
   fieldTrackOtherPercent: z.number().min(0).max(100).nullable(),
   unknownPercent: z.number().min(0).max(100).nullable(),
 });
+export const routeLoopSummarySchema = z.object({
+  startOffsetMeters: z.number().min(0),
+  endOffsetMeters: z.number().min(0),
+  closureGapMeters: z.number().min(0),
+  bidirectionalOverlapMeters: z.number().min(0),
+});
 export const routeSummarySchema = z.object({
   totalDistanceKm: z.number().positive(),
   targetDistanceKm: z.number().positive(),
   distanceDeltaMeters: z.number(),
   elevationGainMeters: z.number().nullable(),
+  loop: routeLoopSummarySchema,
   surface: routeSurfaceSummarySchema,
 });
 export const lineStringCoordinateSchema = z.tuple([
@@ -101,6 +108,7 @@ export type SurfacePreference = z.infer<typeof surfacePreferenceSchema>;
 export type RouteStatus = z.infer<typeof routeStatusSchema>;
 export type RouteWarning = z.infer<typeof routeWarningSchema>;
 export type RouteSurfaceSummary = z.infer<typeof routeSurfaceSummarySchema>;
+export type RouteLoopSummary = z.infer<typeof routeLoopSummarySchema>;
 export type RouteSummary = z.infer<typeof routeSummarySchema>;
 export type RouteGeometry = z.infer<typeof routeGeometrySchema>;
 export type RouteInstruction = z.infer<typeof routeInstructionSchema>;

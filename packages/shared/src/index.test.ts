@@ -71,6 +71,12 @@ describe("routeGenerateResponseSchema", () => {
         targetDistanceKm: 12.5,
         distanceDeltaMeters: 300,
         elevationGainMeters: null,
+        loop: {
+          startOffsetMeters: 12,
+          endOffsetMeters: 12,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 180,
+        },
         surface: {
           asphaltPercent: 15,
           trailUnpavedPercent: 65,
@@ -143,6 +149,12 @@ describe("routeGenerateResponseSchema", () => {
           targetDistanceKm: 12.5,
           distanceDeltaMeters: 0,
           elevationGainMeters: null,
+          loop: {
+            startOffsetMeters: 0,
+            endOffsetMeters: 0,
+            closureGapMeters: 0,
+            bidirectionalOverlapMeters: 0,
+          },
           surface: {
             asphaltPercent: 40,
             trailUnpavedPercent: 40,
@@ -170,6 +182,12 @@ describe("routeGenerateResponseSchema", () => {
           targetDistanceKm: 8,
           distanceDeltaMeters: 500,
           elevationGainMeters: 45,
+          loop: {
+            startOffsetMeters: 0,
+            endOffsetMeters: 0,
+            closureGapMeters: 0,
+            bidirectionalOverlapMeters: 510,
+          },
           surface: {
             asphaltPercent: 40,
             trailUnpavedPercent: 40,

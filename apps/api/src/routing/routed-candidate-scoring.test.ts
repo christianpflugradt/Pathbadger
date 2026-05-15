@@ -32,7 +32,25 @@ function createGeometry(coordinates: Array<[number, number]>) {
   };
 }
 
-function createInstructions() {
+function createLoopGeometry(
+  outerCoordinate: [number, number],
+  returnCoordinate: [number, number] = [
+    Number((outerCoordinate[0] - 0.0104).toFixed(4)),
+    Number((outerCoordinate[1] + 0.0102).toFixed(4)),
+  ],
+) {
+  return createGeometry([
+    [10.1228, 54.3233],
+    outerCoordinate,
+    returnCoordinate,
+    [10.1228, 54.3233],
+  ]);
+}
+
+function createInstructions(points: Array<[number, number]> = []) {
+  const startCoordinate = points[0] ?? ([10.1228, 54.3233] as [number, number]);
+  const endCoordinate = points[points.length - 1] ?? startCoordinate;
+
   return [
     {
       distanceFromStartMeters: 0,
@@ -40,7 +58,7 @@ function createInstructions() {
       type: "depart",
       text: "Start route",
       streetName: null,
-      coordinate: [10.1228, 54.3233] as [number, number],
+      coordinate: startCoordinate,
     },
     {
       distanceFromStartMeters: 500,
@@ -48,7 +66,7 @@ function createInstructions() {
       type: "arrive",
       text: "Arrive at destination",
       streetName: null,
-      coordinate: [10.1452, 54.3321] as [number, number],
+      coordinate: endCoordinate,
     },
   ];
 }
@@ -84,12 +102,11 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 12_040,
         durationMs: 4_920_000,
         elevationGainMeters: 88,
-        geometry: createGeometry([
+        geometry: createLoopGeometry([10.1452, 54.3321]),
+        instructions: createInstructions([
           [10.1228, 54.3233],
-          [10.1452, 54.3321],
           [10.1228, 54.3233],
         ]),
-        instructions: createInstructions(),
         surfaceDetails: createSurfaceDetails([
           {
             distanceMeters: 6_020,
@@ -117,6 +134,7 @@ describe("scoreRoutedCandidate", () => {
       surfacePreferenceScore: 0,
       isWithinTolerance: true,
       isWithinSupportedDistanceLimit: true,
+      isWithinSupportedRoundTripContract: true,
       status: "success",
       warnings: [],
       summary: {
@@ -124,6 +142,12 @@ describe("scoreRoutedCandidate", () => {
         targetDistanceKm: 12,
         distanceDeltaMeters: 40,
         elevationGainMeters: 88,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 50,
           trailUnpavedPercent: 25,
@@ -131,15 +155,11 @@ describe("scoreRoutedCandidate", () => {
           unknownPercent: 0,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.1452, 54.3321],
-          [10.1228, 54.3233],
-        ],
-      },
-      instructions: createInstructions(),
+      geometry: createLoopGeometry([10.1452, 54.3321]),
+      instructions: createInstructions([
+        [10.1228, 54.3233],
+        [10.1228, 54.3233],
+      ]),
     });
   });
 
@@ -160,10 +180,7 @@ describe("scoreRoutedCandidate", () => {
           distanceMeters: 20_040,
           durationMs: 2_340_000,
           elevationGainMeters: 120,
-          geometry: createGeometry([
-            [10.1228, 54.3233],
-            [10.141, 54.332],
-          ]),
+          geometry: createLoopGeometry([10.141, 54.332]),
           instructions: [],
           surfaceDetails: createSurfaceDetails([
             {
@@ -198,10 +215,7 @@ describe("scoreRoutedCandidate", () => {
           distanceMeters: 10_020,
           durationMs: 2_340_000,
           elevationGainMeters: 120,
-          geometry: createGeometry([
-            [10.1228, 54.3233],
-            [10.141, 54.332],
-          ]),
+          geometry: createLoopGeometry([10.141, 54.332]),
           instructions: [],
           surfaceDetails: createSurfaceDetails([
             {
@@ -236,11 +250,7 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 12_340,
         durationMs: 4_920_000,
         elevationGainMeters: 88,
-        geometry: createGeometry([
-          [10.1228, 54.3233],
-          [10.152, 54.3375],
-          [10.1228, 54.3233],
-        ]),
+        geometry: createLoopGeometry([10.152, 54.3375]),
         instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(12_340),
       },
@@ -252,7 +262,9 @@ describe("scoreRoutedCandidate", () => {
     expect(scoredCandidate.score).toBe(-440);
     expect(scoredCandidate.isWithinTolerance).toBe(false);
     expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(true);
     expect(scoredCandidate.summary.distanceDeltaMeters).toBe(340);
+    expect(scoredCandidate.summary.loop.bidirectionalOverlapMeters).toBe(0);
     expect(scoredCandidate.summary.surface).toEqual({
       asphaltPercent: 0,
       trailUnpavedPercent: 0,
@@ -289,11 +301,7 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 12_520,
         durationMs: 4_920_000,
         elevationGainMeters: 88,
-        geometry: createGeometry([
-          [10.1228, 54.3233],
-          [10.152, 54.3375],
-          [10.1228, 54.3233],
-        ]),
+        geometry: createLoopGeometry([10.152, 54.3375]),
         instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(12_520),
       },
@@ -301,7 +309,85 @@ describe("scoreRoutedCandidate", () => {
 
     expect(scoredCandidate.isWithinTolerance).toBe(false);
     expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(false);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(true);
     expect(scoredCandidate.summary.distanceDeltaMeters).toBe(520);
+  });
+
+  it("marks routed previews with long bidirectional retracing as unsupported round trips", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      },
+      candidate: {
+        routeId: "candidate-overlap",
+        distanceMeters: 12_080,
+        durationMs: 4_920_000,
+        elevationGainMeters: 88,
+        geometry: createGeometry([
+          [10.1228, 54.3233],
+          [10.1228, 54.3383],
+          [10.1228, 54.3533],
+          [10.1228, 54.3383],
+          [10.1228, 54.3233],
+        ]),
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(12_080),
+      },
+    });
+
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(false);
+    expect(
+      scoredCandidate.summary.loop.bidirectionalOverlapMeters,
+    ).toBeGreaterThan(500);
+    expect(scoredCandidate.warnings).toContainEqual({
+      code: "route_reuses_too_much_path",
+      message:
+        "The routed preview reuses more than 500 meters of the same path in opposite directions.",
+    });
+  });
+
+  it("marks routed previews that do not return to the requested start area", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      },
+      candidate: {
+        routeId: "candidate-not-closed",
+        distanceMeters: 12_060,
+        durationMs: 4_920_000,
+        elevationGainMeters: 88,
+        geometry: createGeometry([
+          [10.1248, 54.3253],
+          [10.1452, 54.3321],
+          [10.1378, 54.3432],
+          [10.1248, 54.3253],
+        ]),
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(12_060),
+      },
+    });
+
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(false);
+    expect(scoredCandidate.summary.loop.startOffsetMeters).toBeGreaterThan(150);
+    expect(scoredCandidate.warnings).toContainEqual({
+      code: "route_does_not_return_to_start",
+      message:
+        "The routed preview does not return closely enough to the requested start area.",
+    });
   });
 
   it("gives higher scores to routed candidates with tighter distance fit", () => {
@@ -321,10 +407,7 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 20_060,
         durationMs: 2_340_000,
         elevationGainMeters: 120,
-        geometry: createGeometry([
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-        ]),
+        geometry: createLoopGeometry([10.141, 54.332]),
         instructions: [],
         surfaceDetails: createSurfaceDetails([
           {
@@ -347,10 +430,7 @@ describe("scoreRoutedCandidate", () => {
         distanceMeters: 20_380,
         durationMs: 2_340_000,
         elevationGainMeters: 120,
-        geometry: createGeometry([
-          [10.1228, 54.3233],
-          [10.152, 54.3375],
-        ]),
+        geometry: createLoopGeometry([10.152, 54.3375]),
         instructions: [],
         surfaceDetails: createSurfaceDetails([
           {
@@ -378,10 +458,7 @@ describe("scoreRoutedCandidate", () => {
       distanceMeters: 10_040,
       durationMs: 2_340_000,
       elevationGainMeters: 120,
-      geometry: createGeometry([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
       instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
@@ -406,10 +483,7 @@ describe("scoreRoutedCandidate", () => {
       distanceMeters: 10_040,
       durationMs: 2_340_000,
       elevationGainMeters: 120,
-      geometry: createGeometry([
-        [10.1228, 54.3233],
-        [10.152, 54.3375],
-      ]),
+      geometry: createLoopGeometry([10.152, 54.3375]),
       instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
@@ -469,10 +543,7 @@ describe("scoreRoutedCandidate", () => {
       distanceMeters: 10_120,
       durationMs: 2_340_000,
       elevationGainMeters: 120,
-      geometry: createGeometry([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
       instructions: [],
       surfaceDetails: createSurfaceDetails([
         {
@@ -497,10 +568,7 @@ describe("scoreRoutedCandidate", () => {
       distanceMeters: 10_020,
       durationMs: 2_340_000,
       elevationGainMeters: 120,
-      geometry: createGeometry([
-        [10.1228, 54.3233],
-        [10.152, 54.3375],
-      ]),
+      geometry: createLoopGeometry([10.152, 54.3375]),
       instructions: [],
       surfaceDetails: createSurfaceDetails([
         {

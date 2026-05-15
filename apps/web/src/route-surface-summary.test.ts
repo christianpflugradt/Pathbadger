@@ -13,6 +13,12 @@ describe("route surface summary helpers", () => {
         targetDistanceKm: 12,
         distanceDeltaMeters: 340,
         elevationGainMeters: 88,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 260,
+        },
         surface: {
           asphaltPercent: 25,
           trailUnpavedPercent: 40,
@@ -55,6 +61,12 @@ describe("route surface summary helpers", () => {
         targetDistanceKm: 12,
         distanceDeltaMeters: 340,
         elevationGainMeters: 88,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 260,
+        },
         surface: {
           asphaltPercent: 25,
           trailUnpavedPercent: 40,
@@ -77,6 +89,12 @@ describe("route surface summary helpers", () => {
         targetDistanceKm: 12,
         distanceDeltaMeters: 340,
         elevationGainMeters: 88,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 260,
+        },
         surface: {
           asphaltPercent: null,
           trailUnpavedPercent: null,

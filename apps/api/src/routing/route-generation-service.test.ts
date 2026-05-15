@@ -40,8 +40,28 @@ function createUnknownSurfaceDetails(distanceMeters: number) {
   ];
 }
 
+function createLoopGeometry(
+  outerCoordinate: [number, number],
+  returnCoordinate: [number, number] = [
+    Number((outerCoordinate[0] - 0.0104).toFixed(4)),
+    Number((outerCoordinate[1] + 0.0102).toFixed(4)),
+  ],
+) {
+  return {
+    type: "LineString" as const,
+    coordinates: [
+      [10.1228, 54.3233] as [number, number],
+      outerCoordinate,
+      returnCoordinate,
+      [10.1228, 54.3233] as [number, number],
+    ],
+  };
+}
+
 function createInstructions(points: Array<[number, number]>) {
-  const [startCoordinate, endCoordinate] = points;
+  const [startCoordinate] = points;
+  const endCoordinate = points[points.length - 1] ??
+    startCoordinate ?? [10.1228, 54.3233];
 
   return [
     {
@@ -143,18 +163,10 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 12_240,
             durationMs: 4_920_000,
             elevationGainMeters: 88,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.1452, 54.3321],
-                [10.1228, 54.3233],
-              ],
-            },
-            instructions: createInstructions([
-              [10.1228, 54.3233],
-              [10.1452, 54.3321],
-            ]),
+            geometry: createLoopGeometry([10.1452, 54.3321]),
+            instructions: createInstructions(
+              createLoopGeometry([10.1452, 54.3321]).coordinates,
+            ),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 6_120,
@@ -172,18 +184,10 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 12_040,
             durationMs: 4_910_000,
             elevationGainMeters: 82,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.141, 54.332],
-                [10.1228, 54.3233],
-              ],
-            },
-            instructions: createInstructions([
-              [10.1228, 54.3233],
-              [10.141, 54.332],
-            ]),
+            geometry: createLoopGeometry([10.141, 54.332]),
+            instructions: createInstructions(
+              createLoopGeometry([10.141, 54.332]).coordinates,
+            ),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 6_020,
@@ -224,6 +228,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 12,
         distanceDeltaMeters: 40,
         elevationGainMeters: 82,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 50,
           trailUnpavedPercent: 25,
@@ -231,18 +241,10 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 0,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-          [10.1228, 54.3233],
-        ],
-      },
-      instructions: createInstructions([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
+      instructions: createInstructions(
+        createLoopGeometry([10.141, 54.332]).coordinates,
+      ),
     });
   });
 
@@ -255,14 +257,7 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 12_520,
             durationMs: 4_920_000,
             elevationGainMeters: 88,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.152, 54.3375],
-                [10.1228, 54.3233],
-              ],
-            },
+            geometry: createLoopGeometry([10.152, 54.3375]),
             instructions: [],
             surfaceDetails: createUnknownSurfaceDetails(12_520),
           })
@@ -270,14 +265,7 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 12_340,
             durationMs: 4_880_000,
             elevationGainMeters: 84,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.1478, 54.3341],
-                [10.1228, 54.3233],
-              ],
-            },
+            geometry: createLoopGeometry([10.1478, 54.3341]),
             instructions: [],
             surfaceDetails: createUnknownSurfaceDetails(12_340),
           }),
@@ -314,6 +302,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 12,
         distanceDeltaMeters: 340,
         elevationGainMeters: 84,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 0,
           trailUnpavedPercent: 0,
@@ -321,14 +315,7 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 100,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.1478, 54.3341],
-          [10.1228, 54.3233],
-        ],
-      },
+      geometry: createLoopGeometry([10.1478, 54.3341]),
       instructions: [],
     });
   });
@@ -340,14 +327,7 @@ describe("createRouteGenerationService", () => {
         distanceMeters: 15_080,
         durationMs: 4_920_000,
         elevationGainMeters: 88,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.152, 54.3375],
-            [10.1228, 54.3233],
-          ],
-        },
+        geometry: createLoopGeometry([10.152, 54.3375]),
         instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(15_080),
       })
@@ -355,14 +335,7 @@ describe("createRouteGenerationService", () => {
         distanceMeters: 14_720,
         durationMs: 4_880_000,
         elevationGainMeters: 84,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.1478, 54.3341],
-            [10.1228, 54.3233],
-          ],
-        },
+        geometry: createLoopGeometry([10.1478, 54.3341]),
         instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(14_720),
       })
@@ -370,14 +343,7 @@ describe("createRouteGenerationService", () => {
         distanceMeters: 8_180,
         durationMs: 3_420_000,
         elevationGainMeters: 64,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.1361, 54.3295],
-            [10.1228, 54.3233],
-          ],
-        },
+        geometry: createLoopGeometry([10.1361, 54.3295]),
         instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(8_180),
       })
@@ -385,14 +351,7 @@ describe("createRouteGenerationService", () => {
         distanceMeters: 8_060,
         durationMs: 3_380_000,
         elevationGainMeters: 61,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.1341, 54.3288],
-            [10.1228, 54.3233],
-          ],
-        },
+        geometry: createLoopGeometry([10.1341, 54.3288]),
         instructions: [],
         surfaceDetails: createUnknownSurfaceDetails(8_060),
       });
@@ -429,6 +388,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 8,
         distanceDeltaMeters: 60,
         elevationGainMeters: 61,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 0,
           trailUnpavedPercent: 0,
@@ -436,14 +401,7 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 100,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.1341, 54.3288],
-          [10.1228, 54.3233],
-        ],
-      },
+      geometry: createLoopGeometry([10.1341, 54.3288]),
       instructions: [],
     });
   });
@@ -453,14 +411,7 @@ describe("createRouteGenerationService", () => {
       distanceMeters: 15_080,
       durationMs: 4_920_000,
       elevationGainMeters: 88,
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.152, 54.3375],
-          [10.1228, 54.3233],
-        ],
-      },
+      geometry: createLoopGeometry([10.152, 54.3375]),
       instructions: [],
       surfaceDetails: createUnknownSurfaceDetails(15_080),
     });
@@ -497,6 +448,57 @@ describe("createRouteGenerationService", () => {
     expect(getRoute.mock.calls.length).toBeGreaterThan(2);
   });
 
+  it("fails explicitly when every scored candidate reuses too much path in both directions", async () => {
+    const getRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 8_060,
+      durationMs: 3_380_000,
+      elevationGainMeters: 61,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.1228, 54.3333],
+          [10.1228, 54.3433],
+          [10.1228, 54.3333],
+          [10.1228, 54.3233],
+        ],
+      },
+      instructions: [],
+      surfaceDetails: createUnknownSurfaceDetails(8_060),
+    });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "round-trip-unavailable",
+      status: "failed",
+      warnings: [
+        {
+          code: "route_cannot_form_supported_round_trip",
+          message:
+            "No legal round course could be generated that returned to the start with no more than 500 meters of repeated path.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+    expect(getRoute.mock.calls.length).toBeGreaterThan(2);
+  });
+
   it("keeps evaluating later candidates after an earlier routing failure", async () => {
     const getRoute = vi
       .fn()
@@ -510,18 +512,10 @@ describe("createRouteGenerationService", () => {
         distanceMeters: 20_040,
         durationMs: 2_340_000,
         elevationGainMeters: 120,
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [10.1228, 54.3233],
-            [10.141, 54.332],
-            [10.1228, 54.3233],
-          ],
-        },
-        instructions: createInstructions([
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-        ]),
+        geometry: createLoopGeometry([10.141, 54.332]),
+        instructions: createInstructions(
+          createLoopGeometry([10.141, 54.332]).coordinates,
+        ),
         surfaceDetails: createSurfaceDetails([
           {
             distanceMeters: 10_020,
@@ -561,6 +555,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 20,
         distanceDeltaMeters: 40,
         elevationGainMeters: 120,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 50,
           trailUnpavedPercent: 50,
@@ -568,18 +568,10 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 0,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-          [10.1228, 54.3233],
-        ],
-      },
-      instructions: createInstructions([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
+      instructions: createInstructions(
+        createLoopGeometry([10.141, 54.332]).coordinates,
+      ),
     });
   });
 
@@ -671,18 +663,10 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 10_020,
             durationMs: 2_340_000,
             elevationGainMeters: 120,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.152, 54.3375],
-                [10.1228, 54.3233],
-              ],
-            },
-            instructions: createInstructions([
-              [10.1228, 54.3233],
-              [10.152, 54.3375],
-            ]),
+            geometry: createLoopGeometry([10.152, 54.3375]),
+            instructions: createInstructions(
+              createLoopGeometry([10.152, 54.3375]).coordinates,
+            ),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 9_018,
@@ -700,18 +684,10 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 10_100,
             durationMs: 2_360_000,
             elevationGainMeters: 124,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.141, 54.332],
-                [10.1228, 54.3233],
-              ],
-            },
-            instructions: createInstructions([
-              [10.1228, 54.3233],
-              [10.141, 54.332],
-            ]),
+            geometry: createLoopGeometry([10.141, 54.332]),
+            instructions: createInstructions(
+              createLoopGeometry([10.141, 54.332]).coordinates,
+            ),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 7_070,
@@ -752,6 +728,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 10,
         distanceDeltaMeters: 100,
         elevationGainMeters: 124,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 10,
           trailUnpavedPercent: 70,
@@ -759,18 +741,10 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 0,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-          [10.1228, 54.3233],
-        ],
-      },
-      instructions: createInstructions([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
+      instructions: createInstructions(
+        createLoopGeometry([10.141, 54.332]).coordinates,
+      ),
     });
   });
 
@@ -807,18 +781,10 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 10_080,
             durationMs: 2_360_000,
             elevationGainMeters: 124,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.141, 54.332],
-                [10.1228, 54.3233],
-              ],
-            },
-            instructions: createInstructions([
-              [10.1228, 54.3233],
-              [10.141, 54.332],
-            ]),
+            geometry: createLoopGeometry([10.141, 54.332]),
+            instructions: createInstructions(
+              createLoopGeometry([10.141, 54.332]).coordinates,
+            ),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 6_048,
@@ -854,6 +820,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 10,
         distanceDeltaMeters: 80,
         elevationGainMeters: 124,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 40,
           trailUnpavedPercent: 60,
@@ -861,18 +833,10 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 0,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-          [10.1228, 54.3233],
-        ],
-      },
-      instructions: createInstructions([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
+      instructions: createInstructions(
+        createLoopGeometry([10.141, 54.332]).coordinates,
+      ),
     });
   });
 
@@ -966,18 +930,10 @@ describe("createRouteGenerationService", () => {
             distanceMeters: 10_080,
             durationMs: 2_360_000,
             elevationGainMeters: 124,
-            geometry: {
-              type: "LineString",
-              coordinates: [
-                [10.1228, 54.3233],
-                [10.141, 54.332],
-                [10.1228, 54.3233],
-              ],
-            },
-            instructions: createInstructions([
-              [10.1228, 54.3233],
-              [10.141, 54.332],
-            ]),
+            geometry: createLoopGeometry([10.141, 54.332]),
+            instructions: createInstructions(
+              createLoopGeometry([10.141, 54.332]).coordinates,
+            ),
             surfaceDetails: createSurfaceDetails([
               {
                 distanceMeters: 6_048,
@@ -1013,6 +969,12 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 10,
         distanceDeltaMeters: 80,
         elevationGainMeters: 124,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
         surface: {
           asphaltPercent: 40,
           trailUnpavedPercent: 60,
@@ -1020,18 +982,10 @@ describe("createRouteGenerationService", () => {
           unknownPercent: 0,
         },
       },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [10.1228, 54.3233],
-          [10.141, 54.332],
-          [10.1228, 54.3233],
-        ],
-      },
-      instructions: createInstructions([
-        [10.1228, 54.3233],
-        [10.141, 54.332],
-      ]),
+      geometry: createLoopGeometry([10.141, 54.332]),
+      instructions: createInstructions(
+        createLoopGeometry([10.141, 54.332]).coordinates,
+      ),
     });
   });
 

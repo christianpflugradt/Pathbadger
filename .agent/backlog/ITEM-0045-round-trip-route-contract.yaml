@@ -1,7 +1,7 @@
 id: ITEM-0045
 type: feature
 priority: P0
-status: todo
+status: done
 scope: shared_api
 origin: refine
 parent_epic: EPIC-0019
@@ -21,4 +21,4 @@ implementation_notes:
   - "2026-05-15 refine: `apps/api/src/routing/candidate-waypoint-seeds.ts` already hints at round-trip behavior by ending seeded waypoint sets at the start coordinate, so the main gap is making the low-overlap loop requirement explicit across scoring, warnings, and verification."
   - "2026-05-15 refine: user clarified that a round trip is not an out-and-back line; repeated-path overlap should ideally be zero and must stay below 500 meters total if a short connector is unavoidable."
 created_at: 2026-05-15T11:30:47+02:00
-updated_at: 2026-05-15T12:00:27+02:00
+updated_at: 2026-05-15T21:16:30+02:00

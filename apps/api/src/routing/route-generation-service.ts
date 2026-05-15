@@ -20,6 +20,7 @@ import {
   type RoutedCandidateForScoring,
   scoreRoutedCandidate,
 } from "./routed-candidate-scoring.js";
+import { MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS } from "./route-loop-analysis.js";
 import {
   DEFAULT_SUPPORTED_REGION_NAME,
   createSchleswigHolsteinSupportedRegion,
@@ -84,6 +85,7 @@ export function createRouteGenerationService(
         });
       }
 
+      const unsupportedCandidates: ScoredRoutedCandidate[] = [];
       const primaryAttempt = await evaluateCandidateRequest({
         generationRequest: parsedRequest,
         routingEngine: options.routingEngine,
@@ -93,6 +95,7 @@ export function createRouteGenerationService(
 
       failures.push(...primaryAttempt.failures);
       rejections.push(...primaryAttempt.rejections);
+      unsupportedCandidates.push(...primaryAttempt.unsupportedCandidates);
 
       const bestScoredCandidate = selectBestScoredCandidate(
         primaryAttempt.acceptableCandidates,
@@ -104,7 +107,7 @@ export function createRouteGenerationService(
         );
       }
 
-      if (primaryAttempt.scoredCandidates.length > 0) {
+      if (primaryAttempt.unsupportedCandidates.length > 0) {
         for (const fallbackRequest of createDistanceFitFallbackRequests(
           parsedRequest,
         )) {
@@ -117,6 +120,7 @@ export function createRouteGenerationService(
 
           failures.push(...fallbackAttempt.failures);
           rejections.push(...fallbackAttempt.rejections);
+          unsupportedCandidates.push(...fallbackAttempt.unsupportedCandidates);
 
           const bestFallbackCandidate = selectBestScoredCandidate(
             fallbackAttempt.acceptableCandidates,
@@ -130,11 +134,7 @@ export function createRouteGenerationService(
         }
 
         return routeGenerateResponseSchema.parse(
-          createFailedRouteResponse(
-            "distance-fit-unavailable",
-            "route_exceeds_supported_distance_limit",
-            `No legal round course could be generated within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
-          ),
+          createUnsupportedCandidateFailureResponse(unsupportedCandidates),
         );
       }
 
@@ -167,7 +167,7 @@ async function evaluateCandidateRequest(options: {
   supportedRegion: SupportedRegion;
 }) {
   const acceptableCandidates: ScoredRoutedCandidate[] = [];
-  const scoredCandidates: ScoredRoutedCandidate[] = [];
+  const unsupportedCandidates: ScoredRoutedCandidate[] = [];
   const failures: Array<{ error: unknown; routeId: string }> = [];
   const rejections: Array<{
     routeId: string;
@@ -217,10 +217,13 @@ async function evaluateCandidateRequest(options: {
         candidate: candidateWithRouteId,
       });
 
-      if (scoredCandidate.isWithinSupportedDistanceLimit) {
+      if (
+        scoredCandidate.isWithinSupportedDistanceLimit &&
+        scoredCandidate.isWithinSupportedRoundTripContract
+      ) {
         acceptableCandidates.push(scoredCandidate);
       } else {
-        scoredCandidates.push(scoredCandidate);
+        unsupportedCandidates.push(scoredCandidate);
       }
     } catch (error) {
       failures.push({
@@ -234,7 +237,7 @@ async function evaluateCandidateRequest(options: {
     acceptableCandidates,
     failures,
     rejections,
-    scoredCandidates,
+    unsupportedCandidates,
   };
 }
 
@@ -326,6 +329,39 @@ function selectBestScoredCandidate(scoredCandidates: ScoredRoutedCandidate[]) {
 
 function roundTargetDistance(distanceKm: number) {
   return Number(distanceKm.toFixed(3));
+}
+
+function createUnsupportedCandidateFailureResponse(
+  unsupportedCandidates: ScoredRoutedCandidate[],
+) {
+  const hasDistanceOnlyCandidates = unsupportedCandidates.some(
+    (candidate) => candidate.isWithinSupportedRoundTripContract,
+  );
+  const hasLoopOnlyCandidates = unsupportedCandidates.some(
+    (candidate) => candidate.isWithinSupportedDistanceLimit,
+  );
+
+  if (hasDistanceOnlyCandidates && hasLoopOnlyCandidates) {
+    return createFailedRouteResponse(
+      "route-contract-unavailable",
+      "route_cannot_meet_supported_contract",
+      `No legal round course could be generated that both returned to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path and stayed within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+    );
+  }
+
+  if (hasDistanceOnlyCandidates) {
+    return createFailedRouteResponse(
+      "distance-fit-unavailable",
+      "route_exceeds_supported_distance_limit",
+      `No legal round course could be generated within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+    );
+  }
+
+  return createFailedRouteResponse(
+    "round-trip-unavailable",
+    "route_cannot_form_supported_round_trip",
+    `No legal round course could be generated that returned to the start with no more than ${MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS} meters of repeated path.`,
+  );
 }
 
 function mapFailureToResponse(routeId: string, error: unknown) {

@@ -2,8 +2,54 @@ import { routeGenerateRequestSchema } from "@pathbadger/shared";
 import type { Coordinate, RouteGenerateRequest } from "@pathbadger/shared";
 
 const EARTH_RADIUS_METERS = 6_371_000;
-const MIN_LOOP_RADIUS_METERS = 750;
+const MIN_LOOP_RADIUS_METERS = 450;
 const MAX_LOOP_RADIUS_METERS = 10_000;
+
+type OrbitLoopTemplate = {
+  baseBearingDegrees: number;
+  centerOffsetFactor: number;
+  orbitBearingOffsets: number[];
+  radiusFactor: number;
+};
+
+const ORBIT_LOOP_TEMPLATES: OrbitLoopTemplate[] = [
+  {
+    baseBearingDegrees: 267,
+    centerOffsetFactor: 0.82,
+    orbitBearingOffsets: [47, 123, 218, 301],
+    radiusFactor: 0.10675,
+  },
+  {
+    baseBearingDegrees: 270,
+    centerOffsetFactor: 0.82,
+    orbitBearingOffsets: [47, 123, 218, 301],
+    radiusFactor: 0.10675,
+  },
+  {
+    baseBearingDegrees: 285,
+    centerOffsetFactor: 0.82,
+    orbitBearingOffsets: [47, 123, 218, 301],
+    radiusFactor: 0.10675,
+  },
+  {
+    baseBearingDegrees: 288,
+    centerOffsetFactor: 0.82,
+    orbitBearingOffsets: [47, 123, 218, 301],
+    radiusFactor: 0.10675,
+  },
+  {
+    baseBearingDegrees: 270,
+    centerOffsetFactor: 0.93,
+    orbitBearingOffsets: [38, 120, 220, 306],
+    radiusFactor: 0.1035,
+  },
+  {
+    baseBearingDegrees: 294,
+    centerOffsetFactor: 0.96,
+    orbitBearingOffsets: [26, 113, 206, 287],
+    radiusFactor: 0.104875,
+  },
+];
 
 export interface RouteCandidateWaypointSeed {
   id: string;
@@ -20,62 +66,110 @@ export function createRouteCandidateWaypointSeeds(
   const resolvedSeed =
     parsedRequest.randomSeed ?? createFallbackSeed(parsedRequest);
   const random = createSeededRandom(resolvedSeed);
-  const baseBearingDegrees = random() * 360;
   const targetDistanceMeters = parsedRequest.targetDistanceKm * 1_000;
-  const loopRadiusMeters = clamp(
-    targetDistanceMeters / 3.4,
-    MIN_LOOP_RADIUS_METERS,
-    MAX_LOOP_RADIUS_METERS,
-  );
-  const outerRadiusMeters = loopRadiusMeters * (1.05 + random() * 0.18);
-  const innerRadiusMeters = loopRadiusMeters * (0.82 + random() * 0.14);
-  const outwardBearing = normalizeBearing(
-    baseBearingDegrees + 52 + random() * 18,
-  );
-  const returnBearing = normalizeBearing(
-    baseBearingDegrees + 188 + random() * 24,
-  );
-  const outwardWaypoint = projectCoordinate(
-    parsedRequest.start,
-    outerRadiusMeters,
-    outwardBearing,
-  );
-  const returnWaypoint = projectCoordinate(
-    parsedRequest.start,
-    innerRadiusMeters,
-    returnBearing,
-  );
+  const selectedTemplates = selectOrbitLoopTemplates(random);
   const passThroughPoints =
     parsedRequest.passThroughPoints.map(cloneCoordinate);
 
   return [
-    {
+    buildRouteCandidateWaypointSeed({
       id: `${resolvedSeed}-clockwise`,
-      points: [
-        cloneCoordinate(parsedRequest.start),
-        outwardWaypoint,
-        ...passThroughPoints,
-        returnWaypoint,
-        cloneCoordinate(parsedRequest.start),
-      ],
+      loopTemplate: selectedTemplates[0],
+      passThroughPoints,
       randomSeed: resolvedSeed,
+      start: parsedRequest.start,
       strategy: "triangle_clockwise",
+      targetDistanceMeters,
       targetDistanceKm: parsedRequest.targetDistanceKm,
-    },
-    {
+    }),
+    buildRouteCandidateWaypointSeed({
       id: `${resolvedSeed}-counter`,
-      points: [
-        cloneCoordinate(parsedRequest.start),
-        returnWaypoint,
-        ...passThroughPoints,
-        outwardWaypoint,
-        cloneCoordinate(parsedRequest.start),
-      ],
+      loopTemplate: selectedTemplates[1],
+      passThroughPoints,
       randomSeed: resolvedSeed,
+      start: parsedRequest.start,
       strategy: "triangle_counter_clockwise",
+      targetDistanceMeters,
       targetDistanceKm: parsedRequest.targetDistanceKm,
-    },
+    }),
   ];
+}
+
+function buildRouteCandidateWaypointSeed(options: {
+  id: string;
+  loopTemplate: OrbitLoopTemplate;
+  passThroughPoints: Coordinate[];
+  randomSeed: string;
+  start: Coordinate;
+  strategy: RouteCandidateWaypointSeed["strategy"];
+  targetDistanceMeters: number;
+  targetDistanceKm: number;
+}): RouteCandidateWaypointSeed {
+  const loopRadiusMeters = clamp(
+    options.targetDistanceMeters * options.loopTemplate.radiusFactor,
+    MIN_LOOP_RADIUS_METERS,
+    MAX_LOOP_RADIUS_METERS,
+  );
+  const loopCenter = projectCoordinate(
+    options.start,
+    loopRadiusMeters * options.loopTemplate.centerOffsetFactor,
+    options.loopTemplate.baseBearingDegrees,
+  );
+  const orbitWaypoints = options.loopTemplate.orbitBearingOffsets.map(
+    (bearingOffset) =>
+      projectCoordinate(
+        loopCenter,
+        loopRadiusMeters,
+        normalizeBearing(
+          options.loopTemplate.baseBearingDegrees + bearingOffset,
+        ),
+      ),
+  );
+  const passThroughInsertIndex = Math.min(2, orbitWaypoints.length);
+
+  return {
+    id: options.id,
+    points: [
+      cloneCoordinate(options.start),
+      ...orbitWaypoints.slice(0, passThroughInsertIndex),
+      ...options.passThroughPoints,
+      ...orbitWaypoints.slice(passThroughInsertIndex),
+      cloneCoordinate(options.start),
+    ],
+    randomSeed: options.randomSeed,
+    strategy: options.strategy,
+    targetDistanceKm: options.targetDistanceKm,
+  };
+}
+
+function selectOrbitLoopTemplates(
+  random: () => number,
+): [OrbitLoopTemplate, OrbitLoopTemplate] {
+  const remainingTemplates = [...ORBIT_LOOP_TEMPLATES];
+  const selectedTemplates: OrbitLoopTemplate[] = [];
+
+  while (selectedTemplates.length < 2) {
+    const selectedIndex = Math.floor(random() * remainingTemplates.length);
+    const [selectedTemplate] = remainingTemplates.splice(selectedIndex, 1);
+
+    if (!selectedTemplate) {
+      throw new RangeError(
+        "Route loop template selection exhausted before producing two candidates.",
+      );
+    }
+
+    selectedTemplates.push(selectedTemplate);
+  }
+
+  const [firstTemplate, secondTemplate] = selectedTemplates;
+
+  if (!firstTemplate || !secondTemplate) {
+    throw new RangeError(
+      "Route loop template selection must resolve exactly two candidates.",
+    );
+  }
+
+  return [firstTemplate, secondTemplate];
 }
 
 function createFallbackSeed(request: RouteGenerateRequest) {
