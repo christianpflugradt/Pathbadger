@@ -19,5 +19,8 @@ verification:
 implementation_notes:
   - "2026-05-15 refine: user feedback clarified that the current product still spends too much space on non-map chrome and hidden or duplicated actions, so the next planner slice must simplify visible controls and keep the route geometry in view."
   - "2026-05-15 refine: optional pass-through points remain important but must stay secondary in the common journey, because many real uses start with only the home-base origin, a distance, and a surface preference."
+  - "2026-05-15 implement: the mobile planner chrome now keeps one dominant primary route action near the map, demotes waypoint selection to a smaller utility control, and hides the redundant execution card while planning."
+  - "2026-05-15 implement: failed requests from the exact home base at Heidmoorer Straße 18, 24576 Weddelbrook now fall back to a single honest retry action and compact user-facing copy instead of pretending a variation-ready preview still exists."
+  - "2026-05-15 implement: item remains open because the supported generator still cannot form a legal round course from the exact home-base address, so the acceptance proof for generate, inspect, regenerate, and start-navigation from that default start is still blocked by routing behavior outside this planner-only slice."
 created_at: 2026-05-15T10:56:34+02:00
-updated_at: 2026-05-15T10:56:34+02:00
+updated_at: 2026-05-15T22:30:00+02:00

@@ -451,10 +451,10 @@ body {
 }
 
 .planner-map-toolbar {
-  display: flex;
+  display: grid;
   gap: 0.75rem;
-  justify-content: space-between;
   align-items: center;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .planner-map-stage {
@@ -463,10 +463,19 @@ body {
   gap: 0.75rem;
 }
 
-.planner-map-toolbar__actions {
+.planner-map-toolbar__utility-row,
+.planner-map-toolbar__primary-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.6rem;
+}
+
+.planner-map-toolbar__primary-actions {
+  justify-content: flex-start;
+}
+
+.planner-map-toolbar__utility-button {
+  white-space: nowrap;
 }
 
 .planner-map-toolbar__meta {
@@ -958,27 +967,37 @@ code {
     bottom: 7.15rem;
     left: 0.75rem;
     z-index: 2;
-    gap: 0.55rem;
-    flex-direction: column;
+    gap: 0.5rem;
+    grid-template-columns: 1fr;
     align-items: stretch;
     pointer-events: none;
   }
 
-  .planner-map-toolbar__actions {
+  .planner-map-toolbar__utility-row {
+    display: flex;
+    gap: 0.45rem;
+    justify-content: space-between;
+    pointer-events: auto;
+  }
+
+  .planner-map-toolbar__utility-row .button {
+    flex: 0 0 auto;
+    padding: 0.68rem 0.9rem;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 10px 24px rgba(20, 33, 61, 0.16);
+  }
+
+  .planner-map-toolbar__primary-actions {
     display: grid;
     gap: 0.5rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     pointer-events: auto;
     width: 100%;
   }
 
-  .planner-map-toolbar__actions .button {
-    padding: 0.75rem 0.9rem;
+  .planner-map-toolbar__primary-actions .button {
+    padding: 0.8rem 0.95rem;
     box-shadow: 0 14px 30px rgba(20, 33, 61, 0.2);
-  }
-
-  .planner-map-toolbar__actions .button--secondary {
-    grid-column: 1 / -1;
   }
 
   .planner-map-toolbar__meta {
@@ -1043,6 +1062,10 @@ code {
 
   .navigation-session {
     gap: 0.85rem;
+  }
+
+  .navigation-session--planner {
+    display: none;
   }
 
   .navigation-session__summary {
@@ -1119,12 +1142,13 @@ code {
     padding: 0.9rem 1rem;
   }
 
-  .planner-map-toolbar__actions {
-    grid-template-columns: 1fr;
+  .planner-map-toolbar__utility-row {
+    flex-wrap: wrap;
   }
 
-  .planner-map-toolbar__actions .button--secondary {
-    grid-column: auto;
+  .planner-map-toolbar__utility-row .button {
+    flex: 1 1 0;
+    justify-content: center;
   }
 
   .planner-map-toolbar {

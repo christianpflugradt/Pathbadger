@@ -220,11 +220,11 @@ export function App() {
         allowedValues: surfacePreferenceOptions,
         key: SURFACE_PREFERENCE_STORAGE_KEY,
         storage: browserLocalStorage,
-      }) ?? "trail",
+      }) ?? "mixed",
   );
   const [surfacePreferenceSaveFailed, setSurfacePreferenceSaveFailed] =
     useState(false);
-  const [targetDistanceKm, setTargetDistanceKm] = useState(12);
+  const [targetDistanceKm, setTargetDistanceKm] = useState(8);
   const [passThroughPoints, setPassThroughPoints] = useState<
     PlannerPassThroughPoint[]
   >([]);
@@ -354,6 +354,9 @@ export function App() {
     toleranceMeters: DEFAULT_DISTANCE_TOLERANCE_METERS,
   };
   const hasRoutePreview = routePreview !== null;
+  const hasVisibleRoutePreview =
+    routePreview?.geometry !== null || routePreview?.summary !== null;
+  const hasFailedRoutePreview = routePreview?.status === "failed";
   const submittedRequestSignature = lastSubmittedRequest
     ? serializeComparablePlanningRequest(lastSubmittedRequest)
     : null;
@@ -579,7 +582,8 @@ export function App() {
   });
   const plannerJourneyTitle = getPlannerJourneyTitle({
     canStartNavigation,
-    hasRoutePreview,
+    hasFailedRoutePreview,
+    hasVisibleRoutePreview,
     isCurrentPositionPendingRouteGeneration,
     isNavigationActive,
     isRequestingRoutePreview,
@@ -589,7 +593,8 @@ export function App() {
   const plannerJourneyCopy = getPlannerJourneyCopy({
     browserGeolocation,
     canStartNavigation,
-    hasRoutePreview,
+    hasFailedRoutePreview,
+    hasVisibleRoutePreview,
     isCurrentPositionPendingRouteGeneration,
     isNavigationActive,
     isRequestingRoutePreview,
@@ -600,7 +605,7 @@ export function App() {
   });
   const plannerPrimaryActionLabel = getPlannerPrimaryActionLabel({
     canStartNavigation,
-    hasRoutePreview,
+    hasVisibleRoutePreview,
     isCurrentPositionPendingRouteGeneration,
     isNavigationActive,
     isRequestingRoutePreview,
@@ -611,14 +616,18 @@ export function App() {
     (isRequestingRoutePreview || isCurrentPositionPendingRouteGeneration);
   const plannerSecondaryActionLabel = getPlannerSecondaryActionLabel({
     canStartNavigation,
-    hasRoutePreview,
+    hasVisibleRoutePreview,
     isAwaitingPassThroughPoint,
     isNavigationActive,
     navigationFollowActionLabel,
   });
+  const plannerWaypointActionLabel = isAwaitingPassThroughPoint
+    ? "Cancel waypoint"
+    : "Add waypoint";
   const plannerStagePills = getPlannerStagePills({
     canStartNavigation,
-    hasRoutePreview,
+    hasFailedRoutePreview,
+    hasVisibleRoutePreview,
     isAwaitingPassThroughPoint,
     isNavigationActive,
     isRequestingRoutePreview,
@@ -1065,7 +1074,7 @@ export function App() {
       return;
     }
 
-    if (canStartNavigation || hasRoutePreview) {
+    if (canStartNavigation || hasVisibleRoutePreview) {
       requestVariation();
       return;
     }
@@ -1566,9 +1575,11 @@ export function App() {
                       ? routePreviewRequestError
                       : isRoutePreviewStale
                         ? "Planning inputs changed since the last routed preview. Generate again to refresh the map and summary."
-                        : hasRoutePreview
-                          ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
-                          : "Generate a route to call the backend preview boundary for the first time."}
+                        : hasFailedRoutePreview
+                          ? "Pathbadger could not form a supported round course for the current start and settings. Keep the map visible, change the plan, and try again."
+                          : hasVisibleRoutePreview
+                            ? "The planner now renders a real backend route preview, including warnings and geometry when the API can provide them."
+                            : "Generate a route to call the backend preview boundary for the first time."}
               </p>
             </section>
           </fieldset>
@@ -1653,7 +1664,7 @@ export function App() {
 
             <div className="planner-map-stage">
               <div className="planner-map-toolbar">
-                <div className="planner-map-toolbar__actions">
+                <div className="planner-map-toolbar__utility-row">
                   <button
                     type="button"
                     className="button button--ghost planner-drawer-toggle"
@@ -1663,6 +1674,17 @@ export function App() {
                       ? "Close route settings"
                       : "Route settings"}
                   </button>
+                  {!isNavigationActive ? (
+                    <button
+                      type="button"
+                      className="button button--ghost planner-map-toolbar__utility-button"
+                      onClick={togglePassThroughPointSelection}
+                    >
+                      {plannerWaypointActionLabel}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="planner-map-toolbar__primary-actions">
                   <button
                     type="button"
                     className="button button--primary"
@@ -1925,7 +1947,11 @@ export function App() {
             ) : null}
           </article>
 
-          <article className="card navigation-session">
+          <article
+            className={`card navigation-session${
+              isNavigationActive ? "" : " navigation-session--planner"
+            }`}
+          >
             <div className="panel-heading">
               <div>
                 <p className="section-label">Execution state</p>
@@ -2639,7 +2665,8 @@ function getPlaceSearchStatusPillClassName(options: {
 
 function getPlannerJourneyTitle(options: {
   canStartNavigation: boolean;
-  hasRoutePreview: boolean;
+  hasFailedRoutePreview: boolean;
+  hasVisibleRoutePreview: boolean;
   isCurrentPositionPendingRouteGeneration: boolean;
   isNavigationActive: boolean;
   isRequestingRoutePreview: boolean;
@@ -2670,7 +2697,11 @@ function getPlannerJourneyTitle(options: {
     return "Refresh the route after your latest changes";
   }
 
-  if (options.hasRoutePreview) {
+  if (options.hasFailedRoutePreview) {
+    return "Route unavailable right now";
+  }
+
+  if (options.hasVisibleRoutePreview) {
     return "Review the route or try another variation";
   }
 
@@ -2680,7 +2711,8 @@ function getPlannerJourneyTitle(options: {
 function getPlannerJourneyCopy(options: {
   browserGeolocation: BrowserGeolocationState;
   canStartNavigation: boolean;
-  hasRoutePreview: boolean;
+  hasFailedRoutePreview: boolean;
+  hasVisibleRoutePreview: boolean;
   isCurrentPositionPendingRouteGeneration: boolean;
   isNavigationActive: boolean;
   isRequestingRoutePreview: boolean;
@@ -2715,8 +2747,12 @@ function getPlannerJourneyCopy(options: {
     return "The plan changed after the last preview. Refresh the route to redraw the latest line on the map before starting navigation.";
   }
 
-  if (options.hasRoutePreview) {
-    return "A preview exists, but it is not ready for navigation yet. Adjust the route or ask for another variation while keeping the map in view.";
+  if (options.hasFailedRoutePreview) {
+    return "Pathbadger could not find a supported round course for the current start and settings. Adjust the plan and try again while keeping the map in view.";
+  }
+
+  if (options.hasVisibleRoutePreview) {
+    return "A preview is on the map. Review it, adjust the plan if needed, or ask for another variation while keeping the route visible.";
   }
 
   return "Open route settings only when you need them. The main path is simple: choose a start, generate a route, then start navigation from this map-first screen.";
@@ -2724,7 +2760,7 @@ function getPlannerJourneyCopy(options: {
 
 function getPlannerPrimaryActionLabel(options: {
   canStartNavigation: boolean;
-  hasRoutePreview: boolean;
+  hasVisibleRoutePreview: boolean;
   isCurrentPositionPendingRouteGeneration: boolean;
   isNavigationActive: boolean;
   isRequestingRoutePreview: boolean;
@@ -2750,7 +2786,7 @@ function getPlannerPrimaryActionLabel(options: {
     return "Refresh route";
   }
 
-  if (options.hasRoutePreview) {
+  if (options.hasVisibleRoutePreview) {
     return "Generate another route";
   }
 
@@ -2759,7 +2795,7 @@ function getPlannerPrimaryActionLabel(options: {
 
 function getPlannerSecondaryActionLabel(options: {
   canStartNavigation: boolean;
-  hasRoutePreview: boolean;
+  hasVisibleRoutePreview: boolean;
   isAwaitingPassThroughPoint: boolean;
   isNavigationActive: boolean;
   navigationFollowActionLabel: string | null;
@@ -2768,13 +2804,11 @@ function getPlannerSecondaryActionLabel(options: {
     return options.navigationFollowActionLabel;
   }
 
-  if (options.canStartNavigation || options.hasRoutePreview) {
+  if (options.canStartNavigation || options.hasVisibleRoutePreview) {
     return "Generate variation";
   }
 
-  return options.isAwaitingPassThroughPoint
-    ? "Cancel map click"
-    : "Add map waypoint";
+  return null;
 }
 
 function getPlannerStartPointStatusLabel(options: {
@@ -2805,7 +2839,8 @@ function getPlannerStartPointStatusLabel(options: {
 
 function getPlannerStagePills(options: {
   canStartNavigation: boolean;
-  hasRoutePreview: boolean;
+  hasFailedRoutePreview: boolean;
+  hasVisibleRoutePreview: boolean;
   isAwaitingPassThroughPoint: boolean;
   isNavigationActive: boolean;
   isRequestingRoutePreview: boolean;
@@ -2839,13 +2874,17 @@ function getPlannerStagePills(options: {
             ? "Generating preview"
             : options.isRoutePreviewStale
               ? "Preview out of date"
-              : options.hasRoutePreview
-                ? "Preview on map"
-                : "No route yet",
+              : options.hasFailedRoutePreview
+                ? "Route unavailable"
+                : options.hasVisibleRoutePreview
+                  ? "Preview on map"
+                  : "No route yet",
       className:
         options.isNavigationActive || options.canStartNavigation
           ? "status-pill--active"
-          : options.isRequestingRoutePreview || options.isRoutePreviewStale
+          : options.isRequestingRoutePreview ||
+              options.isRoutePreviewStale ||
+              options.hasFailedRoutePreview
             ? "status-pill--warning"
             : "",
     },
