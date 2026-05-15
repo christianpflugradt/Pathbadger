@@ -333,6 +333,170 @@ describe("createRouteGenerationService", () => {
     });
   });
 
+  it("tries a compact fallback family when the primary routed candidates exceed the supported distance limit", async () => {
+    const getRoute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        distanceMeters: 15_080,
+        durationMs: 4_920_000,
+        elevationGainMeters: 88,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.152, 54.3375],
+            [10.1228, 54.3233],
+          ],
+        },
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(15_080),
+      })
+      .mockResolvedValueOnce({
+        distanceMeters: 14_720,
+        durationMs: 4_880_000,
+        elevationGainMeters: 84,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.1478, 54.3341],
+            [10.1228, 54.3233],
+          ],
+        },
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(14_720),
+      })
+      .mockResolvedValueOnce({
+        distanceMeters: 8_180,
+        durationMs: 3_420_000,
+        elevationGainMeters: 64,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.1361, 54.3295],
+            [10.1228, 54.3233],
+          ],
+        },
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(8_180),
+      })
+      .mockResolvedValueOnce({
+        distanceMeters: 8_060,
+        durationMs: 3_380_000,
+        elevationGainMeters: 61,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.1341, 54.3288],
+            [10.1228, 54.3233],
+          ],
+        },
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(8_060),
+      });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    const response = await service.generateRoute({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 8,
+      toleranceMeters: 150,
+    });
+
+    expect(getRoute).toHaveBeenCalledTimes(4);
+    expect(response).toEqual({
+      routeId:
+        '{"activity":"running_walking","passThroughPoints":[],"start":{"lat":54.3233,"lon":10.1228},"surfacePreference":"mixed","targetDistanceKm":6.8,"toleranceMeters":150}-counter',
+      status: "partial",
+      warnings: [
+        {
+          code: "surface_data_incomplete",
+          message:
+            "Surface classification is incomplete for 100% of this routed preview.",
+        },
+      ],
+      summary: {
+        totalDistanceKm: 8.06,
+        targetDistanceKm: 8,
+        distanceDeltaMeters: 60,
+        elevationGainMeters: 61,
+        surface: {
+          asphaltPercent: 0,
+          trailUnpavedPercent: 0,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 100,
+        },
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.1341, 54.3288],
+          [10.1228, 54.3233],
+        ],
+      },
+      instructions: [],
+    });
+  });
+
+  it("fails explicitly when every scored candidate exceeds the supported distance limit", async () => {
+    const getRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 15_080,
+      durationMs: 4_920_000,
+      elevationGainMeters: 88,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.152, 54.3375],
+          [10.1228, 54.3233],
+        ],
+      },
+      instructions: [],
+      surfaceDetails: createUnknownSurfaceDetails(15_080),
+    });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "distance-fit-unavailable",
+      status: "failed",
+      warnings: [
+        {
+          code: "route_exceeds_supported_distance_limit",
+          message:
+            "No legal round course could be generated within 400 meters of the requested distance.",
+        },
+      ],
+      summary: null,
+      geometry: null,
+      instructions: null,
+    });
+    expect(getRoute.mock.calls.length).toBeGreaterThan(2);
+  });
+
   it("keeps evaluating later candidates after an earlier routing failure", async () => {
     const getRoute = vi
       .fn()

@@ -15,6 +15,8 @@ import {
 import type { RoutingEngineAdapter } from "./graphhopper-adapter.js";
 import {
   findKnownLegalityWarning,
+  MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS,
+  type ScoredRoutedCandidate,
   type RoutedCandidateForScoring,
   scoreRoutedCandidate,
 } from "./routed-candidate-scoring.js";
@@ -32,6 +34,8 @@ export interface CreateRouteGenerationServiceOptions {
   routingEngine: RoutingEngineAdapter;
   supportedRegion?: SupportedRegion;
 }
+
+const DISTANCE_FIT_FALLBACK_FACTORS = [0.85, 0.75, 0.6875, 0.6];
 
 export function createRouteGenerationService(
   options: CreateRouteGenerationServiceOptions,
@@ -61,7 +65,6 @@ export function createRouteGenerationService(
       }
 
       const candidates = createRouteCandidateWaypointSeeds(parsedRequest);
-      const scoredCandidates = [];
       const failures = [];
       const rejections = [];
 
@@ -81,61 +84,57 @@ export function createRouteGenerationService(
         });
       }
 
-      for (const candidate of candidates) {
-        try {
-          const routedCandidate = await options.routingEngine.getRoute({
-            points: candidate.points,
-            activity: parsedRequest.activity,
-          });
-          const candidateWithRouteId = {
-            routeId: candidate.id,
-            ...routedCandidate,
-          };
-          const regionWarning = findRouteRegionWarning(
-            candidateWithRouteId,
-            supportedRegion,
-          );
+      const primaryAttempt = await evaluateCandidateRequest({
+        generationRequest: parsedRequest,
+        routingEngine: options.routingEngine,
+        scoringRequest: parsedRequest,
+        supportedRegion,
+      });
 
-          if (regionWarning) {
-            rejections.push({
-              routeId: candidate.id,
-              warning: regionWarning,
-            });
-            continue;
-          }
+      failures.push(...primaryAttempt.failures);
+      rejections.push(...primaryAttempt.rejections);
 
-          const legalityWarning = findKnownLegalityWarning({
-            request: parsedRequest,
-            candidate: candidateWithRouteId,
-          });
-
-          if (legalityWarning) {
-            rejections.push({
-              routeId: candidate.id,
-              warning: legalityWarning,
-            });
-            continue;
-          }
-
-          const scoredCandidate = scoreRoutedCandidate({
-            request: parsedRequest,
-            candidate: candidateWithRouteId,
-          });
-
-          scoredCandidates.push(scoredCandidate);
-        } catch (error) {
-          failures.push({
-            error,
-            routeId: candidate.id,
-          });
-        }
-      }
-
-      const bestScoredCandidate = selectBestScoredCandidate(scoredCandidates);
+      const bestScoredCandidate = selectBestScoredCandidate(
+        primaryAttempt.acceptableCandidates,
+      );
 
       if (bestScoredCandidate) {
         return routeGenerateResponseSchema.parse(
           buildRouteResponse(bestScoredCandidate),
+        );
+      }
+
+      if (primaryAttempt.scoredCandidates.length > 0) {
+        for (const fallbackRequest of createDistanceFitFallbackRequests(
+          parsedRequest,
+        )) {
+          const fallbackAttempt = await evaluateCandidateRequest({
+            generationRequest: fallbackRequest,
+            routingEngine: options.routingEngine,
+            scoringRequest: parsedRequest,
+            supportedRegion,
+          });
+
+          failures.push(...fallbackAttempt.failures);
+          rejections.push(...fallbackAttempt.rejections);
+
+          const bestFallbackCandidate = selectBestScoredCandidate(
+            fallbackAttempt.acceptableCandidates,
+          );
+
+          if (bestFallbackCandidate) {
+            return routeGenerateResponseSchema.parse(
+              buildRouteResponse(bestFallbackCandidate),
+            );
+          }
+        }
+
+        return routeGenerateResponseSchema.parse(
+          createFailedRouteResponse(
+            "distance-fit-unavailable",
+            "route_exceeds_supported_distance_limit",
+            `No legal round course could be generated within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+          ),
         );
       }
 
@@ -159,6 +158,93 @@ export function createRouteGenerationService(
       );
     },
   };
+}
+
+async function evaluateCandidateRequest(options: {
+  generationRequest: RouteGenerateRequest;
+  routingEngine: RoutingEngineAdapter;
+  scoringRequest: RouteGenerateRequest;
+  supportedRegion: SupportedRegion;
+}) {
+  const acceptableCandidates: ScoredRoutedCandidate[] = [];
+  const scoredCandidates: ScoredRoutedCandidate[] = [];
+  const failures: Array<{ error: unknown; routeId: string }> = [];
+  const rejections: Array<{
+    routeId: string;
+    warning: { code: string; message: string };
+  }> = [];
+
+  for (const candidate of createRouteCandidateWaypointSeeds(
+    options.generationRequest,
+  )) {
+    try {
+      const routedCandidate = await options.routingEngine.getRoute({
+        points: candidate.points,
+        activity: options.generationRequest.activity,
+      });
+      const candidateWithRouteId = {
+        routeId: candidate.id,
+        ...routedCandidate,
+      };
+      const regionWarning = findRouteRegionWarning(
+        candidateWithRouteId,
+        options.supportedRegion,
+      );
+
+      if (regionWarning) {
+        rejections.push({
+          routeId: candidate.id,
+          warning: regionWarning,
+        });
+        continue;
+      }
+
+      const legalityWarning = findKnownLegalityWarning({
+        request: options.scoringRequest,
+        candidate: candidateWithRouteId,
+      });
+
+      if (legalityWarning) {
+        rejections.push({
+          routeId: candidate.id,
+          warning: legalityWarning,
+        });
+        continue;
+      }
+
+      const scoredCandidate = scoreRoutedCandidate({
+        request: options.scoringRequest,
+        candidate: candidateWithRouteId,
+      });
+
+      if (scoredCandidate.isWithinSupportedDistanceLimit) {
+        acceptableCandidates.push(scoredCandidate);
+      } else {
+        scoredCandidates.push(scoredCandidate);
+      }
+    } catch (error) {
+      failures.push({
+        error,
+        routeId: candidate.id,
+      });
+    }
+  }
+
+  return {
+    acceptableCandidates,
+    failures,
+    rejections,
+    scoredCandidates,
+  };
+}
+
+function createDistanceFitFallbackRequests(request: RouteGenerateRequest) {
+  return DISTANCE_FIT_FALLBACK_FACTORS.map((factor) =>
+    routeGenerateRequestSchema.parse({
+      ...request,
+      targetDistanceKm: roundTargetDistance(request.targetDistanceKm * factor),
+    }),
+  );
 }
 
 function findRequestRegionWarning(
@@ -214,29 +300,32 @@ function buildRouteResponse(
   };
 }
 
-function selectBestScoredCandidate(
-  scoredCandidates: Array<ReturnType<typeof scoreRoutedCandidate>>,
-) {
-  return scoredCandidates.reduce<ReturnType<
-    typeof scoreRoutedCandidate
-  > | null>((bestCandidate, currentCandidate) => {
-    if (!bestCandidate) {
-      return currentCandidate;
-    }
+function selectBestScoredCandidate(scoredCandidates: ScoredRoutedCandidate[]) {
+  return scoredCandidates.reduce<ScoredRoutedCandidate | null>(
+    (bestCandidate, currentCandidate) => {
+      if (!bestCandidate) {
+        return currentCandidate;
+      }
 
-    if (currentCandidate.score > bestCandidate.score) {
-      return currentCandidate;
-    }
+      if (currentCandidate.score > bestCandidate.score) {
+        return currentCandidate;
+      }
 
-    if (
-      currentCandidate.score === bestCandidate.score &&
-      currentCandidate.warnings.length < bestCandidate.warnings.length
-    ) {
-      return currentCandidate;
-    }
+      if (
+        currentCandidate.score === bestCandidate.score &&
+        currentCandidate.warnings.length < bestCandidate.warnings.length
+      ) {
+        return currentCandidate;
+      }
 
-    return bestCandidate;
-  }, null);
+      return bestCandidate;
+    },
+    null,
+  );
+}
+
+function roundTargetDistance(distanceKm: number) {
+  return Number(distanceKm.toFixed(3));
 }
 
 function mapFailureToResponse(routeId: string, error: unknown) {

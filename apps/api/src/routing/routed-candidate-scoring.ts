@@ -61,6 +61,7 @@ const PROHIBITED_ACTIVITY_ROAD_CLASSES = new Set([
   "trunk_link",
 ]);
 const PROHIBITED_ACCESS_VALUES = new Set(["no", "private"]);
+export const MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS = 400;
 
 export interface RoutedCandidateForScoring extends GraphHopperRouteResult {
   routeId: string;
@@ -72,6 +73,7 @@ export interface ScoredRoutedCandidate {
   distanceFitScore: number;
   surfacePreferenceScore: number;
   isWithinTolerance: boolean;
+  isWithinSupportedDistanceLimit: boolean;
   status: Exclude<RouteStatus, "failed">;
   warnings: RouteWarning[];
   summary: RouteSummary;
@@ -147,6 +149,8 @@ export function scoreRoutedCandidate(
   );
   const isWithinTolerance =
     Math.abs(distanceDeltaMeters) <= parsedRequest.toleranceMeters;
+  const isWithinSupportedDistanceLimit =
+    Math.abs(distanceDeltaMeters) <= MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS;
   const surfaceSummary = summarizeRouteSurface(
     options.candidate.surfaceDetails,
     options.candidate.distanceMeters,
@@ -175,6 +179,7 @@ export function scoreRoutedCandidate(
     distanceFitScore,
     surfacePreferenceScore,
     isWithinTolerance,
+    isWithinSupportedDistanceLimit,
     status: warnings.length > 0 ? "partial" : "success",
     warnings,
     summary,

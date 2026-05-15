@@ -1,5 +1,6 @@
 const DEFAULT_APP_URL = "http://127.0.0.1:5173";
 const DISTANCE_DELTA_ROUNDING_TOLERANCE_METERS = 10;
+const MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS = 400;
 const SURFACE_PERCENT_TOTAL_TOLERANCE = 1;
 
 const { appUrl, requireElevation } = parseArguments(process.argv.slice(2));
@@ -133,6 +134,10 @@ function checkPreviewDistanceAndSurfaceHonesty(request, response) {
   const surfaceWarningPresent = warningCodes.includes(
     "surface_data_incomplete",
   );
+  const withinSupportedDistanceLimit =
+    summary !== null &&
+    Math.abs(summary.distanceDeltaMeters) <=
+      MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS;
   const shouldHaveDistanceWarning =
     summary === null
       ? false
@@ -142,6 +147,7 @@ function checkPreviewDistanceAndSurfaceHonesty(request, response) {
   const ok =
     summary !== null &&
     computedDistanceDeltaMeters !== null &&
+    withinSupportedDistanceLimit &&
     Math.abs(computedDistanceDeltaMeters - summary.distanceDeltaMeters) <=
       DISTANCE_DELTA_ROUNDING_TOLERANCE_METERS &&
     Math.abs(surfacePercentTotal - 100) <= SURFACE_PERCENT_TOTAL_TOLERANCE &&
@@ -161,6 +167,9 @@ function checkPreviewDistanceAndSurfaceHonesty(request, response) {
       surfacePercentTotal,
       surfaceSummary: surface,
       surfaceWarningPresent,
+      withinSupportedDistanceLimit,
+      maximumAcceptableDistanceDeltaMeters:
+        MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS,
       targetDistanceKm: request.targetDistanceKm,
       toleranceMeters: request.toleranceMeters,
       totalDistanceKm: summary?.totalDistanceKm ?? null,

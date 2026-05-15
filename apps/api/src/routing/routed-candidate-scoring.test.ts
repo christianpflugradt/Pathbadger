@@ -116,6 +116,7 @@ describe("scoreRoutedCandidate", () => {
       distanceFitScore: -40,
       surfacePreferenceScore: 0,
       isWithinTolerance: true,
+      isWithinSupportedDistanceLimit: true,
       status: "success",
       warnings: [],
       summary: {
@@ -250,6 +251,7 @@ describe("scoreRoutedCandidate", () => {
     expect(scoredCandidate.surfacePreferenceScore).toBe(-100);
     expect(scoredCandidate.score).toBe(-440);
     expect(scoredCandidate.isWithinTolerance).toBe(false);
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
     expect(scoredCandidate.summary.distanceDeltaMeters).toBe(340);
     expect(scoredCandidate.summary.surface).toEqual({
       asphaltPercent: 0,
@@ -269,6 +271,37 @@ describe("scoreRoutedCandidate", () => {
           "Surface classification is incomplete for 100% of this routed preview.",
       },
     ]);
+  });
+
+  it("marks candidates beyond the supported 400 meter distance limit", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      },
+      candidate: {
+        routeId: "candidate-too-far",
+        distanceMeters: 12_520,
+        durationMs: 4_920_000,
+        elevationGainMeters: 88,
+        geometry: createGeometry([
+          [10.1228, 54.3233],
+          [10.152, 54.3375],
+          [10.1228, 54.3233],
+        ]),
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(12_520),
+      },
+    });
+
+    expect(scoredCandidate.isWithinTolerance).toBe(false);
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(false);
+    expect(scoredCandidate.summary.distanceDeltaMeters).toBe(520);
   });
 
   it("gives higher scores to routed candidates with tighter distance fit", () => {
