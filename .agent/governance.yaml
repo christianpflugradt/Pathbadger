@@ -1,6 +1,7 @@
 governance:
   priority_order:
     - correctness_of_core_route_and_navigation_behavior
+    - round_trip_route_generation_and_target_fit
     - working_default_generate_route_flow
     - map_first_mobile_usability_for_core_journeys
     - core_map_user_value_before_adjacent_navigation_polish
@@ -62,6 +63,8 @@ governance:
     review_does_not_update_roadmap: true
     review_scope_is_full_workspace: true
     review_focus_hints_do_not_limit_scope: true
+    review_must_raise_a_blocking_defect_when_supported_generation_is_not_round_trip: true
+    review_must_raise_a_blocking_defect_when_normal_supported_routes_break_the_400_meter_distance_policy: true
     review_must_raise_a_blocking_defect_when_default_supported_boot_cannot_generate_routes: true
     review_must_raise_a_blocking_defect_for_fallback_only_core_map_states: true
     review_must_raise_a_defect_for_undeclared_user_visible_fallbacks: true

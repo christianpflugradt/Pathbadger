@@ -1,0 +1,22 @@
+id: ITEM-0046
+type: feature
+priority: P0
+status: todo
+scope: api_web_docs_testing
+origin: refine
+parent_epic: EPIC-0019
+title: Enforce the 400 meter maximum distance-fit policy for normal routes
+summary: Tighten route-generation acceptance so a normal supported result stays within a few hundred meters of the requested length and never exceeds a 400 meter distance delta unless explicit feasibility constraints force a warning or failure.
+acceptance_criteria:
+  - supported normal route generation does not present a route as an acceptable default result when its distance delta exceeds 400 meters in either direction
+  - if mandatory pass-through points or legal constraints make the target impossible, the product returns an explicit feasibility warning or failure instead of treating a much longer or shorter loop as a normal success
+  - verification and operational docs stop implying that very large distance deltas are an acceptable default outcome for route generation
+verification:
+  - npm run verify
+  - make run-app
+  - supported live route evidence proving normal generated routes stay within the 400 meter limit or fail honestly
+implementation_notes:
+  - "2026-05-15 refine: current live route-quality evidence still accepts a large outside-tolerance partial preview, but user clarification now makes that product behavior unacceptable for the normal route-generation journey."
+  - "2026-05-15 refine: the product still needs to balance calculation time and repeated attempts, so this item should prefer a bounded-effort search with explicit failure or feasibility warnings over silently returning oversized loops."
+created_at: 2026-05-15T11:30:47+02:00
+updated_at: 2026-05-15T11:30:47+02:00

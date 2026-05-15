@@ -1,5 +1,5 @@
 id: EPIC-0018
-status: active
+status: queued
 phase: post-mvp-map-first-ux
 title: Align the product with the canonical map-first mobile workflow
 objective: encode and finish the intended journey where the map stays central during planning and navigation, route generation works in the default supported flow, settings stay collapsible, and active guidance keeps only essential HUD visible on phone
@@ -11,4 +11,4 @@ items:
   - ITEM-0043
   - ITEM-0044
 created_at: 2026-05-15T10:56:34+02:00
-updated_at: 2026-05-15T10:56:34+02:00
+updated_at: 2026-05-15T11:30:47+02:00

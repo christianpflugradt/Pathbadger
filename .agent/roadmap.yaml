@@ -11,11 +11,13 @@ roadmap:
     route_planning_state:
       required_capabilities:
         - see_real_self_hosted_roads_and_trails_on_map_during_supported_planning_boot
-        - default_home_start_near_bad_bramstedt_until_user_changes_it
+        - default_home_start_in_weddelbrook_until_user_changes_it
         - choose_start_from_map_current_position_or_local_default
         - choose_start_from_last_used_locally
         - choose_activity_running_walking_or_cycling
         - enter_target_distance_in_km
+        - generate_round_trip_routes_that_return_to_start
+        - keep_normal_route_distance_delta_within_400_meters
         - choose_surface_preference_trail_mixed_asphalt_or_indifferent
         - keep_map_visible_while_adjusting_route_parameters
         - keep_route_settings_collapsible_instead_of_persistent
@@ -59,7 +61,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 98
+  overall_progress_percent: 95
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -78,9 +80,9 @@ roadmap:
       target_outcome: browser-verified planning map with real self-hosted cartography and route preview
     - id: route-generation
       title: Random route generation, scoring, distance handling
-      status: done
-      progress_percent: 100
-      target_outcome: candidate generation and scoring that match distance and surface preferences honestly
+      status: active
+      progress_percent: 85
+      target_outcome: candidate generation and scoring that produce round-trip routes returning to the start and staying near the requested distance instead of drifting into oversized loops
     - id: navigation
       title: GPS route following and navigation metrics
       status: done
@@ -108,10 +110,10 @@ roadmap:
       target_outcome: same-origin self-hosted place search that expands the planner beyond map-click-only waypoint selection without introducing browser-side third-party dependencies
     - id: post-mvp-map-first-ux
       title: Map-first planner and navigation workflow
-      status: active
+      status: queued
       progress_percent: 0
       target_outcome: phone-first map-dominant planning and navigation with obvious route-generation and start-navigation actions plus a quick reset into the next route
-  current_epic: EPIC-0018
+  current_epic: EPIC-0019
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -155,6 +157,7 @@ roadmap:
     - the api now exposes a supported same-origin `GET /api/places/search` boundary with shared contracts and honest `empty` or `unavailable` states, so later planner UI work can add local place search without direct browser calls to any provider
     - the planner now exposes a supported same-origin local place-search workflow, keeps Schleswig-Holstein routing guardrails and unavailable-provider states explicit, and can apply a searched place directly as the route start or a pass-through point
   remaining_summary:
+    - route generation is now explicitly constrained to round courses that return to the same start and should normally stay within 400 meters of the requested distance, so future work must not treat long point-to-point or oversized-loop outputs as acceptable default results
     - rerouting after off-route detection remains intentionally deferred until a new additive execution epic is opened
     - user feedback has reopened the map-first mobile workflow, because the current planner and navigation shell still need less chrome, clearer primary actions, and a cleaner return to planning to match the intended product
     - future work must keep route generation working in the default supported boot and treat persistent map-obscuring overlays or diagnostics as product defects rather than acceptable polish gaps

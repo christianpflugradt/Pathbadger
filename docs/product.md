@@ -122,6 +122,7 @@ ambiguity_defaults:
   default_activity: running_walking
   default_surface_preference: mixed
   default_distance_tolerance_meters: 150
+  maximum_acceptable_distance_delta_meters: 400
   default_region: Schleswig-Holstein
   default_start_point: last_used_start_point_else_map_click_required
   default_storage: browser_local_storage_only
@@ -204,11 +205,12 @@ The default intended journey is simple and map-first:
 1. The user begins from the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, unless a supported remembered or manually chosen start overrides it.
 2. The user optionally adds one or more pass-through points on the map, but this is secondary and often unnecessary.
 3. The user sets only the basic route parameters they care about: distance in kilometers and surface preference.
-4. The user taps a primary `Generate route` action.
+4. The user taps a primary `Generate route` action and receives a round course that returns to the same start point instead of a point-to-point trip.
 5. If the random route is not appealing, the user can tap again to generate another variation within the same constraints.
-6. Once a route looks good on the map, the user starts navigation from the same map-first screen.
-7. During navigation, the user mainly sees the route and current position on the map plus a compact set of essential guidance metrics.
-8. When navigation is finished or manually stopped, the user should be able to return directly to the planning state and start another route quickly.
+6. A normal generated route should stay within a few hundred meters of the requested length, with 400 meters as the hard outer limit for an acceptable default result.
+7. Once a route looks good on the map, the user starts navigation from the same map-first screen.
+8. During navigation, the user mainly sees the route and current position on the map plus a compact set of essential guidance metrics.
+9. When navigation is finished or manually stopped, the user should be able to return directly to the planning state and start another route quickly.
 
 ### 4.0.1 Map-first UX principles
 
@@ -237,6 +239,9 @@ Route planning must support:
   - running/walking
   - cycling
 - target distance in kilometers
+- round-trip route shape:
+  - the generated route must end back at the start point
+  - point-to-point generation is not the default product mode
 - surface preference:
   - mostly trail/unpaved
   - mixed
@@ -249,8 +254,10 @@ Route planning must support:
 - random route generation:
   - generate one route at a time in the MVP
   - allow generating a new variation
+  - return a round course that comes back to the start point
   - keep the route visible on the map while the user decides whether to accept it or generate another one
 - route feasibility handling:
+  - a normal generated route should stay within a few hundred meters of the requested distance, with 400 meters as the hard outer limit for an acceptable default result
   - if the requested distance is impossible with mandatory pass-through points, show the shortest sensible route and explain that it exceeds the requested distance
   - if no legal route exists between required points, identify the problematic segment or point as clearly as possible
   - if the route leaves the Schleswig-Holstein data region, reject or warn depending on implementation constraints
@@ -304,7 +311,9 @@ Implement these first.
   - asphalt as much as possible
   - indifferent
 - Generate one random route candidate.
+- Ensure the generated route is a round course that returns to the same start.
 - Generate another random variation.
+- Keep the normal generated result within a few hundred meters of the requested distance, with 400 meters as the hard outer limit unless explicit feasibility constraints are surfaced.
 - Display generated route on map.
 - Keep the map visible as the main surface on phone while configuring and inspecting the route.
 - Keep route settings collapsible instead of permanently occupying most of the viewport.
@@ -631,6 +640,7 @@ The backend should generate route candidates using a strategy such as:
 9. On user request, generate a new candidate with a different random seed.
 
 For round trips, candidate generation may use triangles, loops, or multiple intermediate points. Avoid routes that simply go out and back along the same line unless no better route exists.
+Point-to-point generation is not the normal Pathbadger product mode.
 
 ### 8.4 Distance handling
 
@@ -640,12 +650,14 @@ Initial tolerance may be configurable, defaulting to something like:
 
 ```yaml
 distanceToleranceMeters: 150
+maximumAcceptableDistanceDeltaMeters: 400
 ```
 
 Behavior:
 
-- Try to generate a route within tolerance.
-- If not possible, return the closest acceptable candidate with a warning.
+- Try to generate a round course within the internal tolerance.
+- Do not present a normal route as acceptable if it exceeds the target by more than 400 meters in either direction.
+- If not possible within the allowed effort budget, return an explicit failure or feasibility warning rather than silently accepting a much longer or shorter loop.
 - If mandatory points imply a route longer than target, return the shortest feasible route and explain the minimum distance.
 - Later, implement a distance fitter that adds or removes small loops to approach the target more precisely.
 
@@ -2223,10 +2235,11 @@ The first implementation may not always hit the exact target, but it must be hon
 ```yaml
 distance_behavior:
   default_tolerance_meters: 150
-  success: within_tolerance
-  partial: outside_tolerance_but_best_candidate_found
+  maximum_acceptable_distance_delta_meters: 400
+  success: within_tolerance_and_within_400_meter_limit
+  partial: only_when_explicit_feasibility_constraints_force_a_nonideal_round_trip
   minimum_route_exceeds_target: return_shortest_feasible_with_warning
-  failed: no_legal_candidate_or_routing_engine_unavailable
+  failed: no_legal_round_trip_within_allowed_distance_or_routing_engine_unavailable
 ```
 
 ## 20B. Mobile and battery acceptance criteria

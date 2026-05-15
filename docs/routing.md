@@ -1,11 +1,12 @@
 # Routing
 
 The core product differentiator is route quality, not generic shortest-path output.
+Pathbadger generates round courses from and back to the same start point; point-to-point generation is not the normal product flow.
 
 ## Intended routing strategy
 
 1. Accept a start point, activity, target distance, surface preference, and optional pass-through points.
-2. Generate candidate waypoint sets for round-trip-friendly route shapes.
+2. Generate candidate waypoint sets for round-trip-friendly route shapes that return to the same start point.
 3. Ask GraphHopper for legal route candidates.
 4. Score candidates by distance fit, legality, surface preference, traffic avoidance, and loop quality.
 5. Return the best route plus honest warnings when the target cannot be matched closely.
@@ -13,9 +14,11 @@ The core product differentiator is route quality, not generic shortest-path outp
 ## MVP expectations
 
 - one route candidate at a time
+- one round-trip route candidate at a time
 - explicit random variation regeneration
 - honest surface-composition summaries
 - clear warnings when data is incomplete or constraints force longer routes
+- a normal acceptable route should stay within a few hundred meters of the target distance, with 400 meters as the hard outer limit unless explicit feasibility constraints force a warning or failure
 
 ## Current state
 

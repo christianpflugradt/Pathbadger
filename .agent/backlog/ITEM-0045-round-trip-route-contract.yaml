@@ -1,0 +1,22 @@
+id: ITEM-0045
+type: feature
+priority: P0
+status: todo
+scope: shared_api
+origin: refine
+parent_epic: EPIC-0019
+title: Make round-trip return-to-start behavior an explicit route-generation contract
+summary: Update the supported route-generation boundaries so the product and verification layers treat every normal generated route as a round course that starts and ends at the same point, rather than as an arbitrary routed preview through waypoints.
+acceptance_criteria:
+  - the shared and api route-generation behavior makes return-to-start round-course output an explicit supported requirement rather than an implicit implementation detail
+  - supported verification proves the generated route geometry begins and ends at the same start area within honest mapping tolerance instead of drifting into a point-to-point interpretation
+  - warnings or failure states stay explicit if legal-routing constraints prevent an acceptable round course from being produced
+verification:
+  - npm run verify
+  - make run-app
+  - supported live route evidence showing the route returns to the same start area
+implementation_notes:
+  - "2026-05-15 refine: user clarification made the route shape non-negotiable: Pathbadger generates round courses from and back to the same start, not point-to-point trips."
+  - "2026-05-15 refine: `apps/api/src/routing/candidate-waypoint-seeds.ts` already hints at round-trip behavior by ending seeded waypoint sets at the start coordinate, so the main gap is making that product contract explicit across scoring, warnings, and verification."
+created_at: 2026-05-15T11:30:47+02:00
+updated_at: 2026-05-15T11:30:47+02:00

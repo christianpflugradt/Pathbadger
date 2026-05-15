@@ -16,11 +16,18 @@ product:
       lat: 53.9015262
       lon: 9.8325138
       applies_when: no_user_selected_or_locally_restored_start_exists
+    route_generation:
+      shape: round_trip
+      must_return_to_start: true
+      maximum_target_distance_delta_meters: 400
+      normal_goal: within_a_few_hundred_meters_of_target_distance
   canonical_user_workflow:
     - the common journey begins from the default Weddelbrook home-base start unless the user picks another supported start or a remembered local start overrides it
     - the user usually sets only a start point, target distance, and surface preference before generating a route
     - optional pass-through points are important but secondary, and the common flow must still feel complete without them
+    - every generated route is a round course that starts and ends at the same point rather than a point-to-point trip
     - generate route and generate another variation are the primary planning actions
+    - a normal generated route should stay within a few hundred meters of the target distance, with 400 meters as the hard outer limit for an acceptable default result
     - start navigation is the primary handoff once an acceptable route preview is visible on the map
     - after the route is finished or manually stopped, the user should be able to return quickly to planning and begin a new route
   experience_principles:
@@ -50,13 +57,15 @@ product:
   feature_groups:
     route_planning:
       - real_self_hosted_cartography_visible_during_planning
-      - default_home_start_near_bad_bramstedt_until_user_override
+      - default_home_start_in_weddelbrook_until_user_override
       - start_point_from_map_click
       - optional_current_position_start
       - locally_remembered_default_start
       - locally_remembered_last_start
       - activity_selection
       - target_distance_km
+      - round_trip_route_returns_to_same_start
+      - normal_route_distance_delta_stays_within_400_meters
       - surface_preference_selection
       - common_planning_flow_works_without_pass_through_points
       - optional_pass_through_points
@@ -67,7 +76,7 @@ product:
       - obvious_generate_regenerate_and_start_navigation_actions
       - route_summary_with_distance_surface_and_warnings
       - elevation_gain_when_available
-      - impossible_or_too_long_route_handling
+      - impossible_or_too_long_route_handling_with_explicit_feasibility_warning
     navigation:
       - route_line_visible
       - current_position_visible
