@@ -13,6 +13,7 @@ const OPPOSITE_DIRECTION_DOT_PRODUCT_THRESHOLD = -0.85;
 export const MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS = 150;
 export const MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS = 50;
 export const MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS = 500;
+export const MINIMUM_MEANINGFUL_LOOP_CORE_METERS = 1_000;
 
 type LocalDirectionVector = {
   x: number;
@@ -66,6 +67,20 @@ export function routeMeetsSupportedRoundTripContract(
     summary.closureGapMeters <= MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS &&
     summary.bidirectionalOverlapMeters <=
       MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS
+  );
+}
+
+export function calculateUniqueLoopCoreMeters(geometry: RouteGeometry) {
+  const totalRouteDistanceMeters = calculateRouteDistanceMeters(
+    geometry.coordinates,
+  );
+  const bidirectionalOverlapMeters = calculateBidirectionalOverlapMeters(
+    geometry.coordinates,
+  );
+
+  return Math.max(
+    0,
+    Math.round(totalRouteDistanceMeters - bidirectionalOverlapMeters * 2),
   );
 }
 
@@ -184,6 +199,28 @@ function sampleRouteSegments(coordinates: RouteGeometry["coordinates"]) {
   }
 
   return sampledSegments;
+}
+
+function calculateRouteDistanceMeters(
+  coordinates: RouteGeometry["coordinates"],
+) {
+  let totalRouteDistanceMeters = 0;
+
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const startCoordinate = coordinates[index - 1];
+    const endCoordinate = coordinates[index];
+
+    if (!startCoordinate || !endCoordinate) {
+      continue;
+    }
+
+    totalRouteDistanceMeters += haversineDistanceMeters(
+      lineStringCoordinateToCoordinate(startCoordinate),
+      lineStringCoordinateToCoordinate(endCoordinate),
+    );
+  }
+
+  return totalRouteDistanceMeters;
 }
 
 function lineStringCoordinateToCoordinate(

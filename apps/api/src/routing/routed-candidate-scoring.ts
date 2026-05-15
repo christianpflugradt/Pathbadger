@@ -19,9 +19,11 @@ import type {
   GraphHopperRouteSurfaceDetail,
 } from "./graphhopper-adapter.js";
 import {
+  MINIMUM_MEANINGFUL_LOOP_CORE_METERS,
   MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS,
   MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS,
   MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS,
+  calculateUniqueLoopCoreMeters,
   routeMeetsSupportedRoundTripContract,
   summarizeRouteLoop,
 } from "./route-loop-analysis.js";
@@ -69,6 +71,7 @@ const PROHIBITED_ACTIVITY_ROAD_CLASSES = new Set([
   "trunk_link",
 ]);
 const PROHIBITED_ACCESS_VALUES = new Set(["no", "private"]);
+const U_TURN_INSTRUCTION_TYPES = new Set(["u_turn_left", "u_turn_right"]);
 export const MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS = 400;
 
 export interface RoutedCandidateForScoring extends GraphHopperRouteResult {
@@ -164,8 +167,19 @@ export function scoreRoutedCandidate(
     geometry: options.candidate.geometry,
     requestedStart: parsedRequest.start,
   });
+  const uniqueLoopCoreMeters = calculateUniqueLoopCoreMeters(
+    options.candidate.geometry,
+  );
+  const hasExplicitUTurnInstruction = options.candidate.instructions.some(
+    (instruction) => U_TURN_INSTRUCTION_TYPES.has(instruction.type),
+  );
   const isWithinSupportedRoundTripContract =
-    routeMeetsSupportedRoundTripContract(loop);
+    !hasExplicitUTurnInstruction &&
+    (routeMeetsSupportedRoundTripContract(loop) ||
+      supportsConnectorOutAndBackRoundTrip({
+        loop,
+        uniqueLoopCoreMeters,
+      }));
   const surfaceSummary = summarizeRouteSurface(
     options.candidate.surfaceDetails,
     options.candidate.distanceMeters,
@@ -177,9 +191,12 @@ export function scoreRoutedCandidate(
   const distanceFitScore = -Math.abs(distanceDeltaMeters);
   const warnings = createScoringWarnings({
     distanceDeltaMeters,
+    hasExplicitUTurnInstruction,
+    isWithinSupportedRoundTripContract,
     loop,
     surfaceSummary,
     toleranceMeters: parsedRequest.toleranceMeters,
+    uniqueLoopCoreMeters,
   });
   const summary = routeSummarySchema.parse({
     totalDistanceKm: roundKilometers(options.candidate.distanceMeters),
@@ -208,9 +225,12 @@ export function scoreRoutedCandidate(
 
 function createScoringWarnings(options: {
   distanceDeltaMeters: number;
+  hasExplicitUTurnInstruction: boolean;
+  isWithinSupportedRoundTripContract: boolean;
   loop: RouteLoopSummary;
   surfaceSummary: RouteSurfaceSummary;
   toleranceMeters: number;
+  uniqueLoopCoreMeters: number;
 }): RouteWarning[] {
   const warnings: RouteWarning[] = [];
 
@@ -231,7 +251,15 @@ function createScoringWarnings(options: {
     });
   }
 
-  if (!routeMeetsSupportedRoundTripContract(options.loop)) {
+  if (!options.isWithinSupportedRoundTripContract) {
+    if (options.hasExplicitUTurnInstruction) {
+      warnings.push({
+        code: "route_contains_u_turn",
+        message:
+          "The routed preview turns around on itself instead of reaching a meaningful loop.",
+      });
+    }
+
     if (
       options.loop.startOffsetMeters >
         MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS ||
@@ -247,18 +275,35 @@ function createScoringWarnings(options: {
     }
 
     if (
+      !options.hasExplicitUTurnInstruction &&
       options.loop.bidirectionalOverlapMeters >
-      MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS
+        MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS
     ) {
       warnings.push({
         code: "route_reuses_too_much_path",
         message:
-          "The routed preview reuses more than 500 meters of the same path in opposite directions.",
+          options.uniqueLoopCoreMeters >= MINIMUM_MEANINGFUL_LOOP_CORE_METERS
+            ? "The routed preview still reuses too much path in opposite directions after the loop core is removed."
+            : "The routed preview reuses more than 500 meters of the same path in opposite directions without forming a meaningful loop beyond the shared connector.",
       });
     }
   }
 
   return warnings;
+}
+
+function supportsConnectorOutAndBackRoundTrip(options: {
+  loop: RouteLoopSummary;
+  uniqueLoopCoreMeters: number;
+}) {
+  return (
+    options.loop.startOffsetMeters <=
+      MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS &&
+    options.loop.endOffsetMeters <=
+      MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS &&
+    options.loop.closureGapMeters <= MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS &&
+    options.uniqueLoopCoreMeters >= MINIMUM_MEANINGFUL_LOOP_CORE_METERS
+  );
 }
 
 function summarizeRouteSurface(

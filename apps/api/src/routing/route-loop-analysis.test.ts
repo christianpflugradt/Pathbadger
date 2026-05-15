@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MINIMUM_MEANINGFUL_LOOP_CORE_METERS,
   MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS,
   MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS,
   MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS,
+  calculateUniqueLoopCoreMeters,
   routeMeetsSupportedRoundTripContract,
   summarizeRouteLoop,
 } from "./route-loop-analysis.js";
@@ -31,6 +33,18 @@ describe("summarizeRouteLoop", () => {
       bidirectionalOverlapMeters: 0,
     });
     expect(routeMeetsSupportedRoundTripContract(summary)).toBe(true);
+    expect(
+      calculateUniqueLoopCoreMeters({
+        type: "LineString",
+        coordinates: [
+          [10.0, 54.0],
+          [10.01, 54.0],
+          [10.01, 54.01],
+          [10.0, 54.01],
+          [10.0, 54.0],
+        ],
+      }),
+    ).toBeGreaterThan(MINIMUM_MEANINGFUL_LOOP_CORE_METERS);
   });
 
   it("detects a long out-and-back retrace as unsupported overlap", () => {
@@ -55,6 +69,18 @@ describe("summarizeRouteLoop", () => {
       MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS,
     );
     expect(routeMeetsSupportedRoundTripContract(summary)).toBe(false);
+    expect(
+      calculateUniqueLoopCoreMeters({
+        type: "LineString",
+        coordinates: [
+          [10.0, 54.0],
+          [10.0, 54.01],
+          [10.0, 54.02],
+          [10.0, 54.01],
+          [10.0, 54.0],
+        ],
+      }),
+    ).toBeLessThan(MINIMUM_MEANINGFUL_LOOP_CORE_METERS);
   });
 
   it("flags a route that does not return closely enough to the requested start area", () => {

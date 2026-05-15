@@ -47,6 +47,18 @@ function createLoopGeometry(
   ]);
 }
 
+function createConnectorLoopGeometry() {
+  return createGeometry([
+    [10.1228, 54.3233],
+    [10.1228, 54.3383],
+    [10.1278, 54.3443],
+    [10.1358, 54.3443],
+    [10.1408, 54.3383],
+    [10.1228, 54.3383],
+    [10.1228, 54.3233],
+  ]);
+}
+
 function createInstructions(points: Array<[number, number]> = []) {
   const startCoordinate = points[0] ?? ([10.1228, 54.3233] as [number, number]);
   const endCoordinate = points[points.length - 1] ?? startCoordinate;
@@ -349,7 +361,125 @@ describe("scoreRoutedCandidate", () => {
     expect(scoredCandidate.warnings).toContainEqual({
       code: "route_reuses_too_much_path",
       message:
-        "The routed preview reuses more than 500 meters of the same path in opposite directions.",
+        "The routed preview reuses more than 500 meters of the same path in opposite directions without forming a meaningful loop beyond the shared connector.",
+    });
+  });
+
+  it("allows repeated start connectors when they lead to a meaningful loop core", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      },
+      candidate: {
+        routeId: "candidate-connector-loop",
+        distanceMeters: 8_040,
+        durationMs: 3_380_000,
+        elevationGainMeters: 61,
+        geometry: createConnectorLoopGeometry(),
+        instructions: createInstructions(),
+        surfaceDetails: createUnknownSurfaceDetails(8_040),
+      },
+    });
+
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
+    expect(
+      scoredCandidate.summary.loop.bidirectionalOverlapMeters,
+    ).toBeGreaterThan(500);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(true);
+    expect(scoredCandidate.warnings).not.toContainEqual(
+      expect.objectContaining({
+        code: "route_reuses_too_much_path",
+      }),
+    );
+  });
+
+  it("rejects connector overlap when the route includes an explicit u-turn", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      },
+      candidate: {
+        routeId: "candidate-u-turn",
+        distanceMeters: 8_040,
+        durationMs: 3_380_000,
+        elevationGainMeters: 61,
+        geometry: createConnectorLoopGeometry(),
+        instructions: [
+          ...createInstructions(),
+          {
+            distanceFromStartMeters: 2_000,
+            distanceToNextMeters: 100,
+            type: "u_turn_right",
+            text: "Make a U-turn",
+            streetName: null,
+            coordinate: [10.1228, 54.3383],
+          },
+        ],
+        surfaceDetails: createUnknownSurfaceDetails(8_040),
+      },
+    });
+
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(false);
+    expect(scoredCandidate.warnings).toContainEqual({
+      code: "route_contains_u_turn",
+      message:
+        "The routed preview turns around on itself instead of reaching a meaningful loop.",
+    });
+  });
+
+  it("rejects explicit u-turns even when overlap stays within the base round-trip limit", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      },
+      candidate: {
+        routeId: "candidate-clean-loop-with-u-turn",
+        distanceMeters: 8_020,
+        durationMs: 3_360_000,
+        elevationGainMeters: 54,
+        geometry: createLoopGeometry([10.1452, 54.3321]),
+        instructions: [
+          ...createInstructions(),
+          {
+            distanceFromStartMeters: 1_800,
+            distanceToNextMeters: 90,
+            type: "u_turn_left",
+            text: "Make a U-turn",
+            streetName: null,
+            coordinate: [10.1452, 54.3321],
+          },
+        ],
+        surfaceDetails: createUnknownSurfaceDetails(8_020),
+      },
+    });
+
+    expect(
+      scoredCandidate.summary.loop.bidirectionalOverlapMeters,
+    ).toBeLessThanOrEqual(500);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(false);
+    expect(scoredCandidate.warnings).toContainEqual({
+      code: "route_contains_u_turn",
+      message:
+        "The routed preview turns around on itself instead of reaching a meaningful loop.",
     });
   });
 

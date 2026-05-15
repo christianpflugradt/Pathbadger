@@ -694,7 +694,7 @@ describe("createRouteGenerationService", () => {
         {
           code: "route_cannot_form_supported_round_trip",
           message:
-            "No legal round course could be generated that returned to the start with no more than 500 meters of repeated path.",
+            "No legal round course could be generated that returned to the start without turning around on itself and with a meaningful loop beyond any shared connector.",
         },
       ],
       summary: null,
