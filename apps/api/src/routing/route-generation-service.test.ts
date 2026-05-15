@@ -549,6 +549,127 @@ describe("createRouteGenerationService", () => {
     expect(getRoute.mock.calls.length).toBeGreaterThan(2);
   });
 
+  it("retries additional default candidate seeds after a round-trip contract miss", async () => {
+    const getRoute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        distanceMeters: 8_060,
+        durationMs: 3_380_000,
+        elevationGainMeters: 61,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.1228, 54.3333],
+            [10.1228, 54.3433],
+            [10.1228, 54.3333],
+            [10.1228, 54.3233],
+          ],
+        },
+        instructions: [],
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 8_060,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        distanceMeters: 8_040,
+        durationMs: 3_360_000,
+        elevationGainMeters: 60,
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [10.1228, 54.3233],
+            [10.1228, 54.3333],
+            [10.1228, 54.3433],
+            [10.1228, 54.3333],
+            [10.1228, 54.3233],
+          ],
+        },
+        instructions: [],
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 8_040,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        distanceMeters: 8_080,
+        durationMs: 3_340_000,
+        elevationGainMeters: 59,
+        geometry: createLoopGeometry([10.1341, 54.3288]),
+        instructions: [],
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 8_080,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        distanceMeters: 8_020,
+        durationMs: 3_320_000,
+        elevationGainMeters: 58,
+        geometry: createLoopGeometry([10.1336, 54.3284]),
+        instructions: [],
+        surfaceDetails: createSurfaceDetails([
+          {
+            distanceMeters: 8_020,
+            surface: "asphalt",
+            roadClass: "residential",
+          },
+        ]),
+      });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toEqual({
+      routeId: "draft-variation-1-counter",
+      status: "success",
+      warnings: [],
+      summary: {
+        totalDistanceKm: 8.02,
+        targetDistanceKm: 8,
+        distanceDeltaMeters: 20,
+        elevationGainMeters: 58,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
+        surface: {
+          asphaltPercent: 100,
+          trailUnpavedPercent: 0,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 0,
+        },
+      },
+      geometry: createLoopGeometry([10.1336, 54.3284]),
+      instructions: [],
+    });
+    expect(getRoute).toHaveBeenCalledTimes(4);
+  });
+
   it("fails explicitly when every scored candidate reuses too much path in both directions", async () => {
     const getRoute = vi.fn().mockResolvedValue({
       distanceMeters: 8_060,

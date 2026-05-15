@@ -37,6 +37,14 @@ export interface CreateRouteGenerationServiceOptions {
 }
 
 const DISTANCE_FIT_FALLBACK_FACTORS = [0.85, 0.75, 0.6875, 0.6];
+const AUTOMATIC_CANDIDATE_RETRY_SEEDS = [
+  "draft-variation-1",
+  "draft-variation-2",
+  "draft-variation-3",
+  "draft-variation-4",
+  "draft-variation-5",
+  "draft-variation-6",
+];
 
 export function createRouteGenerationService(
   options: CreateRouteGenerationServiceOptions,
@@ -107,7 +115,34 @@ export function createRouteGenerationService(
         );
       }
 
-      if (primaryAttempt.unsupportedCandidates.length > 0) {
+      if (shouldRetryAutomaticCandidateSeeds(parsedRequest, primaryAttempt)) {
+        for (const retryRequest of createAutomaticCandidateRetryRequests(
+          parsedRequest,
+        )) {
+          const retryAttempt = await evaluateCandidateRequest({
+            generationRequest: retryRequest,
+            routingEngine: options.routingEngine,
+            scoringRequest: parsedRequest,
+            supportedRegion,
+          });
+
+          failures.push(...retryAttempt.failures);
+          rejections.push(...retryAttempt.rejections);
+          unsupportedCandidates.push(...retryAttempt.unsupportedCandidates);
+
+          const bestRetryCandidate = selectBestScoredCandidate(
+            retryAttempt.acceptableCandidates,
+          );
+
+          if (bestRetryCandidate) {
+            return routeGenerateResponseSchema.parse(
+              buildRouteResponse(bestRetryCandidate),
+            );
+          }
+        }
+      }
+
+      if (unsupportedCandidates.length > 0) {
         for (const fallbackRequest of createDistanceFitFallbackRequests(
           parsedRequest,
         )) {
@@ -243,6 +278,28 @@ async function evaluateCandidateRequest(options: {
     rejections,
     unsupportedCandidates,
   };
+}
+
+function createAutomaticCandidateRetryRequests(request: RouteGenerateRequest) {
+  return AUTOMATIC_CANDIDATE_RETRY_SEEDS.map((randomSeed) =>
+    routeGenerateRequestSchema.parse({
+      ...request,
+      randomSeed,
+    }),
+  );
+}
+
+function shouldRetryAutomaticCandidateSeeds(
+  request: RouteGenerateRequest,
+  attempt: Awaited<ReturnType<typeof evaluateCandidateRequest>>,
+) {
+  if (request.randomSeed !== null) {
+    return false;
+  }
+
+  return attempt.unsupportedCandidates.some(
+    (candidate) => candidate.isWithinSupportedDistanceLimit,
+  );
 }
 
 function createDistanceFitFallbackRequests(request: RouteGenerateRequest) {
