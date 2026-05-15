@@ -129,11 +129,11 @@ type StartPointOption = {
 
 const DEFAULT_CURRENT_POSITION_COORDINATE = { lat: 53.9167, lon: 9.8833 };
 const DEFAULT_MAP_SELECTED_START_COORDINATE = {
-  lat: 53.9188,
-  lon: 9.8872,
+  lat: 53.9015262,
+  lon: 9.8325138,
 };
 const DEFAULT_MAP_SELECTED_START_LABEL =
-  "Bad Bramstedt, Schleswig-Holstein, Germany";
+  "Heidmoorer Straße 18, 24576 Weddelbrook";
 const startPointCatalog: Record<
   StartPointMode,
   {
@@ -1088,9 +1088,9 @@ export function App() {
         <div className="planner-header__copy">
           <p className="eyebrow">Pathbadger</p>
           <p className="planner-header__summary">
-            Start from Bad Bramstedt, add optional map waypoints, choose
-            distance and surface, generate or regenerate, and then start
-            navigation.
+            Start from Heidmoorer Straße 18 in Weddelbrook, add optional map
+            waypoints, choose distance and surface, generate or regenerate, and
+            then start navigation.
           </p>
         </div>
         <div className="planner-header__meta">
