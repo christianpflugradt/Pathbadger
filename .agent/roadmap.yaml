@@ -11,15 +11,19 @@ roadmap:
     route_planning_state:
       required_capabilities:
         - see_real_self_hosted_roads_and_trails_on_map_during_supported_planning_boot
+        - default_home_start_near_bad_bramstedt_until_user_changes_it
         - choose_start_from_map_current_position_or_local_default
         - choose_start_from_last_used_locally
         - choose_activity_running_walking_or_cycling
         - enter_target_distance_in_km
         - choose_surface_preference_trail_mixed_asphalt_or_indifferent
+        - keep_map_visible_while_adjusting_route_parameters
+        - keep_route_settings_collapsible_instead_of_persistent
         - add_optional_pass_through_points
         - generate_one_random_route_candidate
         - regenerate_a_new_variation
         - inspect_distance_surface_and_warning_summary
+        - make_generate_regenerate_and_start_navigation_obvious_primary_actions
         - see_clear_feedback_for_unroutable_or_too_long_requests
     settings_and_persistence:
       required_capabilities:
@@ -30,18 +34,22 @@ roadmap:
     route_execution_state:
       required_capabilities:
         - view_route_geometry_on_map
+        - keep_the_map_dominant_on_phone_during_active_guidance
         - follow_current_position
         - inspect_next_instruction_and_distance
         - see_completed_remaining_total_distance
         - see_current_speed_average_speed_and_progress_percent
+        - limit_persistent_guidance_hud_to_essential_turn_and_progress_metrics
         - receive_off_route_warning
         - use_north_up_navigation_by_default
+        - return_cleanly_to_planning_after_stop_or_completion
     platform_and_operations:
       required_capabilities:
         - npm_only_monorepo_workflow
         - self_hosted_graphhopper_service
         - self_hosted_tile_service
         - supported_local_boot_for_real_self_hosted_map_journeys
+        - default_supported_boot_generates_real_routes
         - docker_compose_orchestrated_stack
         - automated_lint_typecheck_test_and_compose_validation
         - durable_agent_roadmap_backlog_and_review_state
@@ -51,7 +59,7 @@ roadmap:
         - no_accounts
         - no_route_library
         - no_registration_required_dependencies
-  overall_progress_percent: 100
+  overall_progress_percent: 98
   phases:
     - id: foundation
       title: Repository, specs, tooling, Docker skeleton
@@ -98,7 +106,12 @@ roadmap:
       status: done
       progress_percent: 100
       target_outcome: same-origin self-hosted place search that expands the planner beyond map-click-only waypoint selection without introducing browser-side third-party dependencies
-  current_epic: null
+    - id: post-mvp-map-first-ux
+      title: Map-first planner and navigation workflow
+      status: active
+      progress_percent: 0
+      target_outcome: phone-first map-dominant planning and navigation with obvious route-generation and start-navigation actions plus a quick reset into the next route
+  current_epic: EPIC-0018
   completed_summary:
     - npm-only monorepo scaffolding, agent specs, docs, and hooks were created during initial setup
     - npm run verify currently passes lint, typecheck, unit tests, and formatting checks
@@ -124,7 +137,7 @@ roadmap:
     - the web app can now start a first local navigation session from a routed preview, compute progress locally, show next-instruction cues, and surface conservative off-route warnings without backend polling
     - active navigation now consumes live browser geolocation when it is available, retains the last real GPS fix during later feed failures, and surfaces explicit blocked/error GPS states instead of inventing a synthetic current-position fallback
     - the execution UI now surfaces current speed and timestamp-based average speed in km/h when browser geolocation data supports them, while keeping null or stale speed readings explicitly unavailable
-    - the repo now ships a supported GraphHopper-backed local boot through `make run-routing-app`, reusing downloaded Schleswig-Holstein routing data plus cached graph imports and proving in a real browser that a routed preview can start a navigation session
+    - the repo now ships a supported GraphHopper-backed local boot through `make run-app`, with `make run-routing-app` retained as an explicit alias, reusing downloaded Schleswig-Holstein routing data plus cached graph imports and proving in a real browser that a routed preview can start a navigation session
     - active navigation now follows the live current position by default, pauses map follow after a real user pan, and lets the user explicitly recenter onto the newest GPS fix without leaving north-up mode
     - the supported navigation card and docs now surface iPhone/PWA runtime caveats explicitly, covering permission, HTTPS, background behavior, Wake Lock variability, and the screen-on active-app expectation instead of hiding those browser limits
     - active navigation now distinguishes high-confidence live GPS fixes from noisy or stale `ready` updates, downgrades progress and route-deviation cues to approximate guidance when confidence is reduced, and avoids escalating a hard off-route warning until a tighter browser fix arrives
@@ -133,7 +146,7 @@ roadmap:
     - the planner now persists the most recent non-GPS planning origin in browser-local storage, keeps `Last used start` disabled until a real route request seeds it, and restores that stored origin honestly after a browser reload
     - the planner now restores both activity and surface selections from browser-local storage, saves each change immediately, and warns honestly when browser-local persistence cannot be used
     - the supported planner now removes the orphaned `Place search later` control and keeps pass-through planning explicitly centered on live map clicks while documenting local place search as later scope
-    - the routing core now includes legality and Schleswig-Holstein region guardrails plus `npm run test:live-route-quality`, a repeatable frontend-proxied live evidence command that proves first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior on `make run-routing-app`
+    - the routing core now includes legality and Schleswig-Holstein region guardrails plus `npm run test:live-route-quality`, a repeatable frontend-proxied live evidence command that proves first/last instruction endpoint anchoring, distance-fit honesty, surface-summary honesty, and explicit out-of-region failure behavior on `make run-app` or `make run-routing-app`
     - the scoped MVP backlog for the supported self-hosted browser flow is complete, so any newly opened work is additive post-MVP scope rather than a missing required capability
     - navigation now exposes an explicit `Heading up` mode alongside the north-up default, rotates only when browser heading data is fresh and trustworthy, and falls back honestly when heading support, GPS confidence, or Battery saver constraints are weak
     - the supported live map proof now serves frontend-resolvable self-hosted tile template URLs and `npm run test:browser-smoke -- --app-url http://localhost:5173` confirms real tile-stack requests through the proxied planning map boot
@@ -143,3 +156,5 @@ roadmap:
     - the planner now exposes a supported same-origin local place-search workflow, keeps Schleswig-Holstein routing guardrails and unavailable-provider states explicit, and can apply a searched place directly as the route start or a pass-through point
   remaining_summary:
     - rerouting after off-route detection remains intentionally deferred until a new additive execution epic is opened
+    - user feedback has reopened the map-first mobile workflow, because the current planner and navigation shell still need less chrome, clearer primary actions, and a cleaner return to planning to match the intended product
+    - future work must keep route generation working in the default supported boot and treat persistent map-obscuring overlays or diagnostics as product defects rather than acceptable polish gaps

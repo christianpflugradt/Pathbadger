@@ -1,0 +1,23 @@
+id: ITEM-0043
+type: feature
+priority: P1
+status: todo
+scope: web
+origin: refine
+parent_epic: EPIC-0018
+title: Finish the map-first planner interaction model
+summary: Rework the supported planner so the map stays dominant on phone, route settings are collapsible, generated route geometry remains visible while editing, and the primary generate, regenerate, and start actions are obvious near the map.
+acceptance_criteria:
+  - on a phone-sized supported browser viewport, the planner keeps the map as the dominant surface while selecting start and pass-through points and while inspecting a generated route preview
+  - nonessential route details, diagnostics, and helper prose do not persistently cover or push the map out of view during the common planning flow
+  - route settings live in a drawer or similarly collapsible surface, while generate route, generate variation, and start navigation remain obvious primary actions near the map
+  - supported browser verification proves a user can start from the default Weddelbrook home base, generate a route, inspect the route on the map, optionally regenerate it, and see a clear start-navigation handoff without hunting through the page
+verification:
+  - npm run verify
+  - make run-app
+  - supported phone-sized browser walkthrough for start, generate, regenerate, and preview visibility
+implementation_notes:
+  - "2026-05-15 refine: user feedback clarified that the current product still spends too much space on non-map chrome and hidden or duplicated actions, so the next planner slice must simplify visible controls and keep the route geometry in view."
+  - "2026-05-15 refine: optional pass-through points remain important but must stay secondary in the common journey, because many real uses start with only the home-base origin, a distance, and a surface preference."
+created_at: 2026-05-15T10:56:34+02:00
+updated_at: 2026-05-15T10:56:34+02:00

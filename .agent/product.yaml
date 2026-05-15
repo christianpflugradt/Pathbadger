@@ -10,6 +10,26 @@ product:
   units:
     distance: km
     speed: kmh
+  defaults:
+    start_point:
+      label: Heidmoorer Straße 18, 24576 Weddelbrook
+      lat: 53.9015262
+      lon: 9.8325138
+      applies_when: no_user_selected_or_locally_restored_start_exists
+  canonical_user_workflow:
+    - the common journey begins from the default Weddelbrook home-base start unless the user picks another supported start or a remembered local start overrides it
+    - the user usually sets only a start point, target distance, and surface preference before generating a route
+    - optional pass-through points are important but secondary, and the common flow must still feel complete without them
+    - generate route and generate another variation are the primary planning actions
+    - start navigation is the primary handoff once an acceptable route preview is visible on the map
+    - after the route is finished or manually stopped, the user should be able to return quickly to planning and begin a new route
+  experience_principles:
+    - the map is the center of the product during both planning and navigation
+    - on phone the map should occupy roughly 80 percent or more of the viewport during planning and active guidance whenever practical
+    - route settings should live in a drawer or other collapsible chrome so the generated route stays visible
+    - persistent nonessential popups or prose must not cover the map during the core journey
+    - generate route, generate variation, and start navigation must be obvious without requiring the user to read long explanatory text
+    - the generated route should remain mostly visible while the user adjusts parameters, inspects the preview, or follows navigation cues
   non_goals:
     - user_accounts
     - authentication
@@ -30,6 +50,7 @@ product:
   feature_groups:
     route_planning:
       - real_self_hosted_cartography_visible_during_planning
+      - default_home_start_near_bad_bramstedt_until_user_override
       - start_point_from_map_click
       - optional_current_position_start
       - locally_remembered_default_start
@@ -37,17 +58,23 @@ product:
       - activity_selection
       - target_distance_km
       - surface_preference_selection
+      - common_planning_flow_works_without_pass_through_points
       - optional_pass_through_points
+      - map_first_planning_layout_with_route_visible
+      - collapsible_route_settings_while_map_stays_visible
       - generate_single_route_candidate
       - generate_another_variation
+      - obvious_generate_regenerate_and_start_navigation_actions
       - route_summary_with_distance_surface_and_warnings
       - elevation_gain_when_available
       - impossible_or_too_long_route_handling
     navigation:
       - route_line_visible
       - current_position_visible
+      - map_dominates_phone_viewport_during_guidance
       - follow_position_default_behavior
       - north_indicator_or_compass_indicator
+      - minimal_navigation_hud_with_turn_progress_and_speed
       - next_instruction_and_distance
       - completed_remaining_total_km
       - progress_percent
@@ -56,6 +83,7 @@ product:
       - off_route_warning
       - north_up_mode
       - optional_heading_up_mode
+      - quick_return_to_planning_after_navigation
     settings:
       - local_storage_for_last_activity
       - local_storage_for_surface_preference

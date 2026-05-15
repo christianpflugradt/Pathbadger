@@ -197,6 +197,30 @@ Do not build these features unless a future specification explicitly adds them:
 
 There are two major product states.
 
+### 4.0 Canonical user workflow
+
+The default intended journey is simple and map-first:
+
+1. The user begins from the default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook, unless a supported remembered or manually chosen start overrides it.
+2. The user optionally adds one or more pass-through points on the map, but this is secondary and often unnecessary.
+3. The user sets only the basic route parameters they care about: distance in kilometers and surface preference.
+4. The user taps a primary `Generate route` action.
+5. If the random route is not appealing, the user can tap again to generate another variation within the same constraints.
+6. Once a route looks good on the map, the user starts navigation from the same map-first screen.
+7. During navigation, the user mainly sees the route and current position on the map plus a compact set of essential guidance metrics.
+8. When navigation is finished or manually stopped, the user should be able to return directly to the planning state and start another route quickly.
+
+### 4.0.1 Map-first UX principles
+
+These are durable product constraints, not optional polish:
+
+- The map is the center of the product during both planning and navigation.
+- On phone, the map should occupy roughly 80% or more of the visible viewport during planning and active guidance whenever practical.
+- Route settings should live in a sidebar, drawer, sheet, or similarly collapsible surface so the user can mostly keep seeing the map and the generated route.
+- The product must not leave persistent nonessential popups, verbose diagnostics, or explanatory prose on top of the map during the core journey.
+- `Generate route`, `Generate another route`, and `Start navigation` must be obvious primary actions without requiring the user to study long instructions first.
+- The generated route should remain mostly visible while the user adjusts parameters, regenerates a route, or follows navigation guidance.
+
 ### 4.1 Route planning state
 
 The user configures a route request and receives a candidate route. They may generate another random variation until they like one.
@@ -204,6 +228,7 @@ The user configures a route request and receives a candidate route. They may gen
 Route planning must support:
 
 - start point:
+  - default home-base start at Heidmoorer Straße 18, 24576 Weddelbrook unless another supported remembered or manually chosen start overrides it
   - current GPS position
   - a point selected on the map
   - remembered default/favorite start point
@@ -220,9 +245,11 @@ Route planning must support:
 - optional pass-through points:
   - map-selected points
   - searched places if geocoding is available locally or implemented later
+  - the common flow must still feel complete when the user adds no pass-through points at all
 - random route generation:
   - generate one route at a time in the MVP
   - allow generating a new variation
+  - keep the route visible on the map while the user decides whether to accept it or generate another one
 - route feasibility handling:
   - if the requested distance is impossible with mandatory pass-through points, show the shortest sensible route and explain that it exceeds the requested distance
   - if no legal route exists between required points, identify the problematic segment or point as clearly as possible
@@ -237,6 +264,7 @@ Route execution must support:
 - map view centered on current position
 - route line visible on the map
 - current GPS position visible
+- map-dominant mobile guidance instead of form-heavy or diagnostics-heavy layout
 - optional heading-up mode
 - north indicator or compass indicator
 - distance already completed
@@ -250,6 +278,7 @@ Route execution must support:
 - distance to next turn
 - next street/path name if available from routing instructions or OSM data
 - off-route warning when the user deviates from the route beyond a configurable threshold
+- clear return to the planning state when navigation is stopped or completed
 
 Audio navigation is not required.
 
@@ -262,6 +291,7 @@ Implement these first.
 #### Route planning
 
 - Schleswig-Holstein-only routing data.
+- Default local starting point at Heidmoorer Straße 18, 24576 Weddelbrook until the user chooses another supported start or a remembered start overrides it.
 - Start point selection by map click.
 - Optional current position start point using browser geolocation.
 - Remember one default/favorite start point locally.
@@ -276,6 +306,9 @@ Implement these first.
 - Generate one random route candidate.
 - Generate another random variation.
 - Display generated route on map.
+- Keep the map visible as the main surface on phone while configuring and inspecting the route.
+- Keep route settings collapsible instead of permanently occupying most of the viewport.
+- Make `Generate route`, `Generate another route`, and `Start navigation` obvious primary actions near the map.
 - Display route summary:
   - total distance
   - estimated surface composition
@@ -292,11 +325,14 @@ Implement these first.
 - Start navigation for current route.
 - Show route line.
 - Show current GPS position.
+- Keep the map dominant on phone during active guidance.
 - Keep current position centered during navigation unless the user manually pans.
 - Show next instruction and distance to instruction.
 - Show completed km, remaining km, total km, progress percent.
 - Show current speed and average speed.
+- Keep the persistent guidance HUD focused on essential turn, progress, and speed metrics.
 - Show off-route warning.
+- Let the user return cleanly to the planning state after the route is finished or navigation is stopped.
 - Use kilometers and km/h only.
 
 #### Engineering

@@ -19,10 +19,13 @@ review_rubric:
     medium: degrades_maintainability_or_user_experience
     low: minor_quality_gap
   core_user_value_rules:
+    - the default supported local boot must allow a real route to be generated and navigation to be started, otherwise the product has at least a high-severity gap
     - fallback_or_placeholder_only_cartography_in_a_supported_local_boot_is_at_least_a_high_severity_product_gap
     - a_core_map_capability_is_not_done_until_real_self_hosted_cartography_is_visible_in_browser_evidence
     - mocked_fixture_checks_do_not_clear_real_map_readiness_on_their_own
     - user_visible_fallbacks_that_are_not_explicitly_designed_or_specified_are_defects
+    - if nonessential chrome or popups prevent a phone-sized core journey from comfortably seeing the map and route, the issue is at least a high-severity mobile_usability gap
+    - if a user cannot discover generate-route or start-navigation actions in the supported browser flow without reading long explanatory copy or hunting through the page, the issue is at least a medium-severity product_gap
     - temporary_placeholders_are_allowed_only_when_they_are_explicitly_tracked_and_have_linked_exit_items
     - orphaned_user_visible_placeholders_or_placeholders_in_done_states_are_at_least_high_severity
   finding_requirements:

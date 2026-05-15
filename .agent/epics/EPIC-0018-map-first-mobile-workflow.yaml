@@ -1,0 +1,14 @@
+id: EPIC-0018
+status: active
+phase: post-mvp-map-first-ux
+title: Align the product with the canonical map-first mobile workflow
+objective: encode and finish the intended journey where the map stays central during planning and navigation, route generation works in the default supported flow, settings stay collapsible, and active guidance keeps only essential HUD visible on phone
+success_criteria:
+  - the supported planner keeps the map as the dominant surface on phone while selecting starts, optional pass-through points, and generated route previews
+  - generate route, generate variation, and start navigation are obvious primary actions near the map and do not require the user to read long explanatory copy or hunt through the page
+  - active navigation keeps the route and current position in view with a compact essential HUD and a clear return to planning after completion or manual stop
+items:
+  - ITEM-0043
+  - ITEM-0044
+created_at: 2026-05-15T10:56:34+02:00
+updated_at: 2026-05-15T10:56:34+02:00

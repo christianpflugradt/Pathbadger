@@ -14,12 +14,16 @@ quality:
   browser_critical_path_policy:
     required_for:
       - planning_map_ui_changes
+      - mobile_planner_layout_changes
       - navigation_map_ui_changes
+      - navigation_hud_layout_changes
       - tile_style_or_maps_profile_changes
       - any_claim_that_map_centered_user_value_is_done
     rules:
       - fallback_grid_only_does_not_satisfy_the_real_map_capability
       - browser_evidence_must_come_from_a_supported_local_boot_not_only_from_mocked_fixtures
+      - phone_sized_browser_evidence_is_required_for_mobile_map_first_claims
+      - default_supported_boot_must_prove_real_route_generation_before_a_core_route_journey_can_be_marked_working
       - if_required_map_services_or_data_are_missing_review_must_record_a_blocking_defect_instead_of_counting_the_map_done
       - missing_required_map_dependencies_must_fail_openly_instead_of_showing_placeholder_success
   placeholder_lifecycle_policy:
@@ -37,7 +41,9 @@ quality:
       - placeholder_without_linked_exit_item
       - placeholder_surviving_into_done_epic_or_done_phase
   release_blockers:
+    - default_supported_boot_cannot_generate_real_routes_for_core_journeys
     - supported_local_boot_only_shows_placeholder_or_fallback_cartography_for_core_map_journeys
+    - supported_phone_core_journey_hides_the_map_behind_nonessential_chrome
     - supported_flow_uses_undeclared_user_visible_development_fallbacks
     - user_visible_placeholder_without_linked_exit_item_in_supported_flow
     - done_claim_depends_on_open_placeholder_exit_item
