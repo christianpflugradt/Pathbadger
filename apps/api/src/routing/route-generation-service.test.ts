@@ -4,7 +4,7 @@ import {
   GraphHopperInvalidResponseError,
   GraphHopperUnavailableError,
 } from "./graphhopper-adapter.js";
-import { createRouteGenerationService } from "./route-generation-service.js";
+import { createRouteGenerationService as createRouteGenerationServiceWithDefaults } from "./route-generation-service.js";
 
 function createSurfaceDetails(
   details: Array<{
@@ -81,6 +81,16 @@ function createInstructions(points: Array<[number, number]>) {
       coordinate: endCoordinate ?? startCoordinate ?? [10.1228, 54.3233],
     },
   ];
+}
+
+function createRouteGenerationService(
+  options: Parameters<typeof createRouteGenerationServiceWithDefaults>[0],
+) {
+  return createRouteGenerationServiceWithDefaults({
+    automaticCandidateRetryCount: 20,
+    automaticCandidateSearchBudgetMs: 10_000,
+    ...options,
+  });
 }
 
 function createRoundTripMissGeometry() {

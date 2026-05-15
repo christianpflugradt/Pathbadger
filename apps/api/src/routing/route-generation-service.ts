@@ -32,12 +32,16 @@ export interface RouteGenerationService {
 }
 
 export interface CreateRouteGenerationServiceOptions {
+  automaticCandidateRetryCount?: number;
+  automaticCandidateSearchBudgetMs?: number;
+  nowMs?: () => number;
   routingEngine: RoutingEngineAdapter;
   supportedRegion?: SupportedRegion;
 }
 
 const DISTANCE_FIT_FALLBACK_FACTORS = [0.85, 0.75, 0.6875, 0.6];
-const AUTOMATIC_CANDIDATE_RETRY_COUNT = 20;
+const DEFAULT_AUTOMATIC_CANDIDATE_RETRY_COUNT = 1_000;
+const DEFAULT_AUTOMATIC_CANDIDATE_SEARCH_BUDGET_MS = 10_000;
 
 export function createRouteGenerationService(
   options: CreateRouteGenerationServiceOptions,
@@ -47,10 +51,19 @@ export function createRouteGenerationService(
     createSchleswigHolsteinSupportedRegion(
       process.env.REGION_NAME ?? DEFAULT_SUPPORTED_REGION_NAME,
     );
+  const automaticCandidateRetryCount =
+    options.automaticCandidateRetryCount ??
+    DEFAULT_AUTOMATIC_CANDIDATE_RETRY_COUNT;
+  const automaticCandidateSearchBudgetMs =
+    options.automaticCandidateSearchBudgetMs ??
+    DEFAULT_AUTOMATIC_CANDIDATE_SEARCH_BUDGET_MS;
+  const nowMs = options.nowMs ?? Date.now;
 
   return {
     async generateRoute(request) {
       const parsedRequest = routeGenerateRequestSchema.parse(request);
+      const candidateSearchDeadlineMs =
+        nowMs() + automaticCandidateSearchBudgetMs;
       const requestRegionWarning = findRequestRegionWarning(
         parsedRequest,
         supportedRegion,
@@ -108,10 +121,20 @@ export function createRouteGenerationService(
         );
       }
 
-      if (shouldRetryAutomaticCandidateSeeds(parsedRequest, primaryAttempt)) {
+      if (
+        shouldRetryAutomaticCandidateSeeds(parsedRequest, primaryAttempt) &&
+        hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
+      ) {
         for (const retryRequest of createAutomaticCandidateRetryRequests(
           parsedRequest,
+          automaticCandidateRetryCount,
         )) {
+          if (
+            !hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
+          ) {
+            break;
+          }
+
           const retryAttempt = await evaluateCandidateRequest({
             generationRequest: retryRequest,
             routingEngine: options.routingEngine,
@@ -135,10 +158,19 @@ export function createRouteGenerationService(
         }
       }
 
-      if (unsupportedCandidates.length > 0) {
+      if (
+        unsupportedCandidates.length > 0 &&
+        hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
+      ) {
         for (const fallbackRequest of createDistanceFitFallbackRequests(
           parsedRequest,
         )) {
+          if (
+            !hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
+          ) {
+            break;
+          }
+
           const fallbackAttempt = await evaluateCandidateRequest({
             generationRequest: fallbackRequest,
             routingEngine: options.routingEngine,
@@ -273,8 +305,18 @@ async function evaluateCandidateRequest(options: {
   };
 }
 
-function createAutomaticCandidateRetryRequests(request: RouteGenerateRequest) {
-  return Array.from({ length: AUTOMATIC_CANDIDATE_RETRY_COUNT }, (_, index) =>
+function hasCandidateSearchBudgetRemaining(
+  deadlineMs: number,
+  nowMs: () => number,
+) {
+  return nowMs() < deadlineMs;
+}
+
+function createAutomaticCandidateRetryRequests(
+  request: RouteGenerateRequest,
+  automaticCandidateRetryCount: number,
+) {
+  return Array.from({ length: automaticCandidateRetryCount }, (_, index) =>
     routeGenerateRequestSchema.parse({
       ...request,
       randomSeed: `draft-variation-${index + 1}`,
