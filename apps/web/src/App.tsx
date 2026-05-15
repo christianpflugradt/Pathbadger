@@ -171,7 +171,7 @@ const surfaceLabels: Record<SurfacePreference, string> = {
 const routeStatusLabels: Record<RouteGenerateResponse["status"], string> = {
   success: "Preview ready",
   partial: "Preview needs review",
-  failed: "Preview unavailable",
+  failed: "Route unavailable",
 };
 const ACTIVITY_STORAGE_KEY = "pathbadger.activityPreference";
 const SAVED_DEFAULT_START_STORAGE_KEY = "pathbadger.savedDefaultStart";
@@ -1769,121 +1769,157 @@ export function App() {
               <details className="disclosure-card">
                 <summary>{routeDetailsSummaryLabel}</summary>
                 <div className="disclosure-card__content route-response">
-                  <div className="section-heading">
-                    <h3>Route details</h3>
-                    <p>
-                      Open this only when you want to inspect backend route
-                      warnings, summary metrics, or surface breakdown.
-                    </p>
-                  </div>
+                  {routePreview.status === "failed" ? (
+                    <>
+                      <div className="section-heading">
+                        <h3>Route unavailable</h3>
+                        <p>
+                          Pathbadger could not generate a route right now. Try
+                          again in a moment or adjust the start point, waypoint,
+                          distance, or surface.
+                        </p>
+                      </div>
+                      {routePreview.warnings.length > 0 ? (
+                        <ul className="warning-list">
+                          {routePreview.warnings.map((warning) => {
+                            const display = getRouteWarningDisplay(warning);
 
-                  <div className="preview-grid">
-                    <div className="preview-stat">
-                      <span>Status</span>
-                      <strong>{routeStatusLabels[routePreview.status]}</strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Warnings</span>
-                      <strong>{routePreview.warnings.length}</strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Distance</span>
-                      <strong>
-                        {routePreview.summary
-                          ? `${routePreview.summary.totalDistanceKm.toFixed(2)} km`
-                          : "Unavailable"}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Delta</span>
-                      <strong>
-                        {routePreview.summary
-                          ? formatDistanceDelta(
-                              routePreview.summary.distanceDeltaMeters,
-                            )
-                          : "Unavailable"}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Elevation</span>
-                      <strong>
-                        {routePreview.summary?.elevationGainMeters === null
-                          ? "Unknown"
-                          : routePreview.summary?.elevationGainMeters
-                            ? `${Math.round(routePreview.summary.elevationGainMeters)} m`
-                            : "0 m"}
-                      </strong>
-                    </div>
-                    <div className="preview-stat">
-                      <span>Route line</span>
-                      <strong>
-                        {routePreview.geometry
-                          ? `${routePreview.geometry.coordinates.length} points`
-                          : "Unavailable"}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="surface-summary">
-                    <div className="section-heading">
-                      <h3>Surface composition</h3>
-                      <p>{routeSurfaceSummaryMessage}</p>
-                    </div>
-                    <div className="surface-summary-grid">
-                      {routeSurfaceSummaryCards.map((card) => (
-                        <div key={card.id} className="surface-summary-card">
-                          <span>{card.label}</span>
-                          <strong>{card.valueText}</strong>
-                          <div
-                            className="surface-summary-meter"
-                            aria-hidden="true"
-                          >
-                            <div
-                              className="surface-summary-meter__fill"
-                              style={{
-                                width:
-                                  card.meterPercent === null
-                                    ? "0%"
-                                    : `${card.meterPercent}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {routePreview.warnings.length > 0 ? (
-                    <ul className="warning-list">
-                      {routePreview.warnings.map((warning) => (
-                        <li key={`${warning.code}-${warning.message}`}>
-                          <strong>{warning.code}</strong>
-                          <span>{warning.message}</span>
-                        </li>
-                      ))}
-                    </ul>
+                            return (
+                              <li key={`${warning.code}-${warning.message}`}>
+                                <strong>{display.title}</strong>
+                                <span>{display.body}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </>
                   ) : (
-                    <p className="helper-copy">
-                      No routed-preview warnings for this candidate.
-                    </p>
+                    <>
+                      <div className="section-heading">
+                        <h3>Route details</h3>
+                        <p>
+                          Open this only when you want to inspect route
+                          warnings, summary metrics, or surface breakdown.
+                        </p>
+                      </div>
+
+                      <div className="preview-grid">
+                        <div className="preview-stat">
+                          <span>Status</span>
+                          <strong>
+                            {routeStatusLabels[routePreview.status]}
+                          </strong>
+                        </div>
+                        <div className="preview-stat">
+                          <span>Warnings</span>
+                          <strong>{routePreview.warnings.length}</strong>
+                        </div>
+                        <div className="preview-stat">
+                          <span>Distance</span>
+                          <strong>
+                            {routePreview.summary
+                              ? `${routePreview.summary.totalDistanceKm.toFixed(2)} km`
+                              : "Unavailable"}
+                          </strong>
+                        </div>
+                        <div className="preview-stat">
+                          <span>Delta</span>
+                          <strong>
+                            {routePreview.summary
+                              ? formatDistanceDelta(
+                                  routePreview.summary.distanceDeltaMeters,
+                                )
+                              : "Unavailable"}
+                          </strong>
+                        </div>
+                        <div className="preview-stat">
+                          <span>Elevation</span>
+                          <strong>
+                            {routePreview.summary?.elevationGainMeters === null
+                              ? "Unknown"
+                              : routePreview.summary?.elevationGainMeters
+                                ? `${Math.round(routePreview.summary.elevationGainMeters)} m`
+                                : "0 m"}
+                          </strong>
+                        </div>
+                        <div className="preview-stat">
+                          <span>Route line</span>
+                          <strong>
+                            {routePreview.geometry
+                              ? `${routePreview.geometry.coordinates.length} points`
+                              : "Unavailable"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="surface-summary">
+                        <div className="section-heading">
+                          <h3>Surface composition</h3>
+                          <p>{routeSurfaceSummaryMessage}</p>
+                        </div>
+                        <div className="surface-summary-grid">
+                          {routeSurfaceSummaryCards.map((card) => (
+                            <div key={card.id} className="surface-summary-card">
+                              <span>{card.label}</span>
+                              <strong>{card.valueText}</strong>
+                              <div
+                                className="surface-summary-meter"
+                                aria-hidden="true"
+                              >
+                                <div
+                                  className="surface-summary-meter__fill"
+                                  style={{
+                                    width:
+                                      card.meterPercent === null
+                                        ? "0%"
+                                        : `${card.meterPercent}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {routePreview.warnings.length > 0 ? (
+                        <ul className="warning-list">
+                          {routePreview.warnings.map((warning) => {
+                            const display = getRouteWarningDisplay(warning);
+
+                            return (
+                              <li key={`${warning.code}-${warning.message}`}>
+                                <strong>{display.title}</strong>
+                                <span>{display.body}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="helper-copy">
+                          No routed-preview warnings for this candidate.
+                        </p>
+                      )}
+
+                      <p className="response-note">
+                        Candidate {previewCandidateIndex}{" "}
+                        {lastSubmittedSeed
+                          ? `used random seed ${lastSubmittedSeed}.`
+                          : "used the backend's default deterministic seed."}{" "}
+                        {routePreview.geometry
+                          ? `The live map is rendering ${routePreview.geometry.coordinates.length} route coordinates.`
+                          : "No route geometry is available for the map yet."}
+                      </p>
+
+                      {isRoutePreviewStale ? (
+                        <p className="response-note response-note--warning">
+                          Planning inputs changed since this preview was
+                          generated. Generate again to refresh the map and
+                          summary.
+                        </p>
+                      ) : null}
+                    </>
                   )}
-
-                  <p className="response-note">
-                    Candidate {previewCandidateIndex}{" "}
-                    {lastSubmittedSeed
-                      ? `used random seed ${lastSubmittedSeed}.`
-                      : "used the backend's default deterministic seed."}{" "}
-                    {routePreview.geometry
-                      ? `The live map is rendering ${routePreview.geometry.coordinates.length} route coordinates.`
-                      : "No route geometry is available for the map yet."}
-                  </p>
-
-                  {isRoutePreviewStale ? (
-                    <p className="response-note response-note--warning">
-                      Planning inputs changed since this preview was generated.
-                      Generate again to refresh the map and summary.
-                    </p>
-                  ) : null}
                 </div>
               </details>
             ) : null}
@@ -2499,6 +2535,14 @@ function formatDistanceDelta(distanceDeltaMeters: number) {
   return `${sign}${distanceDeltaMeters} m`;
 }
 
+function toSentenceCase(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function formatDistanceKilometers(distanceMeters: number) {
   return `${(distanceMeters / 1_000).toFixed(2)} km`;
 }
@@ -2821,6 +2865,10 @@ function getRouteStatusClass(status: RouteGenerateResponse["status"]) {
 }
 
 function getRouteDetailsSummaryLabel(routePreview: RouteGenerateResponse) {
+  if (routePreview.status === "failed") {
+    return "Route details: Route unavailable right now";
+  }
+
   const parts = [routeStatusLabels[routePreview.status]];
 
   if (routePreview.summary) {
@@ -2836,6 +2884,28 @@ function getRouteDetailsSummaryLabel(routePreview: RouteGenerateResponse) {
   }
 
   return `Route details: ${parts.join(" · ")}`;
+}
+
+function getRouteWarningDisplay(
+  warning: RouteGenerateResponse["warnings"][number],
+) {
+  switch (warning.code) {
+    case "routing_engine_unavailable":
+      return {
+        title: "Route generation unavailable",
+        body: "Pathbadger could not generate a route right now. Try again in a moment.",
+      };
+    case "routing_engine_invalid_response":
+      return {
+        title: "Route generation interrupted",
+        body: "Pathbadger received an unusable route response. Try generating the route again.",
+      };
+    default:
+      return {
+        title: toSentenceCase(warning.code.replaceAll("_", " ")),
+        body: warning.message.replaceAll("GraphHopper", "the route generator"),
+      };
+  }
 }
 
 function createDefaultMapStartSelection(): PlannerMapStartSelection {
