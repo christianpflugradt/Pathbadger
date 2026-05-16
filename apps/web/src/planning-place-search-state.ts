@@ -102,25 +102,25 @@ export function getPlaceSearchFeedbackCopy(
   }
 
   if (options.isLoading) {
-    return "Searching the supported same-origin local place boundary.";
+    return "Searching nearby places.";
   }
 
   if (!options.response) {
-    return "Search the supported same-origin local place boundary, then apply a result as the route start or another pass-through point.";
+    return "Search for a nearby town, street, or trailhead, then use it as the start or a waypoint.";
   }
 
   switch (options.response.status) {
     case "success":
-      return `${options.response.message} Apply a match as the route start or add it to the pass-through list.`;
+      return `${options.response.message} Use a match as the route start or add it as a waypoint.`;
     case "empty":
       return `${options.response.message} Try a nearby town, village, street, or trailhead inside ${options.regionName}.`;
     case "unavailable":
-      return `${options.response.message} The planner keeps manual map clicks available instead of silently inventing a fallback search result.`;
+      return `${options.response.message} You can still place the start or waypoints directly on the map.`;
   }
 }
 
 export function getPlaceSearchRegionGuardrailCopy(regionName: string) {
-  return `Routing still only supports places that can be previewed inside ${regionName}. If a broader provider returns an out-of-region match, preview generation will reject it honestly instead of silently snapping it back into range.`;
+  return `Search stays inside ${regionName} so generated routes remain in the supported area.`;
 }
 
 export function getPassThroughPointSourceCopy(source: "map" | "search") {

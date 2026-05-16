@@ -87,7 +87,7 @@ describe("planning place search state", () => {
         },
       }),
     ).toBe(
-      "Found 1 local place match. Apply a match as the route start or add it to the pass-through list.",
+      "Found 1 local place match. Use a match as the route start or add it as a waypoint.",
     );
     expect(
       getPlaceSearchFeedbackClassName({
@@ -118,7 +118,7 @@ describe("planning place search state", () => {
             "Local place search is unavailable because PLACE_SEARCH_PROVIDER_URL is not configured.",
         },
       }),
-    ).toContain("keeps manual map clicks available");
+    ).toContain("place the start or waypoints directly on the map");
     expect(
       getPlaceSearchFeedbackClassName({
         errorMessage: null,

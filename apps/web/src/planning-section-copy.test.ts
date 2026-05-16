@@ -9,7 +9,7 @@ import {
 describe("getTargetDistanceSectionCopy", () => {
   it("describes the live distance tolerance instead of future work", () => {
     expect(getTargetDistanceSectionCopy()).toBe(
-      `Requests stay in kilometers, and preview scoring already applies the ${DEFAULT_DISTANCE_TOLERANCE_METERS} m distance tolerance.`,
+      `Set how long the round trip should feel. Small misses within about ${DEFAULT_DISTANCE_TOLERANCE_METERS} m are normal.`,
     );
   });
 });
@@ -17,7 +17,7 @@ describe("getTargetDistanceSectionCopy", () => {
 describe("getSurfacePreferenceSectionCopy", () => {
   it("describes active surface scoring instead of placeholder later work", () => {
     expect(getSurfacePreferenceSectionCopy()).toBe(
-      "Surface preference already influences routed candidate scoring and the routed surface summary when coverage data is available.",
+      "Choose whether the route should lean trail, mixed, or asphalt.",
     );
   });
 });
