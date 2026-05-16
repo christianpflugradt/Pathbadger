@@ -7,6 +7,48 @@ import {
 } from "./graphhopper-adapter.js";
 
 describe("createGraphHopperAdapter", () => {
+  it("maps a successful GraphHopper nearest-point response into a snapped coordinate", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          coordinates: [10.12281, 54.32331],
+          distance: 12.75,
+          type: "Point",
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+      ),
+    );
+    const adapter = createGraphHopperAdapter({
+      baseUrl: "http://graphhopper:8989",
+      fetchImpl: fetchMock,
+    });
+
+    const result = await adapter.snapCoordinate!({
+      activity: "running_walking",
+      coordinate: { lat: 54.3233, lon: 10.1228 },
+    });
+
+    expect(result).toEqual({
+      coordinate: { lat: 54.32331, lon: 10.12281 },
+      distanceMeters: 12.75,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const [requestUrl] = fetchMock.mock.calls[0] ?? [];
+    const url = new URL(requestUrl as string);
+
+    expect(url.origin).toBe("http://graphhopper:8989");
+    expect(url.pathname).toBe("/nearest");
+    expect(url.searchParams.get("point")).toBe("54.3233,10.1228");
+    expect(url.searchParams.get("profile")).toBe("foot");
+  });
+
   it("maps a successful GraphHopper response into normalized route data", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
@@ -380,5 +422,91 @@ describe("createGraphHopperAdapter", () => {
         activity: "running_walking",
       }),
     ).rejects.toBeInstanceOf(GraphHopperInvalidResponseError);
+  });
+
+  it("throws when GraphHopper responds with malformed nearest-point data", async () => {
+    const adapter = createGraphHopperAdapter({
+      baseUrl: "http://graphhopper:8989",
+      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            coordinates: [10.1228],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+      ),
+    });
+
+    await expect(
+      adapter.snapCoordinate!({
+        activity: "cycling",
+        coordinate: { lat: 54.3233, lon: 10.1228 },
+      }),
+    ).rejects.toBeInstanceOf(GraphHopperInvalidResponseError);
+  });
+
+  it("maps GraphHopper generic U-turn signs into explicit U-turn instruction types", async () => {
+    const adapter = createGraphHopperAdapter({
+      baseUrl: "http://graphhopper:8989",
+      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            paths: [
+              {
+                distance: 3_000,
+                time: 600_000,
+                points: {
+                  type: "LineString",
+                  coordinates: [
+                    [10.1228, 54.3233],
+                    [10.1304, 54.3274],
+                    [10.141, 54.332],
+                  ],
+                },
+                instructions: [
+                  {
+                    distance: 1_500,
+                    sign: 0,
+                    interval: [0, 1],
+                    text: "Continue",
+                    street_name: "",
+                  },
+                  {
+                    distance: 1_500,
+                    sign: -98,
+                    interval: [1, 2],
+                    text: "Make a U-turn",
+                    street_name: "",
+                  },
+                ],
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+      ),
+    });
+
+    await expect(
+      adapter.getRoute({
+        points: [
+          { lat: 54.3233, lon: 10.1228 },
+          { lat: 54.332, lon: 10.141 },
+        ],
+        activity: "running_walking",
+      }),
+    ).resolves.toMatchObject({
+      instructions: [{ type: "depart" }, { type: "u_turn_left" }],
+    });
   });
 });

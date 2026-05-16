@@ -12,6 +12,13 @@ type OrbitLoopTemplate = {
   radiusFactor: number;
 };
 
+type ConnectorLoopTemplate = {
+  baseBearingDegrees: number;
+  radiusFactor: number;
+  waypointBearingOffsets: number[];
+  waypointDistanceFactors: number[];
+};
+
 const ORBIT_LOOP_TEMPLATES: OrbitLoopTemplate[] = [
   {
     baseBearingDegrees: 267,
@@ -51,11 +58,21 @@ const ORBIT_LOOP_TEMPLATES: OrbitLoopTemplate[] = [
   },
 ];
 
+const CONNECTOR_LOOP_TEMPLATE: ConnectorLoopTemplate = {
+  baseBearingDegrees: 120,
+  radiusFactor: 0.15,
+  waypointBearingOffsets: [0, 60, 180],
+  waypointDistanceFactors: [1, 1.15, 1],
+};
+
 export interface RouteCandidateWaypointSeed {
   id: string;
   points: Coordinate[];
   randomSeed: string;
-  strategy: "triangle_clockwise" | "triangle_counter_clockwise";
+  strategy:
+    | "triangle_clockwise"
+    | "triangle_counter_clockwise"
+    | "connector_loop";
   targetDistanceKm: number;
 }
 
@@ -74,7 +91,7 @@ export function createRouteCandidateWaypointSeeds(
   return [
     buildRouteCandidateWaypointSeed({
       id: `${resolvedSeed}-clockwise`,
-      loopTemplate: selectedTemplates[0],
+      orbitTemplate: selectedTemplates[0],
       passThroughPoints,
       randomSeed: resolvedSeed,
       start: parsedRequest.start,
@@ -84,7 +101,7 @@ export function createRouteCandidateWaypointSeeds(
     }),
     buildRouteCandidateWaypointSeed({
       id: `${resolvedSeed}-counter`,
-      loopTemplate: selectedTemplates[1],
+      orbitTemplate: selectedTemplates[1],
       passThroughPoints,
       randomSeed: resolvedSeed,
       start: parsedRequest.start,
@@ -92,12 +109,23 @@ export function createRouteCandidateWaypointSeeds(
       targetDistanceMeters,
       targetDistanceKm: parsedRequest.targetDistanceKm,
     }),
+    buildRouteCandidateWaypointSeed({
+      connectorTemplate: CONNECTOR_LOOP_TEMPLATE,
+      id: `${resolvedSeed}-connector`,
+      passThroughPoints,
+      randomSeed: resolvedSeed,
+      start: parsedRequest.start,
+      strategy: "connector_loop",
+      targetDistanceMeters,
+      targetDistanceKm: parsedRequest.targetDistanceKm,
+    }),
   ];
 }
 
 function buildRouteCandidateWaypointSeed(options: {
+  connectorTemplate?: ConnectorLoopTemplate;
   id: string;
-  loopTemplate: OrbitLoopTemplate;
+  orbitTemplate?: OrbitLoopTemplate;
   passThroughPoints: Coordinate[];
   randomSeed: string;
   start: Coordinate;
@@ -105,26 +133,19 @@ function buildRouteCandidateWaypointSeed(options: {
   targetDistanceMeters: number;
   targetDistanceKm: number;
 }): RouteCandidateWaypointSeed {
-  const loopRadiusMeters = clamp(
-    options.targetDistanceMeters * options.loopTemplate.radiusFactor,
-    MIN_LOOP_RADIUS_METERS,
-    MAX_LOOP_RADIUS_METERS,
-  );
-  const loopCenter = projectCoordinate(
-    options.start,
-    loopRadiusMeters * options.loopTemplate.centerOffsetFactor,
-    options.loopTemplate.baseBearingDegrees,
-  );
-  const orbitWaypoints = options.loopTemplate.orbitBearingOffsets.map(
-    (bearingOffset) =>
-      projectCoordinate(
-        loopCenter,
-        loopRadiusMeters,
-        normalizeBearing(
-          options.loopTemplate.baseBearingDegrees + bearingOffset,
-        ),
-      ),
-  );
+  const orbitWaypoints = options.orbitTemplate
+    ? buildOrbitWaypoints({
+        start: options.start,
+        targetDistanceMeters: options.targetDistanceMeters,
+        template: options.orbitTemplate,
+      })
+    : options.connectorTemplate
+      ? buildConnectorWaypoints({
+          start: options.start,
+          targetDistanceMeters: options.targetDistanceMeters,
+          template: options.connectorTemplate,
+        })
+      : [];
   const passThroughInsertIndex = Math.min(2, orbitWaypoints.length);
 
   return {
@@ -140,6 +161,51 @@ function buildRouteCandidateWaypointSeed(options: {
     strategy: options.strategy,
     targetDistanceKm: options.targetDistanceKm,
   };
+}
+
+function buildOrbitWaypoints(options: {
+  start: Coordinate;
+  targetDistanceMeters: number;
+  template: OrbitLoopTemplate;
+}) {
+  const loopRadiusMeters = clamp(
+    options.targetDistanceMeters * options.template.radiusFactor,
+    MIN_LOOP_RADIUS_METERS,
+    MAX_LOOP_RADIUS_METERS,
+  );
+  const loopCenter = projectCoordinate(
+    options.start,
+    loopRadiusMeters * options.template.centerOffsetFactor,
+    options.template.baseBearingDegrees,
+  );
+
+  return options.template.orbitBearingOffsets.map((bearingOffset) =>
+    projectCoordinate(
+      loopCenter,
+      loopRadiusMeters,
+      normalizeBearing(options.template.baseBearingDegrees + bearingOffset),
+    ),
+  );
+}
+
+function buildConnectorWaypoints(options: {
+  start: Coordinate;
+  targetDistanceMeters: number;
+  template: ConnectorLoopTemplate;
+}) {
+  const loopRadiusMeters = clamp(
+    options.targetDistanceMeters * options.template.radiusFactor,
+    MIN_LOOP_RADIUS_METERS,
+    MAX_LOOP_RADIUS_METERS,
+  );
+
+  return options.template.waypointBearingOffsets.map((bearingOffset, index) =>
+    projectCoordinate(
+      options.start,
+      loopRadiusMeters * (options.template.waypointDistanceFactors[index] ?? 1),
+      normalizeBearing(options.template.baseBearingDegrees + bearingOffset),
+    ),
+  );
 }
 
 function selectOrbitLoopTemplates(

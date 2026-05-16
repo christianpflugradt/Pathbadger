@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 
 const GRAPHHOPPER_ROUTE_PATH = "/route";
+const GRAPHHOPPER_NEAREST_PATH = "/nearest";
 const graphHopperAccessPathDetailValueSchema = z.union([
   z.boolean(),
   z.string(),
@@ -71,12 +72,31 @@ const graphHopperPathSchema = z.object({
 const graphHopperResponseSchema = z.object({
   paths: z.array(graphHopperPathSchema).min(1),
 });
+const graphHopperNearestRequestSchema = z.object({
+  activity: activitySchema,
+  coordinate: coordinateSchema,
+});
+const graphHopperNearestResponseSchema = z.object({
+  coordinates: z.tuple([z.number(), z.number()]),
+  distance: z.number().nonnegative(),
+  type: z.string().optional(),
+});
 
 export const DEFAULT_GRAPHHOPPER_URL = "http://graphhopper:8989";
 
 export interface GraphHopperRouteRequest {
   points: Coordinate[];
   activity: Activity;
+}
+
+export interface GraphHopperNearestRequest {
+  activity: Activity;
+  coordinate: Coordinate;
+}
+
+export interface GraphHopperNearestResult {
+  coordinate: Coordinate;
+  distanceMeters: number;
 }
 
 export interface GraphHopperRouteSurfaceDetail {
@@ -100,6 +120,9 @@ export interface GraphHopperRouteResult {
 
 export interface RoutingEngineAdapter {
   getRoute(request: GraphHopperRouteRequest): Promise<GraphHopperRouteResult>;
+  snapCoordinate?(
+    request: GraphHopperNearestRequest,
+  ): Promise<GraphHopperNearestResult>;
 }
 
 export interface CreateGraphHopperAdapterOptions {
@@ -135,6 +158,45 @@ export function createGraphHopperAdapter(
   const hasElevation = options.hasElevation ?? true;
 
   return {
+    async snapCoordinate(request: GraphHopperNearestRequest) {
+      const parsedRequest = graphHopperNearestRequestSchema.parse(request);
+      const requestUrl = buildNearestUrl(options.baseUrl, parsedRequest);
+
+      let response: Response;
+
+      try {
+        response = await fetchImpl(requestUrl);
+      } catch {
+        throw new GraphHopperUnavailableError(
+          "GraphHopper is unavailable for nearest-point requests.",
+        );
+      }
+
+      if (!response.ok) {
+        throw new GraphHopperUnavailableError(
+          `GraphHopper returned ${response.status} for nearest-point requests.`,
+          response.status,
+        );
+      }
+
+      const payload = graphHopperNearestResponseSchema.safeParse(
+        await response.json(),
+      );
+
+      if (!payload.success) {
+        throw new GraphHopperInvalidResponseError(
+          "GraphHopper returned an unexpected nearest-point payload.",
+        );
+      }
+
+      return {
+        coordinate: {
+          lat: payload.data.coordinates[1],
+          lon: payload.data.coordinates[0],
+        },
+        distanceMeters: payload.data.distance,
+      };
+    },
     async getRoute(request: GraphHopperRouteRequest) {
       const parsedRequest = graphHopperRouteRequestSchema.parse(request);
       const requestUrl = buildRouteUrl(options.baseUrl, parsedRequest);
@@ -222,6 +284,21 @@ function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
   url.searchParams.append("details", "bike_access");
   url.searchParams.append("details", "bike_road_access");
   url.searchParams.append("details", "distance");
+
+  return url;
+}
+
+function buildNearestUrl(
+  baseUrl: string,
+  request: GraphHopperNearestRequest,
+): URL {
+  const url = new URL(GRAPHHOPPER_NEAREST_PATH, withTrailingSlash(baseUrl));
+
+  url.searchParams.set(
+    "point",
+    `${request.coordinate.lat},${request.coordinate.lon}`,
+  );
+  url.searchParams.set("profile", toGraphHopperProfile(request.activity));
 
   return url;
 }
@@ -414,6 +491,10 @@ function toGraphHopperProfile(activity: Activity) {
 function mapInstructionType(sign: number, isFirstInstruction: boolean) {
   if (isFirstInstruction) {
     return "depart";
+  }
+
+  if (Math.abs(sign) === 98) {
+    return sign < 0 ? "u_turn_left" : "u_turn_right";
   }
 
   switch (sign) {

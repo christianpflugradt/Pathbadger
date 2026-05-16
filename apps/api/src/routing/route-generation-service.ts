@@ -63,6 +63,10 @@ export function createRouteGenerationService(
   return {
     async generateRoute(request) {
       const parsedRequest = routeGenerateRequestSchema.parse(request);
+      const routingRequest = await normalizeRouteRequestToRoutableNetwork({
+        request: parsedRequest,
+        routingEngine: options.routingEngine,
+      });
       const candidateSearchDeadlineMs =
         nowMs() + automaticCandidateSearchBudgetMs;
       const requestRegionWarning = findRequestRegionWarning(
@@ -80,7 +84,7 @@ export function createRouteGenerationService(
         );
       }
 
-      const candidates = createRouteCandidateWaypointSeeds(parsedRequest);
+      const candidates = createRouteCandidateWaypointSeeds(routingRequest);
       const failures = [];
       const rejections = [];
 
@@ -102,7 +106,7 @@ export function createRouteGenerationService(
 
       const unsupportedCandidates: ScoredRoutedCandidate[] = [];
       const primaryAttempt = await evaluateCandidateRequest({
-        generationRequest: parsedRequest,
+        generationRequest: routingRequest,
         routingEngine: options.routingEngine,
         scoringRequest: parsedRequest,
         supportedRegion,
@@ -123,11 +127,11 @@ export function createRouteGenerationService(
       }
 
       if (
-        shouldRetryAutomaticCandidateSeeds(parsedRequest, primaryAttempt) &&
+        shouldRetryAutomaticCandidateSeeds(routingRequest, primaryAttempt) &&
         hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
       ) {
         for (const retryRequest of createAutomaticCandidateRetryRequests(
-          parsedRequest,
+          routingRequest,
           automaticCandidateRetryCount,
         )) {
           if (
@@ -159,38 +163,44 @@ export function createRouteGenerationService(
         }
       }
 
-      if (
-        unsupportedCandidates.length > 0 &&
-        hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
-      ) {
-        for (const fallbackRequest of createDistanceFitFallbackRequests(
-          parsedRequest,
-        )) {
-          if (
-            !hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
-          ) {
-            break;
-          }
+      if (unsupportedCandidates.length > 0) {
+        if (
+          hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
+        ) {
+          for (const fallbackRequest of createDistanceFitFallbackRequests(
+            routingRequest,
+          )) {
+            if (
+              !hasCandidateSearchBudgetRemaining(
+                candidateSearchDeadlineMs,
+                nowMs,
+              )
+            ) {
+              break;
+            }
 
-          const fallbackAttempt = await evaluateCandidateRequest({
-            generationRequest: fallbackRequest,
-            routingEngine: options.routingEngine,
-            scoringRequest: parsedRequest,
-            supportedRegion,
-          });
+            const fallbackAttempt = await evaluateCandidateRequest({
+              generationRequest: fallbackRequest,
+              routingEngine: options.routingEngine,
+              scoringRequest: parsedRequest,
+              supportedRegion,
+            });
 
-          failures.push(...fallbackAttempt.failures);
-          rejections.push(...fallbackAttempt.rejections);
-          unsupportedCandidates.push(...fallbackAttempt.unsupportedCandidates);
-
-          const bestFallbackCandidate = selectBestScoredCandidate(
-            fallbackAttempt.acceptableCandidates,
-          );
-
-          if (bestFallbackCandidate) {
-            return routeGenerateResponseSchema.parse(
-              buildRouteResponse(bestFallbackCandidate),
+            failures.push(...fallbackAttempt.failures);
+            rejections.push(...fallbackAttempt.rejections);
+            unsupportedCandidates.push(
+              ...fallbackAttempt.unsupportedCandidates,
             );
+
+            const bestFallbackCandidate = selectBestScoredCandidate(
+              fallbackAttempt.acceptableCandidates,
+            );
+
+            if (bestFallbackCandidate) {
+              return routeGenerateResponseSchema.parse(
+                buildRouteResponse(bestFallbackCandidate),
+              );
+            }
           }
         }
 
@@ -313,6 +323,55 @@ function hasCandidateSearchBudgetRemaining(
   return nowMs() < deadlineMs;
 }
 
+async function normalizeRouteRequestToRoutableNetwork(options: {
+  request: RouteGenerateRequest;
+  routingEngine: RoutingEngineAdapter;
+}) {
+  if (!options.routingEngine.snapCoordinate) {
+    return options.request;
+  }
+
+  const [snappedStart, snappedPassThroughPoints] = await Promise.all([
+    snapCoordinateWithFallback({
+      activity: options.request.activity,
+      coordinate: options.request.start,
+      routingEngine: options.routingEngine,
+    }),
+    Promise.all(
+      options.request.passThroughPoints.map((coordinate) =>
+        snapCoordinateWithFallback({
+          activity: options.request.activity,
+          coordinate,
+          routingEngine: options.routingEngine,
+        }),
+      ),
+    ),
+  ]);
+
+  return routeGenerateRequestSchema.parse({
+    ...options.request,
+    start: snappedStart,
+    passThroughPoints: snappedPassThroughPoints,
+  });
+}
+
+async function snapCoordinateWithFallback(options: {
+  activity: RouteGenerateRequest["activity"];
+  coordinate: RouteGenerateRequest["start"];
+  routingEngine: RoutingEngineAdapter;
+}) {
+  try {
+    const snappedResult = await options.routingEngine.snapCoordinate?.({
+      activity: options.activity,
+      coordinate: options.coordinate,
+    });
+
+    return snappedResult?.coordinate ?? options.coordinate;
+  } catch {
+    return options.coordinate;
+  }
+}
+
 function createAutomaticCandidateRetryRequests(
   request: RouteGenerateRequest,
   automaticCandidateRetryCount: number,
@@ -333,9 +392,7 @@ function shouldRetryAutomaticCandidateSeeds(
     return false;
   }
 
-  return attempt.unsupportedCandidates.some(
-    (candidate) => candidate.isWithinSupportedDistanceLimit,
-  );
+  return attempt.unsupportedCandidates.length > 0;
 }
 
 function createDistanceFitFallbackRequests(request: RouteGenerateRequest) {

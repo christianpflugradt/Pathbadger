@@ -26,16 +26,7 @@ const EMPTY_TILE = vtpbf.fromGeojsonVt({
 });
 
 const datasetText = await readFile(DATASET_URL, "utf8");
-const dataset = JSON.parse(datasetText);
-const tileIndex = geojsonvt(dataset, {
-  buffer: 64,
-  extent: 4096,
-  indexMaxPoints: 0,
-  indexMaxZoom: 14,
-  lineMetrics: false,
-  maxZoom: 14,
-  tolerance: 3,
-});
+const { featureCount, tileIndex } = buildTileIndex(datasetText);
 
 const server = createServer((request, response) => {
   const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
@@ -43,7 +34,7 @@ const server = createServer((request, response) => {
 
   if (pathname === "/health") {
     respondJson(response, 200, {
-      featureCount: dataset.features.length,
+      featureCount,
       scope: DATA_SCOPE,
       service: "tileserver",
       status: "ok",
@@ -96,7 +87,7 @@ const server = createServer((request, response) => {
 
 server.listen(PORT, HOST, () => {
   console.log(
-    `Pathbadger tile service ready on http://${HOST}:${PORT} with ${dataset.features.length} features from ${DATA_SCOPE}.`,
+    `Pathbadger tile service ready on http://${HOST}:${PORT} with ${featureCount} features from ${DATA_SCOPE}.`,
   );
 });
 
@@ -136,4 +127,25 @@ function getRequestOrigin(request) {
   const host = request.headers.host?.trim() || `127.0.0.1:${PORT}`;
 
   return `${protocol?.trim() || "http"}://${host}`;
+}
+
+function buildTileIndex(datasetText) {
+  const dataset = JSON.parse(datasetText);
+  const featureCount = Array.isArray(dataset.features)
+    ? dataset.features.length
+    : 0;
+  const tileIndex = geojsonvt(dataset, {
+    buffer: 64,
+    extent: 4096,
+    indexMaxPoints: 0,
+    indexMaxZoom: 14,
+    lineMetrics: false,
+    maxZoom: 14,
+    tolerance: 3,
+  });
+
+  return {
+    featureCount,
+    tileIndex,
+  };
 }

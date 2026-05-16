@@ -65,8 +65,9 @@ describe("createRouteCandidateWaypointSeeds", () => {
 
     const candidates = createRouteCandidateWaypointSeeds(request);
 
-    expect(candidates).toHaveLength(2);
+    expect(candidates).toHaveLength(3);
     expect(candidates[0]?.randomSeed).toBe(candidates[1]?.randomSeed);
+    expect(candidates[1]?.randomSeed).toBe(candidates[2]?.randomSeed);
     expect(candidates).toEqual(createRouteCandidateWaypointSeeds(request));
   });
 });

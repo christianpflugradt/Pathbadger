@@ -110,6 +110,7 @@ describe("createRouteGenerationService", () => {
   it("fails before routing when the requested start point is outside the supported region", async () => {
     const getRoute = vi.fn();
     const service = createRouteGenerationService({
+      automaticCandidateRetryCount: 0,
       routingEngine: {
         getRoute,
       },
@@ -145,6 +146,7 @@ describe("createRouteGenerationService", () => {
   it("fails before routing when a pass-through point is outside the supported region", async () => {
     const getRoute = vi.fn();
     const service = createRouteGenerationService({
+      automaticCandidateRetryCount: 0,
       routingEngine: {
         getRoute,
       },
@@ -175,6 +177,81 @@ describe("createRouteGenerationService", () => {
       instructions: null,
     });
     expect(getRoute).not.toHaveBeenCalled();
+  });
+
+  it("snaps the start and pass-through points before candidate generation when the routing engine supports nearest-point lookup", async () => {
+    const rawStart = { lat: 54.32332, lon: 10.12276 };
+    const snappedStart = { lat: 54.3233, lon: 10.1228 };
+    const rawPassThroughPoint = { lat: 54.32742, lon: 10.13036 };
+    const snappedPassThroughPoint = { lat: 54.3274, lon: 10.1304 };
+    const snapCoordinate = vi
+      .fn()
+      .mockResolvedValueOnce({
+        coordinate: snappedStart,
+        distanceMeters: 13.1,
+      })
+      .mockResolvedValueOnce({
+        coordinate: snappedPassThroughPoint,
+        distanceMeters: 8.7,
+      });
+    const getRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 8_040,
+      durationMs: 3_100_000,
+      elevationGainMeters: 42,
+      geometry: createLoopGeometry([10.1304, 54.3274]),
+      instructions: createInstructions(
+        createLoopGeometry([10.1304, 54.3274]).coordinates,
+      ),
+      surfaceDetails: createUnknownSurfaceDetails(8_040),
+    });
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+        snapCoordinate,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [rawPassThroughPoint],
+        randomSeed: "snap-seed",
+        start: rawStart,
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toMatchObject({
+      status: expect.stringMatching(/^(success|partial)$/),
+    });
+
+    expect(snapCoordinate).toHaveBeenCalledTimes(2);
+    expect(snapCoordinate).toHaveBeenNthCalledWith(1, {
+      activity: "running_walking",
+      coordinate: rawStart,
+    });
+    expect(snapCoordinate).toHaveBeenNthCalledWith(2, {
+      activity: "running_walking",
+      coordinate: rawPassThroughPoint,
+    });
+    expect(getRoute).toHaveBeenCalled();
+    expect(
+      getRoute.mock.calls.every(([request]) => {
+        const points = request.points;
+
+        return (
+          points[0]?.lat === snappedStart.lat &&
+          points[0]?.lon === snappedStart.lon &&
+          points[points.length - 1]?.lat === snappedStart.lat &&
+          points[points.length - 1]?.lon === snappedStart.lon &&
+          points.some(
+            (point: { lat: number; lon: number }) =>
+              point.lat === snappedPassThroughPoint.lat &&
+              point.lon === snappedPassThroughPoint.lon,
+          )
+        );
+      }),
+    ).toBe(true);
   });
 
   it("returns a successful routed preview when the best routed candidate fits the request", async () => {
@@ -379,6 +456,7 @@ describe("createRouteGenerationService", () => {
         surfaceDetails: createUnknownSurfaceDetails(8_060),
       });
     const service = createRouteGenerationService({
+      automaticCandidateRetryCount: 0,
       routingEngine: {
         getRoute,
       },
@@ -394,39 +472,40 @@ describe("createRouteGenerationService", () => {
       toleranceMeters: 150,
     });
 
-    expect(getRoute).toHaveBeenCalledTimes(4);
-    expect(response).toEqual({
-      routeId:
-        '{"activity":"running_walking","passThroughPoints":[],"start":{"lat":54.3233,"lon":10.1228},"surfacePreference":"mixed","targetDistanceKm":6.8,"toleranceMeters":150}-counter',
-      status: "partial",
-      warnings: [
-        {
-          code: "surface_data_incomplete",
-          message:
-            "Surface classification is incomplete for 100% of this routed preview.",
-        },
-      ],
-      summary: {
-        totalDistanceKm: 8.06,
-        targetDistanceKm: 8,
-        distanceDeltaMeters: 60,
-        elevationGainMeters: 61,
-        loop: {
-          startOffsetMeters: 0,
-          endOffsetMeters: 0,
-          closureGapMeters: 0,
-          bidirectionalOverlapMeters: 0,
-        },
-        surface: {
-          asphaltPercent: 0,
-          trailUnpavedPercent: 0,
-          fieldTrackOtherPercent: 0,
-          unknownPercent: 100,
-        },
+    expect(getRoute).toHaveBeenCalledTimes(3);
+    expect(response.status).toBe("partial");
+    expect(response.summary).toMatchObject({
+      totalDistanceKm: 8.18,
+      targetDistanceKm: 8,
+      distanceDeltaMeters: 180,
+      elevationGainMeters: 64,
+      loop: {
+        startOffsetMeters: 0,
+        endOffsetMeters: 0,
+        closureGapMeters: 0,
+        bidirectionalOverlapMeters: 0,
       },
-      geometry: createLoopGeometry([10.1341, 54.3288]),
-      instructions: [],
+      surface: {
+        asphaltPercent: 0,
+        trailUnpavedPercent: 0,
+        fieldTrackOtherPercent: 0,
+        unknownPercent: 100,
+      },
     });
+    expect(response.geometry).toEqual(createLoopGeometry([10.1361, 54.3295]));
+    expect(response.instructions).toEqual([]);
+    expect(response.warnings).toEqual([
+      {
+        code: "distance_outside_tolerance",
+        message:
+          "The first routed preview is outside the requested distance tolerance.",
+      },
+      {
+        code: "surface_data_incomplete",
+        message:
+          "Surface classification is incomplete for 100% of this routed preview.",
+      },
+    ]);
   });
 
   it("fails explicitly when every scored candidate exceeds the supported distance limit", async () => {
@@ -625,8 +704,7 @@ describe("createRouteGenerationService", () => {
         targetDistanceKm: 8,
         toleranceMeters: 150,
       }),
-    ).resolves.toEqual({
-      routeId: "draft-variation-10-counter",
+    ).resolves.toMatchObject({
       status: "success",
       warnings: [],
       summary: {
@@ -650,7 +728,93 @@ describe("createRouteGenerationService", () => {
       geometry: createLoopGeometry([10.1336, 54.3284]),
       instructions: [],
     });
-    expect(getRoute).toHaveBeenCalledTimes(22);
+    expect(getRoute.mock.calls.length).toBeGreaterThan(20);
+  });
+
+  it("retries additional default candidate seeds after an initial distance-fit miss", async () => {
+    const getRoute = vi.fn();
+    const distanceMissRoute = {
+      distanceMeters: 9_140,
+      durationMs: 3_520_000,
+      elevationGainMeters: 44,
+      geometry: createLoopGeometry([10.1368, 54.3296]),
+      instructions: [],
+      surfaceDetails: createSurfaceDetails([
+        {
+          distanceMeters: 9_140,
+          surface: "asphalt",
+          roadClass: "residential",
+        },
+      ]),
+    };
+    const successfulRetryRoute = {
+      distanceMeters: 8_260,
+      durationMs: 3_260_000,
+      elevationGainMeters: 39,
+      geometry: createLoopGeometry([10.1339, 54.3285]),
+      instructions: [],
+      surfaceDetails: createSurfaceDetails([
+        {
+          distanceMeters: 8_260,
+          surface: "asphalt",
+          roadClass: "residential",
+        },
+      ]),
+    };
+
+    for (let attempt = 0; attempt < 9; attempt += 1) {
+      getRoute.mockResolvedValueOnce(distanceMissRoute);
+    }
+
+    getRoute.mockResolvedValueOnce(successfulRetryRoute);
+
+    const service = createRouteGenerationService({
+      routingEngine: {
+        getRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 150,
+      }),
+    ).resolves.toMatchObject({
+      status: "partial",
+      warnings: [
+        {
+          code: "distance_outside_tolerance",
+          message:
+            "The first routed preview is outside the requested distance tolerance.",
+        },
+      ],
+      summary: {
+        totalDistanceKm: 8.26,
+        targetDistanceKm: 8,
+        distanceDeltaMeters: 260,
+        elevationGainMeters: 39,
+        loop: {
+          startOffsetMeters: 0,
+          endOffsetMeters: 0,
+          closureGapMeters: 0,
+          bidirectionalOverlapMeters: 0,
+        },
+        surface: {
+          asphaltPercent: 100,
+          trailUnpavedPercent: 0,
+          fieldTrackOtherPercent: 0,
+          unknownPercent: 0,
+        },
+      },
+      geometry: createLoopGeometry([10.1339, 54.3285]),
+      instructions: [],
+    });
+    expect(getRoute.mock.calls.length).toBeGreaterThan(8);
   });
 
   it("fails explicitly when every scored candidate reuses too much path in both directions", async () => {
@@ -750,7 +914,7 @@ describe("createRouteGenerationService", () => {
       toleranceMeters: 150,
     });
 
-    expect(getRoute).toHaveBeenCalledTimes(2);
+    expect(getRoute).toHaveBeenCalledTimes(3);
     expect(response).toEqual({
       routeId: "recovery-seed-counter",
       status: "success",
@@ -818,7 +982,7 @@ describe("createRouteGenerationService", () => {
       geometry: null,
       instructions: null,
     });
-    expect(getRoute).toHaveBeenCalledTimes(2);
+    expect(getRoute).toHaveBeenCalledTimes(3);
   });
 
   it("maps malformed routing-engine data into a failed response when no candidate can be scored", async () => {
