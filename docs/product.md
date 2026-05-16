@@ -221,6 +221,7 @@ These are durable product constraints, not optional polish:
 - On phone, the map should occupy roughly 80% or more of the visible viewport during planning and active guidance whenever practical.
 - Route settings should live in a sidebar, drawer, sheet, or similarly collapsible surface so the user can mostly keep seeing the map and the generated route.
 - The product must not leave persistent nonessential popups, verbose diagnostics, or explanatory prose on top of the map during the core journey.
+- During active guidance, persistent map overlays must stay terse and route-relevant: no generic confidence explanations, no large popup cards, and no third-line filler copy in the primary maneuver banner.
 - `Generate route`, `Generate another route`, and `Start navigation` must be obvious primary actions without requiring the user to study long instructions first.
 - The generated route should remain mostly visible while the user adjusts parameters, regenerates a route, or follows navigation guidance.
 - Starting navigation should switch into a dedicated guidance mode rather than leaving large planning or preview surfaces active on top of the map.

@@ -39,6 +39,7 @@ product:
     - on phone the map should occupy roughly 80 percent or more of the viewport during planning and active guidance whenever practical
     - route settings should live in a drawer or other collapsible chrome so the generated route stays visible
     - persistent nonessential popups or prose must not cover the map during the core journey
+    - active guidance overlays must stay terse and route-relevant, with no generic confidence explanations, no large popup cards, and no filler copy in the primary maneuver banner
     - generate route, generate variation, and start navigation must be obvious without requiring the user to read long explanatory text
     - the generated route should remain mostly visible while the user adjusts parameters, inspects the preview, or follows navigation cues
     - active navigation should feel like a dedicated guidance mode, not a planner or debug page layered on top of the map

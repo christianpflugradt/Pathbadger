@@ -57,6 +57,10 @@ import {
   getNavigationRuntimeModeSummary,
 } from "./navigation-runtime-mode";
 import type { NavigationRuntimeMode } from "./navigation-runtime-mode";
+import {
+  getCompactNavigationGpsStatusLabel,
+  getCompactNavigationInstructionTitle,
+} from "./navigation-guidance-copy";
 import { PlanningMap } from "./PlanningMap";
 import {
   getBrowserLocalStorage,
@@ -608,23 +612,21 @@ export function App() {
       : navigationHasLowConfidencePosition
         ? {
             className: "status-pill--warning",
-            label: "Approx GPS",
+            label: getCompactNavigationGpsStatusLabel(navigationGpsConfidence),
           }
         : {
             className: "status-pill--active",
             label: "Live GPS",
           };
-  const navigationHudSupportCopy = !navigationTrackedPosition
+  const navigationSettingsSupportCopy = !navigationTrackedPosition
     ? getNavigationWaitingGpsSupportCopy(browserGeolocation)
     : navigationSnapshot?.isOffRoute
-      ? `About ${formatWholeMeters(
-          navigationSnapshot.offRouteDistanceMeters,
-        )} from the route line. Pathbadger does not reroute yet.`
+      ? `${formatWholeMeters(navigationSnapshot.offRouteDistanceMeters)} off route. Rerouting unavailable.`
       : navigationHasLowConfidencePosition
-        ? getCompactNavigationGpsConfidenceCopy(navigationGpsConfidence)
+        ? `${getCompactNavigationGpsStatusLabel(navigationGpsConfidence)} accuracy.`
         : navigationEtaState.isAvailable
-          ? null
-          : null;
+          ? "Live guidance is active."
+          : "ETA will appear once speed evidence is trustworthy enough.";
   const navigationHudStats = isNavigationActive
     ? [
         {
@@ -658,7 +660,9 @@ export function App() {
   const navigationManeuverTitle = navigationSnapshot?.isOffRoute
     ? "Rejoin the highlighted route"
     : navigationSnapshot?.nextInstruction
-      ? navigationSnapshot.nextInstruction.instruction.text
+      ? getCompactNavigationInstructionTitle(
+          navigationSnapshot.nextInstruction.instruction,
+        )
       : navigationTrackedPosition
         ? "Continue on route"
         : getNavigationWaitingGpsManeuverTitle(browserGeolocation);
@@ -671,11 +675,6 @@ export function App() {
             navigationSnapshot.nextInstruction.distanceMeters,
           )} ahead`
         : "On route";
-  const navigationManeuverCopy = navigationSnapshot?.isOffRoute
-    ? "Keep the highlighted route in view."
-    : navigationHasLowConfidencePosition
-      ? getCompactNavigationGpsConfidenceCopy(navigationGpsConfidence)
-      : null;
   const navigationMapHeaderOverlay = isNavigationActive ? (
     <div
       className={`map-maneuver-banner${
@@ -695,7 +694,6 @@ export function App() {
           {navigationManeuverDistanceLabel}
         </span>
         <strong>{navigationManeuverTitle}</strong>
-        {navigationManeuverCopy ? <span>{navigationManeuverCopy}</span> : null}
       </div>
     </div>
   ) : null;
@@ -724,15 +722,7 @@ export function App() {
         <span className={`status-pill ${navigationHudGpsStatusPill.className}`}>
           {navigationHudGpsStatusPill.label}
         </span>
-        {navigationSnapshot ? (
-          <span className="status-pill">
-            {navigationSnapshot.progressPercent}% done
-          </span>
-        ) : null}
       </div>
-      {navigationHudSupportCopy ? (
-        <p className="map-hud__microcopy">{navigationHudSupportCopy}</p>
-      ) : null}
       <div className="map-hud__stats map-hud__stats--navigation">
         {navigationHudStats.map((stat) => (
           <div key={stat.label} className="preview-stat">
@@ -1447,7 +1437,7 @@ export function App() {
                       : "helper-copy--active"
                 }`}
               >
-                {navigationHudSupportCopy}
+                {navigationSettingsSupportCopy}
               </p>
               {navigationSettingsDisclosure}
               <div className="button-row">
@@ -3051,35 +3041,6 @@ function getNavigationGpsRequestActionCopy(
     default:
       return "Use this to request browser GPS again.";
   }
-}
-
-function getCompactNavigationGpsConfidenceCopy(options: {
-  accuracyMeters: number | null;
-  ageMs: number | null;
-  isAccuracyBroad: boolean;
-  isStale: boolean;
-}) {
-  const parts = [];
-
-  if (options.isAccuracyBroad) {
-    parts.push(
-      options.accuracyMeters === null
-        ? "Approx GPS"
-        : `GPS ${formatWholeMeters(options.accuracyMeters)}`,
-    );
-  }
-
-  if (options.isStale && options.ageMs !== null) {
-    parts.push(
-      `last fix ${Math.max(Math.round(options.ageMs / 1_000), 1)} s ago`,
-    );
-  }
-
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return `${parts.join(" · ")}. Progress stays conservative until the fix tightens.`;
 }
 
 function getNavigationMapMarkerLabel(options: {

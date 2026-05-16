@@ -650,21 +650,21 @@ body {
 .map-maneuver-banner {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.7rem;
+  gap: 0.62rem;
   align-items: center;
   border: 1px solid rgba(247, 244, 234, 0.16);
   border-radius: 1.25rem;
-  width: min(24rem, 100%);
-  padding: 0.72rem 0.82rem;
+  width: min(19rem, 100%);
+  padding: 0.62rem 0.72rem;
   background:
-    linear-gradient(135deg, rgba(20, 33, 61, 0.92), rgba(28, 44, 83, 0.88)),
+    linear-gradient(135deg, rgba(20, 33, 61, 0.88), rgba(28, 44, 83, 0.82)),
     radial-gradient(
       circle at top left,
-      rgba(234, 196, 53, 0.2),
+      rgba(234, 196, 53, 0.16),
       transparent 45%
     );
-  box-shadow: 0 20px 38px rgba(20, 33, 61, 0.26);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 14px 28px rgba(20, 33, 61, 0.2);
+  backdrop-filter: blur(12px);
   color: #f7f4ea;
 }
 
@@ -681,12 +681,12 @@ body {
 .map-maneuver-banner__icon {
   display: grid;
   place-items: center;
-  width: 2.55rem;
-  height: 2.55rem;
-  border-radius: 0.92rem;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.82rem;
   background: rgba(247, 244, 234, 0.12);
   color: #f7f4ea;
-  font-size: 1.18rem;
+  font-size: 1.04rem;
   font-weight: 800;
 }
 
@@ -698,21 +698,15 @@ body {
 
 .map-maneuver-banner__distance {
   color: rgba(247, 244, 234, 0.76);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .map-maneuver-banner__body strong {
-  font-size: 0.98rem;
-  line-height: 1.2;
-}
-
-.map-maneuver-banner__body span:last-child {
-  color: rgba(247, 244, 234, 0.82);
-  font-size: 0.82rem;
-  line-height: 1.35;
+  font-size: 0.92rem;
+  line-height: 1.18;
 }
 
 .planning-map--loading .planning-map__status {
@@ -854,32 +848,42 @@ body {
 }
 
 .map-hud__stats--navigation {
-  gap: 0.55rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  grid-template-columns: none;
 }
 
 .map-hud--navigation {
-  justify-self: end;
-  width: min(20.5rem, 100%);
-  gap: 0.55rem;
-  border-color: rgba(20, 33, 61, 0.12);
-  border-radius: 1.15rem;
-  padding: 0.72rem 0.8rem;
-  background: rgba(247, 244, 234, 0.86);
-  box-shadow: 0 16px 32px rgba(20, 33, 61, 0.22);
-  backdrop-filter: blur(12px);
+  justify-self: start;
+  width: auto;
+  max-width: calc(100% - 0.25rem);
+  gap: 0.45rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .map-hud--navigation .preview-stat {
-  padding: 0.58rem 0.66rem;
+  min-width: 4.9rem;
+  padding: 0.52rem 0.62rem;
   border-color: rgba(20, 33, 61, 0.09);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 10px 22px rgba(20, 33, 61, 0.12);
 }
 
 .map-hud--navigation .preview-stat span {
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.map-hud--navigation .preview-stat strong {
+  margin-top: 0.2rem;
+  font-size: 0.92rem;
+  line-height: 1.18;
 }
 
 .response-banner {
@@ -1239,24 +1243,20 @@ code {
   }
 
   .map-maneuver-banner {
-    gap: 0.62rem;
-    width: min(21rem, 100%);
-    padding: 0.68rem 0.74rem;
+    gap: 0.55rem;
+    width: min(17.5rem, 100%);
+    padding: 0.58rem 0.66rem;
   }
 
   .map-maneuver-banner__icon {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.82rem;
-    font-size: 1.04rem;
+    width: 2.05rem;
+    height: 2.05rem;
+    border-radius: 0.74rem;
+    font-size: 0.94rem;
   }
 
   .map-maneuver-banner__body strong {
-    font-size: 0.9rem;
-  }
-
-  .map-maneuver-banner__body span:last-child {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
   }
 
   .planning-map__footer-overlay {
@@ -1287,17 +1287,22 @@ code {
   }
 
   .planning-map__footer-overlay .map-hud--navigation {
-    gap: 0.45rem;
-    width: min(18.75rem, 100%);
-    padding: 0.64rem 0.7rem;
+    gap: 0.38rem;
+    width: auto;
+    max-width: calc(100% - 0.25rem);
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
   }
 
   .planning-map__footer-overlay .map-hud__stats--navigation {
-    gap: 0.42rem;
+    gap: 0.35rem;
   }
 
   .planning-map__footer-overlay .map-hud--navigation .preview-stat {
-    padding: 0.54rem 0.58rem;
+    min-width: 4.45rem;
+    padding: 0.44rem 0.52rem;
   }
 
   .preview-grid--planning-overview {
@@ -1401,28 +1406,24 @@ code {
   }
 
   .map-maneuver-banner {
-    gap: 0.55rem;
-    width: min(18.5rem, 100%);
-    padding: 0.62rem 0.68rem;
+    gap: 0.48rem;
+    width: min(15.5rem, 100%);
+    padding: 0.54rem 0.6rem;
   }
 
   .map-maneuver-banner__icon {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 0.75rem;
-    font-size: 0.98rem;
+    width: 1.86rem;
+    height: 1.86rem;
+    border-radius: 0.68rem;
+    font-size: 0.88rem;
   }
 
   .map-maneuver-banner__distance {
-    font-size: 0.64rem;
+    font-size: 0.6rem;
   }
 
   .map-maneuver-banner__body strong {
-    font-size: 0.84rem;
-  }
-
-  .map-maneuver-banner__body span:last-child {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
   }
 
   .option-card,
@@ -1485,21 +1486,22 @@ code {
   }
 
   .planning-map__footer-overlay .map-hud--navigation {
-    gap: 0.42rem;
-    width: min(17.75rem, 100%);
-    padding: 0.6rem 0.64rem;
+    gap: 0.34rem;
+    width: auto;
+    max-width: calc(100% - 0.25rem);
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
   }
 
   .planning-map__footer-overlay .map-hud--navigation .preview-stat {
-    padding: 0.5rem 0.54rem;
+    min-width: 4rem;
+    padding: 0.4rem 0.48rem;
   }
 
   .planning-map__footer-overlay .map-hud--navigation .preview-stat span {
-    font-size: 0.66rem;
-  }
-
-  .planning-map__footer-overlay .map-hud__microcopy {
-    font-size: 0.76rem;
+    font-size: 0.62rem;
   }
 
   .request-preview pre {
