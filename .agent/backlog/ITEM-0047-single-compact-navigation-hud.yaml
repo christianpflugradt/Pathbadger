@@ -1,7 +1,7 @@
 id: ITEM-0047
 type: feature
 priority: P1
-status: todo
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0020
@@ -19,5 +19,9 @@ verification:
 implementation_notes:
   - "2026-05-15 refine: user feedback clarified that the phone navigation HUD should feel closer to a mainstream map guidance view, with only essential metrics visible while moving."
   - "2026-05-15 refine: ETA should remain conditional on reliable speed and progress evidence rather than being forced into the HUD when confidence is weak."
+  - "2026-05-16 implement: active guidance now keeps one persistent map HUD cluster with next-turn distance, km done, km left, progress, current speed, and conditional ETA, while GPS and off-route status stay compressed into small pills and one short support line."
+  - "2026-05-16 implement: removed the separate active-navigation card from the visible guidance view and repurposed the drawer behind `Navigation settings` so on-demand runtime and orientation controls no longer compete with the route itself."
+  - "2026-05-16 implement: verified on a rebuilt app with a phone-sized in-app browser walkthrough that starting navigation leaves only the map, the essential HUD, and the stop/settings controls visible. The same verification confirmed that the drawer now opens guidance settings instead of the full planning form. During browser verification the in-app browser still withheld a usable live GPS fix, so the HUD honestly stayed in its waiting-for-GPS state and ETA remained hidden."
 created_at: 2026-05-15T12:24:00+02:00
-updated_at: 2026-05-15T12:24:00+02:00
+updated_at: 2026-05-16T10:00:40+02:00
+closed_at: 2026-05-16T10:00:40+02:00
