@@ -473,6 +473,124 @@ describe("createRouteGenerationService", () => {
     expect(alphaResponse.routeId).not.toBe(betaResponse.routeId);
   });
 
+  it("prefers native round-trip candidates for unconstrained requests", async () => {
+    const nativeRoundTripGeometry = createLoopGeometry([10.1478, 54.3341]);
+    const getRoundTripRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 8_040,
+      durationMs: 3_100_000,
+      elevationGainMeters: 42,
+      geometry: nativeRoundTripGeometry,
+      instructions: createInstructions(nativeRoundTripGeometry.coordinates),
+      surfaceDetails: createUnknownSurfaceDetails(8_040),
+    });
+    const getRoute = vi.fn();
+    const service = createRouteGenerationService({
+      automaticCandidateRetryCount: 0,
+      routingEngine: {
+        getRoute,
+        getRoundTripRoute,
+      },
+    });
+
+    const response = await service.generateRoute({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 8,
+      toleranceMeters: 1_200,
+    });
+
+    expect(getRoundTripRoute).toHaveBeenCalled();
+    expect(getRoute).not.toHaveBeenCalled();
+    expect(response.routeId).toContain("native-p");
+    expect(response.status).toBe("partial");
+    expect(response.summary?.totalDistanceKm).toBe(8.04);
+  });
+
+  it("accepts native round-trip candidates that stay within the planner tolerance ceiling", async () => {
+    const nativeRoundTripGeometry = createLoopGeometry([10.1478, 54.3341]);
+    const getRoundTripRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 12_720,
+      durationMs: 4_920_000,
+      elevationGainMeters: 84,
+      geometry: nativeRoundTripGeometry,
+      instructions: createInstructions(nativeRoundTripGeometry.coordinates),
+      surfaceDetails: createUnknownSurfaceDetails(12_720),
+    });
+    const service = createRouteGenerationService({
+      automaticCandidateRetryCount: 0,
+      routingEngine: {
+        getRoute: vi.fn(),
+        getRoundTripRoute,
+      },
+    });
+
+    const response = await service.generateRoute({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 12,
+      toleranceMeters: 1_200,
+    });
+
+    expect(getRoundTripRoute).toHaveBeenCalled();
+    expect(response.routeId).toContain("native-p");
+    expect(response.status).toBe("partial");
+    expect(response.summary?.distanceDeltaMeters).toBe(720);
+    expect(response.warnings).toEqual([
+      {
+        code: "surface_data_incomplete",
+        message:
+          "Surface classification is incomplete for 100% of this routed preview.",
+      },
+    ]);
+  });
+
+  it("keeps native round-trip generation disabled when pass-through points are requested", async () => {
+    const getRoundTripRoute = vi.fn();
+    const getRoute = vi.fn().mockResolvedValue({
+      distanceMeters: 8_040,
+      durationMs: 3_100_000,
+      elevationGainMeters: 42,
+      geometry: createLoopGeometry([10.1304, 54.3274]),
+      instructions: createInstructions(
+        createLoopGeometry([10.1304, 54.3274]).coordinates,
+      ),
+      surfaceDetails: createUnknownSurfaceDetails(8_040),
+    });
+    const service = createRouteGenerationService({
+      automaticCandidateRetryCount: 0,
+      routingEngine: {
+        getRoute,
+        getRoundTripRoute,
+      },
+    });
+
+    await expect(
+      service.generateRoute({
+        activity: "running_walking",
+        passThroughPoints: [{ lat: 54.3274, lon: 10.1304 }],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 8,
+        toleranceMeters: 1_200,
+      }),
+    ).resolves.toMatchObject({
+      status: "partial",
+      summary: {
+        totalDistanceKm: 8.04,
+      },
+    });
+
+    expect(getRoundTripRoute).not.toHaveBeenCalled();
+    expect(getRoute).toHaveBeenCalled();
+  });
+
   it("tries a compact fallback family when the primary routed candidates exceed the supported distance limit", async () => {
     const getRoute = vi
       .fn()

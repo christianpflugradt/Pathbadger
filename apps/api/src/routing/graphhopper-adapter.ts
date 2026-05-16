@@ -94,6 +94,14 @@ export interface GraphHopperNearestRequest {
   coordinate: Coordinate;
 }
 
+export interface GraphHopperRoundTripRequest {
+  activity: Activity;
+  pointCount: number;
+  roundTripDistanceMeters: number;
+  roundTripSeed: number;
+  start: Coordinate;
+}
+
 export interface GraphHopperNearestResult {
   coordinate: Coordinate;
   distanceMeters: number;
@@ -120,6 +128,9 @@ export interface GraphHopperRouteResult {
 
 export interface RoutingEngineAdapter {
   getRoute(request: GraphHopperRouteRequest): Promise<GraphHopperRouteResult>;
+  getRoundTripRoute?(
+    request: GraphHopperRoundTripRequest,
+  ): Promise<GraphHopperRouteResult>;
   snapCoordinate?(
     request: GraphHopperNearestRequest,
   ): Promise<GraphHopperNearestResult>;
@@ -158,6 +169,54 @@ export function createGraphHopperAdapter(
   const hasElevation = options.hasElevation ?? true;
 
   return {
+    async getRoundTripRoute(request: GraphHopperRoundTripRequest) {
+      const parsedRequest = graphHopperRoundTripRequestSchema.parse(request);
+      const requestUrl = buildRoundTripUrl(options.baseUrl, parsedRequest);
+
+      let response: Response;
+
+      try {
+        response = await fetchImpl(requestUrl);
+      } catch {
+        throw new GraphHopperUnavailableError(
+          "GraphHopper is unavailable for round-trip route requests.",
+        );
+      }
+
+      if (!response.ok) {
+        throw new GraphHopperUnavailableError(
+          `GraphHopper returned ${response.status} for round-trip route requests.`,
+          response.status,
+        );
+      }
+
+      const payload = graphHopperResponseSchema.safeParse(
+        await response.json(),
+      );
+
+      if (!payload.success) {
+        throw new GraphHopperInvalidResponseError(
+          "GraphHopper returned an unexpected round-trip route payload.",
+        );
+      }
+
+      const path = payload.data.paths[0];
+
+      if (!path) {
+        throw new GraphHopperInvalidResponseError(
+          "GraphHopper returned an empty paths list.",
+        );
+      }
+
+      return {
+        distanceMeters: path.distance,
+        durationMs: path.time ?? null,
+        elevationGainMeters: hasElevation ? (path.ascend ?? null) : null,
+        geometry: path.points,
+        instructions: normalizeRouteInstructions(path),
+        surfaceDetails: normalizeRouteSurfaceDetails(path),
+      };
+    },
     async snapCoordinate(request: GraphHopperNearestRequest) {
       const parsedRequest = graphHopperNearestRequestSchema.parse(request);
       const requestUrl = buildNearestUrl(options.baseUrl, parsedRequest);
@@ -267,6 +326,14 @@ export function createGraphHopperAdapterFromEnv(
   });
 }
 
+const graphHopperRoundTripRequestSchema = z.object({
+  activity: activitySchema,
+  pointCount: z.number().int().min(2).max(20),
+  roundTripDistanceMeters: z.number().positive(),
+  roundTripSeed: z.number().int().nonnegative(),
+  start: coordinateSchema,
+});
+
 function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
   const url = new URL(GRAPHHOPPER_ROUTE_PATH, withTrailingSlash(baseUrl));
 
@@ -275,6 +342,34 @@ function buildRouteUrl(baseUrl: string, request: GraphHopperRouteRequest): URL {
   }
 
   url.searchParams.set("profile", toGraphHopperProfile(request.activity));
+  url.searchParams.set("points_encoded", "false");
+  url.searchParams.set("instructions", "true");
+  url.searchParams.append("details", "surface");
+  url.searchParams.append("details", "road_class");
+  url.searchParams.append("details", "foot_access");
+  url.searchParams.append("details", "foot_road_access");
+  url.searchParams.append("details", "bike_access");
+  url.searchParams.append("details", "bike_road_access");
+  url.searchParams.append("details", "distance");
+
+  return url;
+}
+
+function buildRoundTripUrl(
+  baseUrl: string,
+  request: GraphHopperRoundTripRequest,
+): URL {
+  const url = new URL(GRAPHHOPPER_ROUTE_PATH, withTrailingSlash(baseUrl));
+
+  url.searchParams.set("point", `${request.start.lat},${request.start.lon}`);
+  url.searchParams.set("profile", toGraphHopperProfile(request.activity));
+  url.searchParams.set("algorithm", "round_trip");
+  url.searchParams.set(
+    "round_trip.distance",
+    String(Math.round(request.roundTripDistanceMeters)),
+  );
+  url.searchParams.set("round_trip.seed", String(request.roundTripSeed));
+  url.searchParams.set("round_trip.points", String(request.pointCount));
   url.searchParams.set("points_encoded", "false");
   url.searchParams.set("instructions", "true");
   url.searchParams.append("details", "surface");

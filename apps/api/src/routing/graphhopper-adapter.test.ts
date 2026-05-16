@@ -213,6 +213,85 @@ describe("createGraphHopperAdapter", () => {
     ]);
   });
 
+  it("builds native round-trip requests with GraphHopper round-trip parameters", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          paths: [
+            {
+              distance: 12_180,
+              time: 2_040_000,
+              ascend: 78,
+              points: {
+                type: "LineString",
+                coordinates: [
+                  [10.1228, 54.3233],
+                  [10.1304, 54.3274],
+                  [10.1228, 54.3233],
+                ],
+              },
+              instructions: [
+                {
+                  distance: 12_180,
+                  sign: 4,
+                  interval: [2, 2],
+                  text: "Arrive at destination",
+                  street_name: "",
+                },
+              ],
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        },
+      ),
+    );
+    const adapter = createGraphHopperAdapter({
+      baseUrl: "http://graphhopper:8989",
+      fetchImpl: fetchMock,
+    });
+
+    await expect(
+      adapter.getRoundTripRoute!({
+        activity: "running_walking",
+        pointCount: 4,
+        roundTripDistanceMeters: 12_600,
+        roundTripSeed: 123_456,
+        start: { lat: 54.3233, lon: 10.1228 },
+      }),
+    ).resolves.toMatchObject({
+      distanceMeters: 12_180,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [10.1228, 54.3233],
+          [10.1304, 54.3274],
+          [10.1228, 54.3233],
+        ],
+      },
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const [requestUrl] = fetchMock.mock.calls[0] ?? [];
+    const url = new URL(requestUrl as string);
+
+    expect(url.origin).toBe("http://graphhopper:8989");
+    expect(url.pathname).toBe("/route");
+    expect(url.searchParams.get("point")).toBe("54.3233,10.1228");
+    expect(url.searchParams.get("profile")).toBe("foot");
+    expect(url.searchParams.get("algorithm")).toBe("round_trip");
+    expect(url.searchParams.get("round_trip.distance")).toBe("12600");
+    expect(url.searchParams.get("round_trip.seed")).toBe("123456");
+    expect(url.searchParams.get("round_trip.points")).toBe("4");
+    expect(url.searchParams.get("points_encoded")).toBe("false");
+    expect(url.searchParams.get("instructions")).toBe("true");
+  });
+
   it("falls back to unknown surface details when GraphHopper omits path details", async () => {
     const adapter = createGraphHopperAdapter({
       baseUrl: "http://graphhopper:8989",

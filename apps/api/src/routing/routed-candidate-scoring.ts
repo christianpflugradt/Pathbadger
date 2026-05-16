@@ -73,6 +73,7 @@ const PROHIBITED_ACTIVITY_ROAD_CLASSES = new Set([
 const PROHIBITED_ACCESS_VALUES = new Set(["no", "private"]);
 const U_TURN_INSTRUCTION_TYPES = new Set(["u_turn_left", "u_turn_right"]);
 export const MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS = 400;
+export const MAXIMUM_SUPPORTED_DISTANCE_TOLERANCE_METERS = 1_200;
 
 export interface RoutedCandidateForScoring extends GraphHopperRouteResult {
   routeId: string;
@@ -156,13 +157,15 @@ export function scoreRoutedCandidate(
   options: ScoreRoutedCandidateOptions,
 ): ScoredRoutedCandidate {
   const parsedRequest = routeGenerateRequestSchema.parse(options.request);
+  const supportedDistanceLimitMeters =
+    getSupportedDistanceLimitMeters(parsedRequest);
   const distanceDeltaMeters = Math.round(
     options.candidate.distanceMeters - parsedRequest.targetDistanceKm * 1_000,
   );
   const isWithinTolerance =
     Math.abs(distanceDeltaMeters) <= parsedRequest.toleranceMeters;
   const isWithinSupportedDistanceLimit =
-    Math.abs(distanceDeltaMeters) <= MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS;
+    Math.abs(distanceDeltaMeters) <= supportedDistanceLimitMeters;
   const loop = summarizeRouteLoop({
     geometry: options.candidate.geometry,
     requestedStart: parsedRequest.start,
@@ -221,6 +224,18 @@ export function scoreRoutedCandidate(
     geometry: options.candidate.geometry,
     instructions: options.candidate.instructions,
   };
+}
+
+export function getSupportedDistanceLimitMeters(request: RouteGenerateRequest) {
+  const parsedRequest = routeGenerateRequestSchema.parse(request);
+
+  return Math.min(
+    Math.max(
+      parsedRequest.toleranceMeters,
+      MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS,
+    ),
+    MAXIMUM_SUPPORTED_DISTANCE_TOLERANCE_METERS,
+  );
 }
 
 function createScoringWarnings(options: {

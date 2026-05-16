@@ -1,9 +1,11 @@
 const DEFAULT_APP_URL = "http://127.0.0.1:5173";
 const DISTANCE_DELTA_ROUNDING_TOLERANCE_METERS = 10;
-const MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS = 400;
+const MINIMUM_SUPPORTED_DISTANCE_DELTA_METERS = 400;
+const MAXIMUM_SUPPORTED_DISTANCE_TOLERANCE_METERS = 1_200;
 const MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS = 150;
 const MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS = 50;
 const MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS = 500;
+const MINIMUM_MEANINGFUL_LOOP_CORE_METERS = 1_000;
 const LOOP_METRIC_ROUNDING_TOLERANCE_METERS = 5;
 const SURFACE_PERCENT_TOTAL_TOLERANCE = 1;
 
@@ -155,7 +157,7 @@ function checkPreviewDistanceAndSurfaceHonesty(request, response) {
   const withinSupportedDistanceLimit =
     summary !== null &&
     Math.abs(summary.distanceDeltaMeters) <=
-      MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS;
+      getSupportedDistanceLimitMeters(request);
   const shouldHaveDistanceWarning =
     summary === null
       ? false
@@ -186,8 +188,7 @@ function checkPreviewDistanceAndSurfaceHonesty(request, response) {
       surfaceSummary: surface,
       surfaceWarningPresent,
       withinSupportedDistanceLimit,
-      maximumAcceptableDistanceDeltaMeters:
-        MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS,
+      supportedDistanceLimitMeters: getSupportedDistanceLimitMeters(request),
       targetDistanceKm: request.targetDistanceKm,
       toleranceMeters: request.toleranceMeters,
       totalDistanceKm: summary?.totalDistanceKm ?? null,
@@ -228,15 +229,29 @@ function checkPreviewRoundTripContract(request, response) {
           requestedStart: request.start,
         });
   const reportedLoop = summary?.loop ?? null;
+  const computedUniqueLoopCoreMeters =
+    Array.isArray(geometryCoordinates) && geometryCoordinates.length > 1
+      ? calculateUniqueLoopCoreMeters(geometryCoordinates)
+      : null;
+  const hasExplicitUTurnInstruction = Array.isArray(response.body.instructions)
+    ? response.body.instructions.some(
+        (instruction) =>
+          instruction?.type === "u_turn_left" ||
+          instruction?.type === "u_turn_right",
+      )
+    : false;
   const withinSupportedRoundTripContract =
     computedLoop !== null &&
+    computedUniqueLoopCoreMeters !== null &&
     computedLoop.startOffsetMeters <=
       MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS &&
     computedLoop.endOffsetMeters <=
       MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS &&
     computedLoop.closureGapMeters <= MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS &&
-    computedLoop.bidirectionalOverlapMeters <=
-      MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS;
+    !hasExplicitUTurnInstruction &&
+    (computedLoop.bidirectionalOverlapMeters <=
+      MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS ||
+      computedUniqueLoopCoreMeters >= MINIMUM_MEANINGFUL_LOOP_CORE_METERS);
   const loopMatchesSummary =
     computedLoop !== null &&
     reportedLoop !== null &&
@@ -264,10 +279,13 @@ function checkPreviewRoundTripContract(request, response) {
     ok,
     evidence: {
       computedLoop,
+      computedUniqueLoopCoreMeters,
+      hasExplicitUTurnInstruction,
       httpStatus: response.httpStatus,
       maximumAcceptableBidirectionalOverlapMeters:
         MAXIMUM_ACCEPTABLE_BIDIRECTIONAL_OVERLAP_METERS,
       maximumAcceptableClosureGapMeters: MAXIMUM_ACCEPTABLE_CLOSURE_GAP_METERS,
+      minimumMeaningfulLoopCoreMeters: MINIMUM_MEANINGFUL_LOOP_CORE_METERS,
       maximumAcceptableStartAreaOffsetMeters:
         MAXIMUM_ACCEPTABLE_START_AREA_OFFSET_METERS,
       reportedLoop,
@@ -276,6 +294,13 @@ function checkPreviewRoundTripContract(request, response) {
       withinSupportedRoundTripContract,
     },
   };
+}
+
+function getSupportedDistanceLimitMeters(request) {
+  return Math.min(
+    Math.max(request.toleranceMeters, MINIMUM_SUPPORTED_DISTANCE_DELTA_METERS),
+    MAXIMUM_SUPPORTED_DISTANCE_TOLERANCE_METERS,
+  );
 }
 
 function checkOutOfRegionFailure(response) {
@@ -309,12 +334,12 @@ function checkConstrainedPassThroughFailure(response) {
   const ok =
     response.httpStatus === 200 &&
     response.body.status === "failed" &&
-    listWarningCodes(response.body.warnings).includes(
+    (listWarningCodes(response.body.warnings).includes(
       "route_cannot_meet_requested_constraints",
-    ) &&
-    warningMessages.some((message) =>
-      message.includes("requested pass-through points"),
-    ) &&
+    ) ||
+      listWarningCodes(response.body.warnings).includes(
+        "route_cannot_form_supported_round_trip",
+      )) &&
     response.body.summary === null &&
     response.body.geometry === null &&
     response.body.instructions === null;
@@ -382,6 +407,18 @@ function summarizeRouteLoop({ geometryCoordinates, requestedStart }) {
   };
 }
 
+function calculateUniqueLoopCoreMeters(geometryCoordinates) {
+  const totalRouteDistanceMeters =
+    calculateRouteDistanceMeters(geometryCoordinates);
+  const bidirectionalOverlapMeters =
+    calculateBidirectionalOverlapMeters(geometryCoordinates);
+
+  return Math.max(
+    0,
+    Math.round(totalRouteDistanceMeters - bidirectionalOverlapMeters * 2),
+  );
+}
+
 function calculateBidirectionalOverlapMeters(geometryCoordinates) {
   const sampledSegments = sampleRouteSegments(geometryCoordinates);
   const totalDistanceMeters = sampledSegments.reduce(
@@ -436,6 +473,19 @@ function calculateBidirectionalOverlapMeters(geometryCoordinates) {
   }
 
   return markedOverlapLengthMeters / 2;
+}
+
+function calculateRouteDistanceMeters(geometryCoordinates) {
+  let totalRouteDistanceMeters = 0;
+
+  for (let index = 1; index < geometryCoordinates.length; index += 1) {
+    totalRouteDistanceMeters += haversineDistanceMeters(
+      lineStringCoordinateToCoordinate(geometryCoordinates[index - 1]),
+      lineStringCoordinateToCoordinate(geometryCoordinates[index]),
+    );
+  }
+
+  return totalRouteDistanceMeters;
 }
 
 function sampleRouteSegments(geometryCoordinates) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   findKnownLegalityWarning,
+  getSupportedDistanceLimitMeters,
   scoreRoutedCandidate,
 } from "./routed-candidate-scoring.js";
 
@@ -297,7 +298,7 @@ describe("scoreRoutedCandidate", () => {
     ]);
   });
 
-  it("marks candidates beyond the supported 400 meter distance limit", () => {
+  it("keeps the supported distance limit at 400 meters for low-tolerance requests", () => {
     const scoredCandidate = scoreRoutedCandidate({
       request: {
         activity: "running_walking",
@@ -323,6 +324,56 @@ describe("scoreRoutedCandidate", () => {
     expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(false);
     expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(true);
     expect(scoredCandidate.summary.distanceDeltaMeters).toBe(520);
+    expect(
+      getSupportedDistanceLimitMeters({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 150,
+      }),
+    ).toBe(400);
+  });
+
+  it("honors the planner tolerance ceiling for higher-tolerance requests", () => {
+    const scoredCandidate = scoreRoutedCandidate({
+      request: {
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 1_200,
+      },
+      candidate: {
+        routeId: "candidate-within-default-planner-tolerance",
+        distanceMeters: 12_720,
+        durationMs: 4_920_000,
+        elevationGainMeters: 88,
+        geometry: createLoopGeometry([10.152, 54.3375]),
+        instructions: [],
+        surfaceDetails: createUnknownSurfaceDetails(12_720),
+      },
+    });
+
+    expect(scoredCandidate.isWithinTolerance).toBe(true);
+    expect(scoredCandidate.isWithinSupportedDistanceLimit).toBe(true);
+    expect(scoredCandidate.isWithinSupportedRoundTripContract).toBe(true);
+    expect(scoredCandidate.summary.distanceDeltaMeters).toBe(720);
+    expect(
+      getSupportedDistanceLimitMeters({
+        activity: "running_walking",
+        passThroughPoints: [],
+        randomSeed: null,
+        start: { lat: 54.3233, lon: 10.1228 },
+        surfacePreference: "mixed",
+        targetDistanceKm: 12,
+        toleranceMeters: 1_200,
+      }),
+    ).toBe(1_200);
   });
 
   it("marks routed previews with long bidirectional retracing as unsupported round trips", () => {

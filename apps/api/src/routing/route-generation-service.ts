@@ -15,9 +15,10 @@ import {
   GraphHopperUnavailableError,
 } from "./graphhopper-adapter.js";
 import type { RoutingEngineAdapter } from "./graphhopper-adapter.js";
+import { createNativeRoundTripCandidateRequests } from "./native-round-trip-candidates.js";
 import {
   findKnownLegalityWarning,
-  MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS,
+  getSupportedDistanceLimitMeters,
   type ScoredRoutedCandidate,
   type RoutedCandidateForScoring,
   scoreRoutedCandidate,
@@ -92,9 +93,34 @@ export function createRouteGenerationService(
         );
       }
 
-      const candidates = createRouteCandidateWaypointSeeds(routingRequest);
       const failures = [];
       const rejections = [];
+      const unsupportedCandidates: ScoredRoutedCandidate[] = [];
+
+      const nativeAttempt = await evaluateNativeRoundTripRequest({
+        candidateSearchDeadlineMs,
+        generationRequest: routingRequest,
+        nowMs,
+        routingEngine: options.routingEngine,
+        scoringRequest: parsedRequest,
+        supportedRegion,
+      });
+
+      failures.push(...nativeAttempt.failures);
+      rejections.push(...nativeAttempt.rejections);
+      unsupportedCandidates.push(...nativeAttempt.unsupportedCandidates);
+
+      const bestNativeCandidate = selectBestScoredCandidate(
+        nativeAttempt.acceptableCandidates,
+      );
+
+      if (bestNativeCandidate) {
+        return routeGenerateResponseSchema.parse(
+          buildRouteResponse(bestNativeCandidate),
+        );
+      }
+
+      const candidates = createRouteCandidateWaypointSeeds(routingRequest);
 
       if (candidates.length === 0) {
         return routeGenerateResponseSchema.parse({
@@ -112,7 +138,6 @@ export function createRouteGenerationService(
         });
       }
 
-      const unsupportedCandidates: ScoredRoutedCandidate[] = [];
       const primaryAttempt = await evaluateCandidateRequest({
         generationRequest: routingRequest,
         routingEngine: options.routingEngine,
@@ -243,12 +268,22 @@ export function createRouteGenerationService(
   };
 }
 
+type CandidateEvaluationResult = {
+  acceptableCandidates: ScoredRoutedCandidate[];
+  failures: Array<{ error: unknown; routeId: string }>;
+  rejections: Array<{
+    routeId: string;
+    warning: { code: string; message: string };
+  }>;
+  unsupportedCandidates: ScoredRoutedCandidate[];
+};
+
 async function evaluateCandidateRequest(options: {
   generationRequest: RouteGenerateRequest;
   routingEngine: RoutingEngineAdapter;
   scoringRequest: RouteGenerateRequest;
   supportedRegion: SupportedRegion;
-}) {
+}): Promise<CandidateEvaluationResult> {
   const acceptableCandidates: ScoredRoutedCandidate[] = [];
   const unsupportedCandidates: ScoredRoutedCandidate[] = [];
   const failures: Array<{ error: unknown; routeId: string }> = [];
@@ -265,49 +300,18 @@ async function evaluateCandidateRequest(options: {
         points: candidate.points,
         activity: options.generationRequest.activity,
       });
-      const candidateWithRouteId = {
+      const candidateWithRouteId: RoutedCandidateForScoring = {
         routeId: candidate.id,
         ...routedCandidate,
       };
-      const regionWarning = findRouteRegionWarning(
-        candidateWithRouteId,
-        options.supportedRegion,
-      );
-
-      if (regionWarning) {
-        rejections.push({
-          routeId: candidate.id,
-          warning: regionWarning,
-        });
-        continue;
-      }
-
-      const legalityWarning = findKnownLegalityWarning({
-        request: options.scoringRequest,
+      categorizeRoutedCandidate({
+        acceptableCandidates,
         candidate: candidateWithRouteId,
-      });
-
-      if (legalityWarning) {
-        rejections.push({
-          routeId: candidate.id,
-          warning: legalityWarning,
-        });
-        continue;
-      }
-
-      const scoredCandidate = scoreRoutedCandidate({
+        rejections,
         request: options.scoringRequest,
-        candidate: candidateWithRouteId,
+        supportedRegion: options.supportedRegion,
+        unsupportedCandidates,
       });
-
-      if (
-        scoredCandidate.isWithinSupportedDistanceLimit &&
-        scoredCandidate.isWithinSupportedRoundTripContract
-      ) {
-        acceptableCandidates.push(scoredCandidate);
-      } else {
-        unsupportedCandidates.push(scoredCandidate);
-      }
     } catch (error) {
       failures.push({
         error,
@@ -322,6 +326,138 @@ async function evaluateCandidateRequest(options: {
     rejections,
     unsupportedCandidates,
   };
+}
+
+async function evaluateNativeRoundTripRequest(options: {
+  candidateSearchDeadlineMs: number;
+  generationRequest: RouteGenerateRequest;
+  nowMs: () => number;
+  routingEngine: RoutingEngineAdapter;
+  scoringRequest: RouteGenerateRequest;
+  supportedRegion: SupportedRegion;
+}): Promise<CandidateEvaluationResult> {
+  const acceptableCandidates: ScoredRoutedCandidate[] = [];
+  const unsupportedCandidates: ScoredRoutedCandidate[] = [];
+  const failures: Array<{ error: unknown; routeId: string }> = [];
+  const rejections: Array<{
+    routeId: string;
+    warning: { code: string; message: string };
+  }> = [];
+
+  if (
+    !options.routingEngine.getRoundTripRoute ||
+    options.generationRequest.passThroughPoints.length > 0
+  ) {
+    return {
+      acceptableCandidates,
+      failures,
+      rejections,
+      unsupportedCandidates,
+    };
+  }
+
+  for (const candidate of createNativeRoundTripCandidateRequests(
+    options.generationRequest,
+  )) {
+    if (
+      !hasCandidateSearchBudgetRemaining(
+        options.candidateSearchDeadlineMs,
+        options.nowMs,
+      )
+    ) {
+      break;
+    }
+
+    try {
+      const routedCandidate = await options.routingEngine.getRoundTripRoute({
+        activity: options.generationRequest.activity,
+        pointCount: candidate.pointCount,
+        roundTripDistanceMeters: candidate.roundTripDistanceMeters,
+        roundTripSeed: candidate.roundTripSeed,
+        start: options.generationRequest.start,
+      });
+      const candidateWithRouteId: RoutedCandidateForScoring = {
+        routeId: candidate.id,
+        ...routedCandidate,
+      };
+
+      categorizeRoutedCandidate({
+        acceptableCandidates,
+        candidate: candidateWithRouteId,
+        rejections,
+        request: options.scoringRequest,
+        supportedRegion: options.supportedRegion,
+        unsupportedCandidates,
+      });
+    } catch (error) {
+      failures.push({
+        error,
+        routeId: candidate.id,
+      });
+    }
+  }
+
+  return {
+    acceptableCandidates,
+    failures,
+    rejections,
+    unsupportedCandidates,
+  };
+}
+
+function categorizeRoutedCandidate(options: {
+  acceptableCandidates: ScoredRoutedCandidate[];
+  candidate: RoutedCandidateForScoring;
+  rejections: Array<{
+    routeId: string;
+    warning: { code: string; message: string };
+  }>;
+  request: RouteGenerateRequest;
+  supportedRegion: SupportedRegion;
+  unsupportedCandidates: ScoredRoutedCandidate[];
+}) {
+  const regionWarning = findRouteRegionWarning(
+    options.candidate,
+    options.supportedRegion,
+  );
+
+  if (regionWarning) {
+    options.rejections.push({
+      routeId: options.candidate.routeId,
+      warning: regionWarning,
+    });
+
+    return;
+  }
+
+  const legalityWarning = findKnownLegalityWarning({
+    request: options.request,
+    candidate: options.candidate,
+  });
+
+  if (legalityWarning) {
+    options.rejections.push({
+      routeId: options.candidate.routeId,
+      warning: legalityWarning,
+    });
+
+    return;
+  }
+
+  const scoredCandidate = scoreRoutedCandidate({
+    request: options.request,
+    candidate: options.candidate,
+  });
+
+  if (
+    scoredCandidate.isWithinSupportedDistanceLimit &&
+    scoredCandidate.isWithinSupportedRoundTripContract
+  ) {
+    options.acceptableCandidates.push(scoredCandidate);
+    return;
+  }
+
+  options.unsupportedCandidates.push(scoredCandidate);
 }
 
 function hasCandidateSearchBudgetRemaining(
@@ -396,7 +532,7 @@ function createAutomaticCandidateRetryRequests(
 
 function shouldRetryAutomaticCandidateSeeds(
   request: RouteGenerateRequest,
-  attempt: Awaited<ReturnType<typeof evaluateCandidateRequest>>,
+  attempt: CandidateEvaluationResult,
 ) {
   if (request.randomSeed !== null) {
     return false;
@@ -514,6 +650,9 @@ function createUnsupportedCandidateFailureResponse(options: {
   }>;
   unsupportedCandidates: ScoredRoutedCandidate[];
 }) {
+  const supportedDistanceLimitMeters = getSupportedDistanceLimitMeters(
+    options.request,
+  );
   const hasDistanceOnlyCandidates = options.unsupportedCandidates.some(
     (candidate) => candidate.isWithinSupportedRoundTripContract,
   );
@@ -544,8 +683,9 @@ function createUnsupportedCandidateFailureResponse(options: {
             hasRequestedPassThroughPoints,
             hasSupportedRoutingConstraintRejections,
             includesLoopConstraint: true,
+            supportedDistanceLimitMeters,
           })
-        : `No legal round course could be generated that both ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION} and stayed within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+        : `No legal round course could be generated that both ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION} and stayed within ${supportedDistanceLimitMeters} meters of the requested distance.`,
     );
   }
 
@@ -562,8 +702,9 @@ function createUnsupportedCandidateFailureResponse(options: {
             hasRequestedPassThroughPoints,
             hasSupportedRoutingConstraintRejections,
             includesLoopConstraint: false,
+            supportedDistanceLimitMeters,
           })
-        : `No legal round course could be generated within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`,
+        : `No legal round course could be generated within ${supportedDistanceLimitMeters} meters of the requested distance.`,
     );
   }
 
@@ -578,25 +719,26 @@ function createConstraintLimitedFailureMessage(options: {
   hasRequestedPassThroughPoints: boolean;
   hasSupportedRoutingConstraintRejections: boolean;
   includesLoopConstraint: boolean;
+  supportedDistanceLimitMeters: number;
 }) {
   if (
     options.hasRequestedPassThroughPoints &&
     options.hasSupportedRoutingConstraintRejections
   ) {
     return options.includesLoopConstraint
-      ? `No legal round course could include the requested pass-through points, honor supported routing constraints, ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION}, and stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`
-      : `No legal round course could include the requested pass-through points, honor supported routing constraints, and stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`;
+      ? `No legal round course could include the requested pass-through points, honor supported routing constraints, ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION}, and stay within ${options.supportedDistanceLimitMeters} meters of the requested distance.`
+      : `No legal round course could include the requested pass-through points, honor supported routing constraints, and stay within ${options.supportedDistanceLimitMeters} meters of the requested distance.`;
   }
 
   if (options.hasRequestedPassThroughPoints) {
     return options.includesLoopConstraint
-      ? `No legal round course could include the requested pass-through points while also ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION} and staying within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`
-      : `No legal round course could include the requested pass-through points and stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`;
+      ? `No legal round course could include the requested pass-through points while also ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION} and staying within ${options.supportedDistanceLimitMeters} meters of the requested distance.`
+      : `No legal round course could include the requested pass-through points and stay within ${options.supportedDistanceLimitMeters} meters of the requested distance.`;
   }
 
   return options.includesLoopConstraint
-    ? `No legal round course could satisfy the supported routing constraints while also ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION} and staying within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance.`
-    : `No legal round course could stay within ${MAXIMUM_ACCEPTABLE_DISTANCE_DELTA_METERS} meters of the requested distance once supported routing constraints were applied.`;
+    ? `No legal round course could satisfy the supported routing constraints while also ${SUPPORTED_ROUND_TRIP_CONTRACT_DESCRIPTION} and staying within ${options.supportedDistanceLimitMeters} meters of the requested distance.`
+    : `No legal round course could stay within ${options.supportedDistanceLimitMeters} meters of the requested distance once supported routing constraints were applied.`;
 }
 
 function mapFailureToResponse(routeId: string, error: unknown) {
