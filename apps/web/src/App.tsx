@@ -20,6 +20,7 @@ import type {
 import type { BrowserGeolocationState } from "./browser-geolocation";
 import {
   DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
+  requestSingleBrowserGeolocationFix,
   useBrowserGeolocation,
 } from "./browser-geolocation";
 import { webRuntimeConfig } from "./config";
@@ -595,10 +596,7 @@ export function App() {
     }),
   });
   const navigationHudGpsStatusPill = !navigationTrackedPosition
-    ? {
-        className: "status-pill--warning",
-        label: "Waiting for GPS",
-      }
+    ? getNavigationWaitingGpsStatusPill(browserGeolocation)
     : navigationSnapshot?.isOffRoute
       ? {
           className: "status-pill--error",
@@ -614,7 +612,7 @@ export function App() {
             label: "Live GPS",
           };
   const navigationHudSupportCopy = !navigationTrackedPosition
-    ? "Progress, next turn, and speed will appear once the browser reports a usable live GPS fix."
+    ? getNavigationWaitingGpsSupportCopy(browserGeolocation)
     : navigationSnapshot?.isOffRoute
       ? `About ${formatWholeMeters(
           navigationSnapshot.offRouteDistanceMeters,
@@ -674,9 +672,9 @@ export function App() {
       ? navigationSnapshot.nextInstruction.instruction.text
       : navigationTrackedPosition
         ? "Continue on route"
-        : "Waiting for browser GPS";
+        : getNavigationWaitingGpsManeuverTitle(browserGeolocation);
   const navigationManeuverDistanceLabel = !navigationTrackedPosition
-    ? "Waiting for GPS"
+    ? getNavigationWaitingGpsManeuverDistanceLabel(browserGeolocation)
     : navigationSnapshot?.isOffRoute
       ? `${formatWholeMeters(navigationSnapshot.offRouteDistanceMeters)} off route`
       : navigationSnapshot?.nextInstruction
@@ -1251,6 +1249,10 @@ export function App() {
       return;
     }
 
+    if (browserGeolocation.status !== "ready") {
+      void requestNavigationGpsAccess();
+    }
+
     setNavigationResetState(null);
     setIsPlannerDrawerOpen(false);
     setNavigationFollowMode("follow_position");
@@ -1261,6 +1263,12 @@ export function App() {
       routeDistanceKm: navigableRoutePreview.summary?.totalDistanceKm ?? null,
       routeId: navigableRoutePreview.routeId,
       routeStatus: navigableRoutePreview.status,
+    });
+  }
+
+  function requestNavigationGpsAccess() {
+    return requestSingleBrowserGeolocationFix({
+      positionOptions: browserGeolocationPositionOptions,
     });
   }
 
@@ -1441,6 +1449,25 @@ export function App() {
                 Use Finish route once you have reached the end and want to clear
                 guidance chrome before planning the next loop.
               </p>
+              {browserGeolocation.status !== "ready" &&
+              browserGeolocation.status !== "unsupported" ? (
+                <>
+                  <div className="button-row">
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      onClick={() => {
+                        void requestNavigationGpsAccess();
+                      }}
+                    >
+                      {getNavigationGpsRequestActionLabel(browserGeolocation)}
+                    </button>
+                  </div>
+                  <p className="helper-copy helper-copy--warning">
+                    {getNavigationGpsRequestActionCopy(browserGeolocation)}
+                  </p>
+                </>
+              ) : null}
             </>
           ) : (
             <>
@@ -2281,7 +2308,7 @@ export function App() {
                     <p className="helper-copy">
                       {browserGeolocation.status === "ready"
                         ? "Browser geolocation is already available, so starting navigation will follow the live GPS marker immediately."
-                        : "Starting navigation now will request browser geolocation for live position updates. If the browser cannot provide a usable fix, the session will pause with an explicit GPS error instead of inventing a fallback marker."}
+                        : "Starting navigation now requests browser geolocation directly from this button press. If the browser cannot provide a usable fix, the session will pause with an explicit GPS error instead of inventing a fallback marker."}
                     </p>
                     <p className="helper-copy helper-copy--warning">
                       {getNavigationGpsGuardrailPreviewCopy()}
@@ -2878,6 +2905,136 @@ function getCurrentPositionRouteBlockingMessage(
     case "ready":
     default:
       return "Route generation waits for the current browser location.";
+  }
+}
+
+function getNavigationWaitingGpsStatusPill(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "denied":
+      return {
+        className: "status-pill--error",
+        label: "Permission denied",
+      };
+    case "unsupported":
+      return {
+        className: "status-pill--error",
+        label: "GPS unsupported",
+      };
+    case "unavailable":
+      return {
+        className: "status-pill--warning",
+        label: "GPS unavailable",
+      };
+    case "idle":
+      return {
+        className: "",
+        label: "GPS idle",
+      };
+    case "requesting":
+    case "ready":
+    default:
+      return {
+        className: "status-pill--warning",
+        label: "Waiting for GPS",
+      };
+  }
+}
+
+function getNavigationWaitingGpsSupportCopy(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "denied":
+      return "Browser location is blocked for this site. Re-enable Location in the browser site settings, then request GPS again.";
+    case "unsupported":
+      return "This browser cannot provide live GPS for navigation.";
+    case "unavailable":
+      return (
+        browserGeolocation.message ??
+        "Browser location is allowed, but there is no usable live GPS fix yet."
+      );
+    case "idle":
+      return "Navigation will request browser GPS as soon as you ask for it.";
+    case "requesting":
+      return "Pathbadger has asked the browser for GPS. If no permission sheet appeared yet, request GPS again from Navigation settings.";
+    case "ready":
+    default:
+      return "Progress, next turn, and speed will appear once the browser reports a usable live GPS fix.";
+  }
+}
+
+function getNavigationWaitingGpsManeuverTitle(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "denied":
+      return "Browser location blocked";
+    case "unsupported":
+      return "Browser GPS unsupported";
+    case "unavailable":
+      return "Waiting for GPS fix";
+    case "idle":
+    case "requesting":
+    case "ready":
+    default:
+      return "Waiting for browser GPS";
+  }
+}
+
+function getNavigationWaitingGpsManeuverDistanceLabel(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "denied":
+      return "Allow location in browser";
+    case "unsupported":
+      return "Unsupported";
+    case "unavailable":
+      return "Waiting for fix";
+    case "idle":
+    case "requesting":
+    case "ready":
+    default:
+      return "Waiting for GPS";
+  }
+}
+
+function getNavigationGpsRequestActionLabel(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "denied":
+      return "Retry GPS after allowing location";
+    case "unavailable":
+      return "Retry GPS fix";
+    case "idle":
+      return "Request GPS access";
+    case "requesting":
+    case "ready":
+    case "unsupported":
+    default:
+      return "Request GPS access again";
+  }
+}
+
+function getNavigationGpsRequestActionCopy(
+  browserGeolocation: BrowserGeolocationState,
+) {
+  switch (browserGeolocation.status) {
+    case "denied":
+      return "If Arc was blocked earlier, change this localhost tab to Allow for Location in site settings, then retry here.";
+    case "unavailable":
+      return "Permission is already available, but the browser has not produced a usable fix yet. Retry once the device location is ready.";
+    case "idle":
+      return "Use this to request browser GPS explicitly while staying on the active navigation screen.";
+    case "requesting":
+      return "Use this if Arc did not surface the location prompt from the first request.";
+    case "ready":
+    case "unsupported":
+    default:
+      return "Use this to request browser GPS again.";
   }
 }
 

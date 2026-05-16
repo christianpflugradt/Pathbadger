@@ -7,6 +7,7 @@ import type {
 import {
   DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
   normalizeBrowserGeolocationPosition,
+  requestSingleBrowserGeolocationFix,
   subscribeToBrowserGeolocation,
 } from "./browser-geolocation.js";
 
@@ -59,6 +60,7 @@ describe("subscribeToBrowserGeolocation", () => {
     let successCallback: WatchSuccessCallback | null = null;
     const geolocation: BrowserGeolocationApi = {
       clearWatch: vi.fn(),
+      getCurrentPosition: vi.fn(),
       watchPosition: vi.fn((success) => {
         successCallback = success;
         return 41;
@@ -114,6 +116,7 @@ describe("subscribeToBrowserGeolocation", () => {
   it("passes custom watch options through to the browser geolocation API", () => {
     const geolocation: BrowserGeolocationApi = {
       clearWatch: vi.fn(),
+      getCurrentPosition: vi.fn(),
       watchPosition: vi.fn(() => 12),
     };
     const positionOptions = {
@@ -139,6 +142,7 @@ describe("subscribeToBrowserGeolocation", () => {
     let errorCallback: WatchErrorCallback | null = null;
     const geolocation: BrowserGeolocationApi = {
       clearWatch: vi.fn(),
+      getCurrentPosition: vi.fn(),
       watchPosition: vi.fn((_success, error) => {
         errorCallback = error ?? null;
         return 7;
@@ -175,6 +179,7 @@ describe("subscribeToBrowserGeolocation", () => {
     let errorCallback: WatchErrorCallback | null = null;
     const geolocation: BrowserGeolocationApi = {
       clearWatch: vi.fn(),
+      getCurrentPosition: vi.fn(),
       watchPosition: vi.fn((success, error) => {
         successCallback = success;
         errorCallback = error ?? null;
@@ -222,6 +227,86 @@ describe("subscribeToBrowserGeolocation", () => {
         timestampMs: 1_762_744_900_000,
       },
       status: "unavailable",
+    });
+  });
+});
+
+describe("requestSingleBrowserGeolocationFix", () => {
+  it("surfaces an honest unsupported state when one-shot geolocation is missing", async () => {
+    await expect(
+      requestSingleBrowserGeolocationFix({
+        geolocation: null,
+      }),
+    ).resolves.toMatchObject({
+      errorCode: "unsupported",
+      status: "unsupported",
+    });
+  });
+
+  it("normalizes a ready one-shot browser geolocation fix", async () => {
+    const geolocation: BrowserGeolocationApi = {
+      clearWatch: vi.fn(),
+      getCurrentPosition: vi.fn((success) => {
+        success({
+          coords: {
+            accuracy: 4.5,
+            heading: 87,
+            latitude: 54.332,
+            longitude: 10.121,
+            speed: 3.8,
+          } as GeolocationCoordinates,
+          timestamp: 1_762_745_000_000,
+        } as GeolocationPosition);
+      }),
+      watchPosition: vi.fn(),
+    };
+
+    await expect(
+      requestSingleBrowserGeolocationFix({
+        geolocation,
+        positionOptions: DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
+      }),
+    ).resolves.toMatchObject({
+      errorCode: null,
+      position: {
+        accuracyMeters: 4.5,
+        coordinate: {
+          lat: 54.332,
+          lon: 10.121,
+        },
+        headingDegrees: 87,
+        speedMetersPerSecond: 3.8,
+        timestampMs: 1_762_745_000_000,
+      },
+      status: "ready",
+    });
+    expect(geolocation.getCurrentPosition).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.any(Function),
+      DEFAULT_BROWSER_GEOLOCATION_OPTIONS,
+    );
+  });
+
+  it("surfaces denied one-shot browser permission errors", async () => {
+    const geolocation: BrowserGeolocationApi = {
+      clearWatch: vi.fn(),
+      getCurrentPosition: vi.fn((_success, error) => {
+        error?.({
+          code: 1,
+          message: "User denied Geolocation",
+        } as GeolocationPositionError);
+      }),
+      watchPosition: vi.fn(),
+    };
+
+    await expect(
+      requestSingleBrowserGeolocationFix({
+        geolocation,
+      }),
+    ).resolves.toMatchObject({
+      errorCode: "permission_denied",
+      message: "User denied Geolocation",
+      status: "denied",
     });
   });
 });

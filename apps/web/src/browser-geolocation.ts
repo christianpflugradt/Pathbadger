@@ -13,7 +13,7 @@ export const DEFAULT_BROWSER_GEOLOCATION_OPTIONS = {
 
 export type BrowserGeolocationApi = Pick<
   Geolocation,
-  "clearWatch" | "watchPosition"
+  "clearWatch" | "getCurrentPosition" | "watchPosition"
 >;
 
 export type BrowserGeolocationStatus =
@@ -197,6 +197,47 @@ export function subscribeToBrowserGeolocation(options: {
   return () => {
     options.geolocation?.clearWatch(watchId);
   };
+}
+
+export function requestSingleBrowserGeolocationFix(options?: {
+  geolocation?: BrowserGeolocationApi | null;
+  positionOptions?: PositionOptions;
+}) {
+  const geolocation = options?.geolocation ?? getBrowserGeolocationApi();
+  const positionOptions =
+    options?.positionOptions ?? DEFAULT_BROWSER_GEOLOCATION_OPTIONS;
+
+  if (!geolocation?.getCurrentPosition) {
+    return Promise.resolve(createUnsupportedBrowserGeolocationState());
+  }
+
+  return new Promise<BrowserGeolocationState>((resolve) => {
+    try {
+      geolocation.getCurrentPosition(
+        (position) => {
+          resolve(
+            createReadyBrowserGeolocationState(
+              normalizeBrowserGeolocationPosition(position),
+            ),
+          );
+        },
+        (error) => {
+          resolve(createBrowserGeolocationErrorState(error, null));
+        },
+        positionOptions,
+      );
+    } catch (error) {
+      resolve({
+        errorCode: "position_unavailable",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Browser geolocation could not start.",
+        position: null,
+        status: "unavailable",
+      });
+    }
+  });
 }
 
 export function useBrowserGeolocation(options?: {
