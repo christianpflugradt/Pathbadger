@@ -58,12 +58,38 @@ const ORBIT_LOOP_TEMPLATES: OrbitLoopTemplate[] = [
   },
 ];
 
-const CONNECTOR_LOOP_TEMPLATE: ConnectorLoopTemplate = {
-  baseBearingDegrees: 120,
-  radiusFactor: 0.15,
-  waypointBearingOffsets: [0, 60, 180],
-  waypointDistanceFactors: [1, 1.15, 1],
-};
+const CONNECTOR_LOOP_TEMPLATES: readonly ConnectorLoopTemplate[] = [
+  {
+    baseBearingDegrees: 120,
+    radiusFactor: 0.15,
+    waypointBearingOffsets: [0, 60, 180],
+    waypointDistanceFactors: [1, 1.15, 1],
+  },
+  {
+    baseBearingDegrees: 120,
+    radiusFactor: 0.15,
+    waypointBearingOffsets: [0, 66, 180],
+    waypointDistanceFactors: [1, 1.15, 1],
+  },
+  {
+    baseBearingDegrees: 120,
+    radiusFactor: 0.15,
+    waypointBearingOffsets: [0, 60, 180],
+    waypointDistanceFactors: [1, 1.1, 1],
+  },
+  {
+    baseBearingDegrees: 120,
+    radiusFactor: 0.15,
+    waypointBearingOffsets: [0, 60, 180],
+    waypointDistanceFactors: [1, 1.2, 1],
+  },
+  {
+    baseBearingDegrees: 126,
+    radiusFactor: 0.15,
+    waypointBearingOffsets: [0, 54, 172],
+    waypointDistanceFactors: [1, 1.15, 1],
+  },
+] as const;
 
 export interface RouteCandidateWaypointSeed {
   id: string;
@@ -83,8 +109,10 @@ export function createRouteCandidateWaypointSeeds(
   const resolvedSeed =
     parsedRequest.randomSeed ?? createFallbackSeed(parsedRequest);
   const random = createSeededRandom(resolvedSeed);
+  const connectorRandom = createSeededRandom(`${resolvedSeed}:connector`);
   const targetDistanceMeters = parsedRequest.targetDistanceKm * 1_000;
   const selectedTemplates = selectOrbitLoopTemplates(random);
+  const connectorTemplate = selectConnectorLoopTemplate(connectorRandom);
   const passThroughPoints =
     parsedRequest.passThroughPoints.map(cloneCoordinate);
 
@@ -110,7 +138,7 @@ export function createRouteCandidateWaypointSeeds(
       targetDistanceKm: parsedRequest.targetDistanceKm,
     }),
     buildRouteCandidateWaypointSeed({
-      connectorTemplate: CONNECTOR_LOOP_TEMPLATE,
+      connectorTemplate,
       id: `${resolvedSeed}-connector`,
       passThroughPoints,
       randomSeed: resolvedSeed,
@@ -206,6 +234,27 @@ function buildConnectorWaypoints(options: {
       normalizeBearing(options.template.baseBearingDegrees + bearingOffset),
     ),
   );
+}
+
+function selectConnectorLoopTemplate(
+  random: () => number,
+): ConnectorLoopTemplate {
+  const selectedIndex = Math.floor(random() * CONNECTOR_LOOP_TEMPLATES.length);
+  const selectedTemplate =
+    CONNECTOR_LOOP_TEMPLATES[selectedIndex] ?? CONNECTOR_LOOP_TEMPLATES[0];
+
+  if (!selectedTemplate) {
+    throw new RangeError(
+      "Connector loop template selection exhausted before producing a candidate.",
+    );
+  }
+
+  return {
+    baseBearingDegrees: selectedTemplate.baseBearingDegrees,
+    radiusFactor: selectedTemplate.radiusFactor,
+    waypointBearingOffsets: [...selectedTemplate.waypointBearingOffsets],
+    waypointDistanceFactors: [...selectedTemplate.waypointDistanceFactors],
+  };
 }
 
 function selectOrbitLoopTemplates(

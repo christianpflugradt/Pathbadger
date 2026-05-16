@@ -70,6 +70,31 @@ describe("createRouteCandidateWaypointSeeds", () => {
     expect(candidates[1]?.randomSeed).toBe(candidates[2]?.randomSeed);
     expect(candidates).toEqual(createRouteCandidateWaypointSeeds(request));
   });
+
+  it("changes the connector candidate when the explicit random seed changes", () => {
+    const alphaCandidates = createRouteCandidateWaypointSeeds({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: "alpha-seed",
+      start: { lat: 53.9015262, lon: 9.8325138 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 8,
+      toleranceMeters: 150,
+    });
+    const betaCandidates = createRouteCandidateWaypointSeeds({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: "beta-seed",
+      start: { lat: 53.9015262, lon: 9.8325138 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 8,
+      toleranceMeters: 150,
+    });
+
+    expect(alphaCandidates[2]?.strategy).toBe("connector_loop");
+    expect(betaCandidates[2]?.strategy).toBe("connector_loop");
+    expect(alphaCandidates[2]?.points).not.toEqual(betaCandidates[2]?.points);
+  });
 });
 
 function findCoordinateIndex(

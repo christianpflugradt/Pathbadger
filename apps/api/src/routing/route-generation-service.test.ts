@@ -89,6 +89,7 @@ function createRouteGenerationService(
   return createRouteGenerationServiceWithDefaults({
     automaticCandidateRetryCount: 20,
     automaticCandidateSearchBudgetMs: 10_000,
+    randomSeedFactory: () => "generated-default-seed",
     ...options,
   });
 }
@@ -420,6 +421,58 @@ describe("createRouteGenerationService", () => {
     });
   });
 
+  it("uses the injected random seed factory for null-seed requests", async () => {
+    const routedCandidate = {
+      distanceMeters: 8_040,
+      durationMs: 3_100_000,
+      elevationGainMeters: 42,
+      geometry: createLoopGeometry([10.1304, 54.3274]),
+      instructions: createInstructions(
+        createLoopGeometry([10.1304, 54.3274]).coordinates,
+      ),
+      surfaceDetails: createUnknownSurfaceDetails(8_040),
+    };
+    const alphaService = createRouteGenerationServiceWithDefaults({
+      automaticCandidateRetryCount: 0,
+      automaticCandidateSearchBudgetMs: 10_000,
+      randomSeedFactory: () => "alpha-seed",
+      routingEngine: {
+        getRoute: vi.fn().mockResolvedValue(routedCandidate),
+      },
+    });
+    const betaService = createRouteGenerationServiceWithDefaults({
+      automaticCandidateRetryCount: 0,
+      automaticCandidateSearchBudgetMs: 10_000,
+      randomSeedFactory: () => "beta-seed",
+      routingEngine: {
+        getRoute: vi.fn().mockResolvedValue(routedCandidate),
+      },
+    });
+
+    const alphaResponse = await alphaService.generateRoute({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 8,
+      toleranceMeters: 150,
+    });
+    const betaResponse = await betaService.generateRoute({
+      activity: "running_walking",
+      passThroughPoints: [],
+      randomSeed: null,
+      start: { lat: 54.3233, lon: 10.1228 },
+      surfacePreference: "mixed",
+      targetDistanceKm: 8,
+      toleranceMeters: 150,
+    });
+
+    expect(alphaResponse.routeId).toContain("alpha-seed");
+    expect(betaResponse.routeId).toContain("beta-seed");
+    expect(alphaResponse.routeId).not.toBe(betaResponse.routeId);
+  });
+
   it("tries a compact fallback family when the primary routed candidates exceed the supported distance limit", async () => {
     const getRoute = vi
       .fn()
@@ -687,6 +740,8 @@ describe("createRouteGenerationService", () => {
     }
 
     getRoute.mockResolvedValueOnce(successfulRetryRoute);
+    getRoute.mockResolvedValueOnce(successfulRetryRoute);
+    getRoute.mockResolvedValueOnce(successfulRetryRoute);
 
     const service = createRouteGenerationService({
       routingEngine: {
@@ -728,7 +783,7 @@ describe("createRouteGenerationService", () => {
       geometry: createLoopGeometry([10.1336, 54.3284]),
       instructions: [],
     });
-    expect(getRoute.mock.calls.length).toBeGreaterThan(20);
+    expect(getRoute.mock.calls.length).toBeGreaterThan(21);
   });
 
   it("retries additional default candidate seeds after an initial distance-fit miss", async () => {

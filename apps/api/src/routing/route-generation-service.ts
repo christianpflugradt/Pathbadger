@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   routeGenerateRequestSchema,
   routeGenerateResponseSchema,
@@ -34,6 +36,7 @@ export interface CreateRouteGenerationServiceOptions {
   automaticCandidateRetryCount?: number;
   automaticCandidateSearchBudgetMs?: number;
   nowMs?: () => number;
+  randomSeedFactory?: () => string;
   routingEngine: RoutingEngineAdapter;
   supportedRegion?: SupportedRegion;
 }
@@ -59,12 +62,17 @@ export function createRouteGenerationService(
     options.automaticCandidateSearchBudgetMs ??
     DEFAULT_AUTOMATIC_CANDIDATE_SEARCH_BUDGET_MS;
   const nowMs = options.nowMs ?? Date.now;
+  const randomSeedFactory = options.randomSeedFactory ?? randomUUID;
 
   return {
     async generateRoute(request) {
       const parsedRequest = routeGenerateRequestSchema.parse(request);
+      const seededRequest = routeGenerateRequestSchema.parse({
+        ...parsedRequest,
+        randomSeed: parsedRequest.randomSeed ?? randomSeedFactory(),
+      });
       const routingRequest = await normalizeRouteRequestToRoutableNetwork({
-        request: parsedRequest,
+        request: seededRequest,
         routingEngine: options.routingEngine,
       });
       const candidateSearchDeadlineMs =
@@ -127,7 +135,7 @@ export function createRouteGenerationService(
       }
 
       if (
-        shouldRetryAutomaticCandidateSeeds(routingRequest, primaryAttempt) &&
+        shouldRetryAutomaticCandidateSeeds(parsedRequest, primaryAttempt) &&
         hasCandidateSearchBudgetRemaining(candidateSearchDeadlineMs, nowMs)
       ) {
         for (const retryRequest of createAutomaticCandidateRetryRequests(
@@ -376,10 +384,12 @@ function createAutomaticCandidateRetryRequests(
   request: RouteGenerateRequest,
   automaticCandidateRetryCount: number,
 ) {
+  const baseSeed = request.randomSeed ?? createFallbackRetrySeed(request);
+
   return Array.from({ length: automaticCandidateRetryCount }, (_, index) =>
     routeGenerateRequestSchema.parse({
       ...request,
-      randomSeed: `draft-variation-${index + 1}`,
+      randomSeed: `${baseSeed}-variation-${index + 1}`,
     }),
   );
 }
@@ -393,6 +403,17 @@ function shouldRetryAutomaticCandidateSeeds(
   }
 
   return attempt.unsupportedCandidates.length > 0;
+}
+
+function createFallbackRetrySeed(request: RouteGenerateRequest) {
+  return JSON.stringify({
+    activity: request.activity,
+    passThroughPoints: request.passThroughPoints,
+    start: request.start,
+    surfacePreference: request.surfacePreference,
+    targetDistanceKm: request.targetDistanceKm,
+    toleranceMeters: request.toleranceMeters,
+  });
 }
 
 function createDistanceFitFallbackRequests(request: RouteGenerateRequest) {

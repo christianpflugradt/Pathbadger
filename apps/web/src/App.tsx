@@ -2180,7 +2180,7 @@ export function App() {
                         Candidate {previewCandidateIndex}{" "}
                         {lastSubmittedSeed
                           ? `used random seed ${lastSubmittedSeed}.`
-                          : "used the backend's default deterministic seed."}{" "}
+                          : "used a backend-generated random seed."}{" "}
                         {routePreview.geometry
                           ? `The live map is rendering ${routePreview.geometry.coordinates.length} route coordinates.`
                           : "No route geometry is available for the map yet."}
