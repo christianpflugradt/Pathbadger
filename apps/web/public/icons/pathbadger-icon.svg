@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Pathbadger icon</title>
+  <desc id="desc">A rounded square navigation badge with a trail loop and compass marker.</desc>
+  <defs>
+    <linearGradient id="background" x1="160" y1="112" x2="864" y2="912" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1c2c53" />
+      <stop offset="0.52" stop-color="#304a77" />
+      <stop offset="1" stop-color="#6b7a34" />
+    </linearGradient>
+    <linearGradient id="trail" x1="286" y1="280" x2="794" y2="784" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7f4ea" />
+      <stop offset="1" stop-color="#eac435" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="248" fill="url(#background)" />
+  <circle cx="512" cy="512" r="348" fill="rgba(247,244,234,0.08)" />
+  <path
+    d="M307 630c0-104 83-188 185-188h73c77 0 139-62 139-139 0-35-13-68-36-93"
+    fill="none"
+    stroke="url(#trail)"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="88"
+  />
+  <path
+    d="M717 394c0 104-83 188-185 188h-73c-77 0-139 62-139 139 0 34 12 67 34 92"
+    fill="none"
+    stroke="#f7f4ea"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="72"
+  />
+  <path d="M716 206l104 34-104 34-34 104-34-104-104-34 104-34 34-104 34 104z" fill="#eac435" />
+</svg>

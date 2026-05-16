@@ -5,7 +5,7 @@ export interface NavigationRuntimeCaveat {
 }
 
 export function getNavigationRuntimeCaveatSummary() {
-  return "Supported browser navigation is useful with the screen on and the app active, but iPhone and PWA runtime limits still apply.";
+  return "Supported browser navigation is useful with the screen on and the app active, but iPhone, Safari, and PWA runtime limits still apply.";
 }
 
 export function getNavigationRuntimeCaveats(): NavigationRuntimeCaveat[] {
@@ -34,6 +34,11 @@ export function getNavigationRuntimeCaveats(): NavigationRuntimeCaveat[] {
       id: "pwa",
       title: "PWA does not equal native",
       body: "An installed PWA still inherits browser limits around permissions, background execution, and device integration, so supported behavior may differ from a native turn-by-turn app.",
+    },
+    {
+      id: "install",
+      title: "Install from Safari on HTTPS",
+      body: "For the supported iPhone install path, serve Pathbadger over HTTPS and add it to the Home Screen from Safari so the standalone web-app shell and browser geolocation permissions behave consistently.",
     },
   ];
 }

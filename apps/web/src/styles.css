@@ -1,9 +1,17 @@
 :root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
   color: #14213d;
   background:
     radial-gradient(circle at top, rgba(234, 196, 53, 0.22), transparent 40%),
     linear-gradient(180deg, #f7f4ea 0%, #eef3e3 100%);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+html {
+  min-height: 100%;
 }
 
 * {
@@ -13,17 +21,21 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .planner-shell {
   margin: 0 auto;
   max-width: 1280px;
-  padding: 3rem 1.25rem 4.5rem;
+  padding: calc(3rem + var(--safe-area-top))
+    calc(1.25rem + var(--safe-area-right))
+    calc(4.5rem + var(--safe-area-bottom)) calc(1.25rem + var(--safe-area-left));
 }
 
 .planner-shell--navigation-active {
   max-width: 100%;
-  padding-top: 1.25rem;
+  padding-top: calc(1.25rem + var(--safe-area-top));
 }
 
 .planner-shell--navigation-active .planner-header {
@@ -719,8 +731,8 @@ body {
 }
 
 .maplibregl-ctrl-top-right {
-  top: 0.85rem;
-  right: 0.85rem;
+  top: calc(0.85rem + var(--safe-area-top));
+  right: calc(0.85rem + var(--safe-area-right));
 }
 
 .maplibregl-ctrl-group {
@@ -1195,9 +1207,9 @@ code {
   }
 
   .planning-map__header-overlay {
-    top: 0.75rem;
-    right: 0.75rem;
-    left: 0.75rem;
+    top: calc(0.75rem + var(--safe-area-top));
+    right: calc(0.75rem + var(--safe-area-right));
+    left: calc(0.75rem + var(--safe-area-left));
   }
 
   .map-maneuver-banner {
@@ -1222,16 +1234,16 @@ code {
 
   .planning-map__footer-overlay {
     position: absolute;
-    right: 0.75rem;
-    bottom: 0.75rem;
-    left: 0.75rem;
+    right: calc(0.75rem + var(--safe-area-right));
+    bottom: calc(0.75rem + var(--safe-area-bottom));
+    left: calc(0.75rem + var(--safe-area-left));
     z-index: 1;
     display: block;
     pointer-events: none;
   }
 
   .preview-card--navigation-active .planning-map__footer-overlay {
-    bottom: 8.85rem;
+    bottom: calc(8.85rem + var(--safe-area-bottom));
   }
 
   .planning-map__footer-overlay .map-hud {
@@ -1300,7 +1312,8 @@ code {
 
 @media (max-width: 640px) {
   .planner-shell {
-    padding: 1rem 0 2rem;
+    padding: calc(1rem + var(--safe-area-top)) var(--safe-area-right)
+      calc(2rem + var(--safe-area-bottom)) var(--safe-area-left);
   }
 
   .card {
@@ -1399,28 +1412,28 @@ code {
   }
 
   .planner-map-toolbar {
-    right: 0.65rem;
-    bottom: 6.6rem;
-    left: 0.65rem;
+    right: calc(0.65rem + var(--safe-area-right));
+    bottom: calc(6.6rem + var(--safe-area-bottom));
+    left: calc(0.65rem + var(--safe-area-left));
   }
 
   .preview-card--navigation-active .planner-map-toolbar {
-    bottom: 0.65rem;
+    bottom: calc(0.65rem + var(--safe-area-bottom));
   }
 
   .planning-map__footer-overlay {
-    right: 0.65rem;
-    bottom: 0.65rem;
-    left: 0.65rem;
+    right: calc(0.65rem + var(--safe-area-right));
+    bottom: calc(0.65rem + var(--safe-area-bottom));
+    left: calc(0.65rem + var(--safe-area-left));
   }
 
   .preview-card--navigation-active .planning-map__footer-overlay {
-    bottom: 8.35rem;
+    bottom: calc(8.35rem + var(--safe-area-bottom));
   }
 
   .planning-map__header-overlay {
-    right: 0.65rem;
-    left: 0.65rem;
+    right: calc(0.65rem + var(--safe-area-right));
+    left: calc(0.65rem + var(--safe-area-left));
   }
 
   .planning-map__footer-overlay .map-hud {

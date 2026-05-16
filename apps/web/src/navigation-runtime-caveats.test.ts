@@ -11,7 +11,7 @@ describe("navigation runtime caveats", () => {
       "screen on and the app active",
     );
     expect(getNavigationRuntimeCaveatSummary()).toContain(
-      "iPhone and PWA runtime limits",
+      "iPhone, Safari, and PWA runtime limits",
     );
   });
 
@@ -41,6 +41,11 @@ describe("navigation runtime caveats", () => {
         id: "pwa",
         title: "PWA does not equal native",
         body: "An installed PWA still inherits browser limits around permissions, background execution, and device integration, so supported behavior may differ from a native turn-by-turn app.",
+      },
+      {
+        id: "install",
+        title: "Install from Safari on HTTPS",
+        body: "For the supported iPhone install path, serve Pathbadger over HTTPS and add it to the Home Screen from Safari so the standalone web-app shell and browser geolocation permissions behave consistently.",
       },
     ]);
   });
