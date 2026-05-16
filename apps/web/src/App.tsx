@@ -25,9 +25,7 @@ import {
 import { webRuntimeConfig } from "./config";
 import {
   getNavigationFollowModeActionLabel,
-  getNavigationFollowModeHelperCopy,
   getNavigationFollowModeLabel,
-  getNavigationFollowModeStatusPillClassName,
 } from "./navigation-follow-state";
 import type { NavigationFollowMode } from "./navigation-follow-state";
 import { getNavigationHeroStatus } from "./navigation-hero-status";
@@ -41,19 +39,9 @@ import {
 } from "./navigation-orientation-state";
 import type { NavigationOrientationMode } from "./navigation-orientation-state";
 import { createNavigationSnapshot } from "./navigation-session";
-import {
-  getNavigationTrackingBannerClassName,
-  getNavigationTrackingBannerCopy,
-  getNavigationTrackingBannerTitle,
-  getNavigationTrackingPanelCopy,
-  getNavigationTrackingStatusLabel,
-  getNavigationTrackingStatusPillClassName,
-} from "./navigation-tracking-state";
 import { getNavigationEtaState } from "./navigation-eta-state";
 import {
   createNavigationSpeedBaseline,
-  formatNavigationSpeedKmh,
-  getNavigationSpeedHelperCopy,
   getNavigationSpeedMetrics,
 } from "./navigation-speed-state";
 import {
@@ -404,14 +392,6 @@ export function App() {
           snapshot: navigationSnapshot,
         })
       : null;
-  const navigationSpeedHelperCopy = navigationSpeedMetrics
-    ? getNavigationSpeedHelperCopy({
-        averageSpeedKmh: navigationSpeedMetrics.averageSpeedKmh,
-        baseline: navigationSpeedBaseline,
-        currentSpeedKmh: navigationSpeedMetrics.currentSpeedKmh,
-        hasFreshPosition: navigationHasFreshPosition,
-      })
-    : null;
   const navigationEtaState = getNavigationEtaState({
     averageSpeedKmh: navigationSpeedMetrics?.averageSpeedKmh ?? null,
     currentSpeedKmh: navigationSpeedMetrics?.currentSpeedKmh ?? null,
@@ -421,55 +401,10 @@ export function App() {
     remainingDistanceMeters:
       navigationSnapshot?.remainingDistanceMeters ?? null,
   });
-  const navigationTrackingStatusPillClassName =
-    getNavigationTrackingStatusPillClassName({
-      browserGeolocation,
-      hasFreshPosition: navigationHasFreshPosition,
-      hasLowConfidencePosition: navigationHasLowConfidencePosition,
-      hasTrackedPosition: navigationHasTrackedPosition,
-      lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
-    });
-  const navigationTrackingStatusLabel = getNavigationTrackingStatusLabel({
-    browserGeolocation,
-    hasFreshPosition: navigationHasFreshPosition,
-    hasLowConfidencePosition: navigationHasLowConfidencePosition,
-    hasTrackedPosition: navigationHasTrackedPosition,
-    lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
-  });
-  const navigationTrackingBannerClassName =
-    getNavigationTrackingBannerClassName({
-      browserGeolocation,
-      hasFreshPosition: navigationHasFreshPosition,
-      hasLowConfidencePosition: navigationHasLowConfidencePosition,
-      hasTrackedPosition: navigationHasTrackedPosition,
-      lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
-    });
-  const navigationTrackingBannerTitle = getNavigationTrackingBannerTitle({
-    browserGeolocation,
-    hasFreshPosition: navigationHasFreshPosition,
-    hasLowConfidencePosition: navigationHasLowConfidencePosition,
-    hasTrackedPosition: navigationHasTrackedPosition,
-    lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
-  });
-  const navigationTrackingBannerCopy = getNavigationTrackingBannerCopy({
-    browserGeolocation,
-    hasFreshPosition: navigationHasFreshPosition,
-    hasLowConfidencePosition: navigationHasLowConfidencePosition,
-    hasTrackedPosition: navigationHasTrackedPosition,
-    lowConfidenceCopy: navigationGpsConfidence.lowConfidenceCopy,
-  });
   const isNavigationFollowingPosition =
     navigationFollowMode === "follow_position";
   const navigationFollowStatusLabel =
     getNavigationFollowModeLabel(navigationFollowMode);
-  const navigationFollowStatusPillClassName =
-    getNavigationFollowModeStatusPillClassName(navigationFollowMode);
-  const navigationFollowHelperCopy = getNavigationFollowModeHelperCopy({
-    hasFreshPosition: navigationHasFreshPosition,
-    hasLowConfidencePosition: navigationHasLowConfidencePosition,
-    hasTrackedPosition: navigationHasTrackedPosition,
-    mode: navigationFollowMode,
-  });
   const navigationFollowActionLabel = getNavigationFollowModeActionLabel({
     hasTrackedPosition: navigationHasTrackedPosition,
     mode: navigationFollowMode,
@@ -640,76 +575,91 @@ export function App() {
       startPointMode,
     }),
   });
-  const mapFooterOverlay =
-    isNavigationActive && navigationSnapshot ? (
-      <div className="map-hud map-hud--navigation">
-        <div className="map-hud__headline">
+  const mapFooterOverlay = isNavigationActive ? (
+    <div className="map-hud map-hud--navigation">
+      <div className="map-hud__headline">
+        <strong>
+          {navigationSnapshot?.nextInstruction
+            ? `Next: ${navigationSnapshot.nextInstruction.instruction.text}`
+            : navigationTrackedPosition
+              ? "Navigation is live"
+              : "Waiting for browser GPS"}
+        </strong>
+        <span>
+          {navigationSnapshot?.nextInstruction
+            ? `In ${formatNavigationDistance(
+                navigationSnapshot.nextInstruction.distanceMeters,
+              )}`
+            : navigationTrackedPosition
+              ? "Turn-by-turn text is unavailable for this route, but live progress is still running."
+              : "Guidance mode is active. Progress, remaining distance, and off-route updates will start as soon as the browser reports a usable live position."}
+        </span>
+      </div>
+      <div className="map-hud__stats">
+        <div className="preview-stat">
+          <span>Status</span>
           <strong>
-            {navigationSnapshot.nextInstruction
-              ? `Next: ${navigationSnapshot.nextInstruction.instruction.text}`
-              : "Navigation is live"}
+            {navigationSession?.routeStatus === "partial"
+              ? "Partial route"
+              : "Guidance live"}
           </strong>
-          <span>
-            {navigationSnapshot.nextInstruction
-              ? `In ${formatNavigationDistance(
-                  navigationSnapshot.nextInstruction.distanceMeters,
-                )}`
-              : "Turn-by-turn text is unavailable for this route, but live progress is still running."}
-          </span>
         </div>
-        <div className="map-hud__stats">
-          <div className="preview-stat">
-            <span>Remaining</span>
-            <strong>
-              {formatDistanceKilometers(
-                navigationSnapshot.remainingDistanceMeters,
-              )}
-            </strong>
-          </div>
-          <div className="preview-stat">
-            <span>Progress</span>
-            <strong>{navigationSnapshot.progressPercent}%</strong>
-          </div>
-          <div className="preview-stat">
-            <span>ETA</span>
-            <strong>{navigationEtaState.estimateLabel}</strong>
-          </div>
+        <div className="preview-stat">
+          <span>{navigationSnapshot ? "Remaining" : "Route distance"}</span>
+          <strong>
+            {navigationSnapshot
+              ? formatDistanceKilometers(
+                  navigationSnapshot.remainingDistanceMeters,
+                )
+              : routePreview?.summary
+                ? `${routePreview.summary.totalDistanceKm.toFixed(2)} km`
+                : "Waiting"}
+          </strong>
+        </div>
+        <div className="preview-stat">
+          <span>{navigationSnapshot ? "ETA" : "Position"}</span>
+          <strong>
+            {navigationSnapshot
+              ? navigationEtaState.estimateLabel
+              : navigationTrackedPosition
+                ? "Live GPS"
+                : "Waiting for GPS"}
+          </strong>
         </div>
       </div>
-    ) : routePreview?.summary ? (
-      <div className="map-hud">
-        <div className="map-hud__headline">
-          <strong>{routeStatusLabels[routePreview.status]}</strong>
-          <span>
-            {routePreview.summary.totalDistanceKm.toFixed(2)} km preview on the
-            map. {routePreview.warnings.length} warning
-            {routePreview.warnings.length === 1 ? "" : "s"}.
-          </span>
+    </div>
+  ) : routePreview?.summary ? (
+    <div className="map-hud">
+      <div className="map-hud__headline">
+        <strong>{routeStatusLabels[routePreview.status]}</strong>
+        <span>
+          {routePreview.summary.totalDistanceKm.toFixed(2)} km preview on the
+          map. {routePreview.warnings.length} warning
+          {routePreview.warnings.length === 1 ? "" : "s"}.
+        </span>
+      </div>
+      <div className="map-hud__stats">
+        <div className="preview-stat">
+          <span>Distance</span>
+          <strong>{routePreview.summary.totalDistanceKm.toFixed(2)} km</strong>
         </div>
-        <div className="map-hud__stats">
-          <div className="preview-stat">
-            <span>Distance</span>
-            <strong>
-              {routePreview.summary.totalDistanceKm.toFixed(2)} km
-            </strong>
-          </div>
-          <div className="preview-stat">
-            <span>Delta</span>
-            <strong>
-              {formatDistanceDelta(routePreview.summary.distanceDeltaMeters)}
-            </strong>
-          </div>
-          <div className="preview-stat">
-            <span>Elevation</span>
-            <strong>
-              {routePreview.summary.elevationGainMeters === null
-                ? "Unknown"
-                : `${Math.round(routePreview.summary.elevationGainMeters)} m`}
-            </strong>
-          </div>
+        <div className="preview-stat">
+          <span>Delta</span>
+          <strong>
+            {formatDistanceDelta(routePreview.summary.distanceDeltaMeters)}
+          </strong>
+        </div>
+        <div className="preview-stat">
+          <span>Elevation</span>
+          <strong>
+            {routePreview.summary.elevationGainMeters === null
+              ? "Unknown"
+              : `${Math.round(routePreview.summary.elevationGainMeters)} m`}
+          </strong>
         </div>
       </div>
-    ) : null;
+    </div>
+  ) : null;
   const navigationSessionSummary = isNavigationActive
     ? navigationSnapshot?.nextInstruction
       ? `Navigation is live. Follow the map HUD for ${formatNavigationDistance(
@@ -724,6 +674,99 @@ export function App() {
   const routeDetailsSummaryLabel = routePreview
     ? getRouteDetailsSummaryLabel(routePreview)
     : null;
+  const navigationSettingsDisclosure = (
+    <details
+      className="disclosure-card"
+      data-testid="navigation-runtime-caveats"
+    >
+      <summary>Navigation settings and browser caveats</summary>
+      <div className="disclosure-card__content navigation-runtime-caveats">
+        <div className="section-heading">
+          <h3>Navigation runtime mode</h3>
+          <p>
+            Choose whether live navigation should favor fresher GPS fixes or
+            lower browser geolocation churn.
+          </p>
+        </div>
+        <div className="option-grid" data-testid="navigation-runtime-mode">
+          {navigationRuntimeModeOptions.map((option) => (
+            <button
+              key={option.mode}
+              type="button"
+              data-testid={`navigation-runtime-mode-${option.mode}`}
+              className={`option-card${
+                navigationRuntimeMode === option.mode
+                  ? " option-card--selected"
+                  : ""
+              }`}
+              onClick={() => setNavigationRuntimeMode(option.mode)}
+            >
+              <span className="option-title">{option.label}</span>
+              <span className="option-detail">{option.detail}</span>
+            </button>
+          ))}
+        </div>
+        <p
+          className={`helper-copy ${
+            navigationRuntimeMode === "battery_saver"
+              ? "helper-copy--warning"
+              : "helper-copy--active"
+          }`}
+          data-testid="navigation-runtime-mode-summary"
+        >
+          {navigationRuntimeModeSummary}
+        </p>
+        <div className="section-heading">
+          <h3>Map orientation</h3>
+          <p>
+            Keep the map north-up by default or request heading-up when the
+            browser can provide a trustworthy live heading.
+          </p>
+        </div>
+        <div className="option-grid" data-testid="navigation-orientation-mode">
+          {navigationOrientationModeOptions.map((option) => (
+            <button
+              key={option.mode}
+              type="button"
+              data-testid={`navigation-orientation-mode-${option.mode}`}
+              className={`option-card${
+                navigationOrientationMode === option.mode
+                  ? " option-card--selected"
+                  : ""
+              }`}
+              onClick={() => setNavigationOrientationMode(option.mode)}
+            >
+              <span className="option-title">{option.label}</span>
+              <span className="option-detail">{option.detail}</span>
+            </button>
+          ))}
+        </div>
+        <p
+          className={`helper-copy ${
+            navigationOrientationMode === "heading_up" &&
+            !navigationOrientationState.isHeadingUpActive
+              ? "helper-copy--warning"
+              : "helper-copy--active"
+          }`}
+          data-testid="navigation-orientation-summary"
+        >
+          {navigationOrientationState.helperCopy}
+        </p>
+        <div className="section-heading">
+          <h3>Browser runtime caveats</h3>
+          <p>{getNavigationRuntimeCaveatSummary()}</p>
+        </div>
+        <ul className="warning-list">
+          {getNavigationRuntimeCaveats().map((caveat) => (
+            <li key={caveat.id}>
+              <strong>{caveat.title}</strong>
+              <span>{caveat.body}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
+  );
 
   useEffect(() => {
     if (!navigationSession) {
@@ -1084,7 +1127,11 @@ export function App() {
   }
 
   return (
-    <main className="planner-shell">
+    <main
+      className={`planner-shell${
+        isNavigationActive ? " planner-shell--navigation-active" : ""
+      }`}
+    >
       <section className="planner-header card">
         <div className="planner-header__copy">
           <p className="eyebrow">Pathbadger</p>
@@ -1586,8 +1633,16 @@ export function App() {
           </fieldset>
         </form>
 
-        <section className="preview-column">
-          <article className="card preview-card">
+        <section
+          className={`preview-column${
+            isNavigationActive ? " preview-column--navigation-active" : ""
+          }`}
+        >
+          <article
+            className={`card preview-card${
+              isNavigationActive ? " preview-card--navigation-active" : ""
+            }`}
+          >
             <div className="panel-heading">
               <div>
                 <p className="section-label">Map first</p>
@@ -1604,9 +1659,11 @@ export function App() {
                 ))}
               </div>
             </div>
-            <p className="panel-copy">
-              <strong>{plannerJourneyTitle}</strong> {plannerJourneyCopy}
-            </p>
+            {!isNavigationActive ? (
+              <p className="panel-copy">
+                <strong>{plannerJourneyTitle}</strong> {plannerJourneyCopy}
+              </p>
+            ) : null}
 
             <div className="planner-map-stage">
               <div className="planner-map-toolbar">
@@ -1716,14 +1773,14 @@ export function App() {
               />
             </div>
 
-            {routePreviewRequestError ? (
+            {!isNavigationActive && routePreviewRequestError ? (
               <div className="response-banner response-banner--error">
                 <strong>Preview request failed.</strong>
                 <span>{routePreviewRequestError}</span>
               </div>
             ) : null}
 
-            {isRequestingRoutePreview ? (
+            {!isNavigationActive && isRequestingRoutePreview ? (
               <div className="response-banner response-banner--pending">
                 <strong>Requesting routed preview.</strong>
                 <span>
@@ -1733,7 +1790,7 @@ export function App() {
               </div>
             ) : null}
 
-            {routePreview && routeDetailsSummaryLabel ? (
+            {!isNavigationActive && routePreview && routeDetailsSummaryLabel ? (
               <details className="disclosure-card">
                 <summary>{routeDetailsSummaryLabel}</summary>
                 <div className="disclosure-card__content route-response">
@@ -1893,604 +1950,160 @@ export function App() {
             ) : null}
           </article>
 
-          <article
-            className={`card navigation-session${
-              isNavigationActive ? "" : " navigation-session--planner"
-            }`}
-          >
-            <div className="panel-heading">
-              <div>
-                <p className="section-label">Execution state</p>
-                <h2>
-                  {isNavigationActive
-                    ? "Navigation session live"
-                    : canStartNavigation
+          {isNavigationActive ? (
+            <article className="card navigation-session navigation-session--active">
+              <div className="panel-heading panel-heading--compact">
+                <div>
+                  <p className="section-label">Guidance mode</p>
+                  <h2>Navigation is live</h2>
+                </div>
+                <div className="status-row">
+                  <span className="status-pill status-pill--active">
+                    {navigationFollowStatusLabel}
+                  </span>
+                  <span
+                    className={`status-pill ${navigationOrientationState.statusPillClassName}`}
+                  >
+                    {navigationOrientationState.statusLabel}
+                  </span>
+                  <span
+                    className={`status-pill ${
+                      navigationRuntimeMode === "battery_saver"
+                        ? "status-pill--warning"
+                        : "status-pill--active"
+                    }`}
+                  >
+                    {navigationRuntimeModeLabel}
+                  </span>
+                </div>
+              </div>
+              {!navigationTrackedPosition ? (
+                <div className="response-banner response-banner--pending">
+                  <strong>Waiting for browser GPS</strong>
+                  <span>
+                    Guidance mode is live, but progress, remaining distance, and
+                    off-route checks will begin only after the browser reports a
+                    usable current position.
+                  </span>
+                </div>
+              ) : navigationHasLowConfidencePosition && navigationSnapshot ? (
+                <div className="response-banner response-banner--pending">
+                  <strong>Approximate route state</strong>
+                  <span>
+                    {navigationGpsConfidence.lowConfidenceCopy} Current route
+                    deviation is about{" "}
+                    {formatWholeMeters(
+                      navigationSnapshot.offRouteDistanceMeters,
+                    )}
+                    , so Pathbadger is not escalating a hard off-route warning
+                    until a tighter browser fix arrives.
+                  </span>
+                </div>
+              ) : navigationSnapshot?.isOffRoute ? (
+                <div className="response-banner response-banner--error">
+                  <strong>Off-route warning</strong>
+                  <span>
+                    Current position is about{" "}
+                    {formatWholeMeters(
+                      navigationSnapshot.offRouteDistanceMeters,
+                    )}{" "}
+                    from the route line, which exceeds the{" "}
+                    {formatWholeMeters(
+                      navigationSnapshot.offRouteWarningThresholdMeters,
+                    )}{" "}
+                    warning threshold. MVP navigation does not reroute yet.
+                  </span>
+                </div>
+              ) : null}
+              {navigationSettingsDisclosure}
+            </article>
+          ) : (
+            <article className="card navigation-session navigation-session--planner">
+              <div className="panel-heading">
+                <div>
+                  <p className="section-label">Execution state</p>
+                  <h2>
+                    {canStartNavigation
                       ? "Navigation ready"
                       : "Navigation waits for a route"}
-                </h2>
-              </div>
-              <span
-                className={`status-pill${
-                  isNavigationActive
-                    ? " status-pill--active"
-                    : canStartNavigation
-                      ? ""
-                      : " status-pill--warning"
-                }`}
-              >
-                {isNavigationActive
-                  ? "Following route"
-                  : canStartNavigation
+                  </h2>
+                </div>
+                <span
+                  className={`status-pill${
+                    canStartNavigation ? "" : " status-pill--warning"
+                  }`}
+                >
+                  {canStartNavigation
                     ? "Ready to start"
                     : "Waiting for preview"}
-              </span>
-            </div>
-            <p className="navigation-session__summary">
-              {navigationSessionSummary}
-            </p>
-            <details
-              className="disclosure-card"
-              data-testid="navigation-runtime-caveats"
-            >
-              <summary>Navigation settings and browser caveats</summary>
-              <div className="disclosure-card__content navigation-runtime-caveats">
-                <div className="section-heading">
-                  <h3>Navigation runtime mode</h3>
-                  <p>
-                    Choose whether live navigation should favor fresher GPS
-                    fixes or lower browser geolocation churn.
-                  </p>
-                </div>
-                <div
-                  className="option-grid"
-                  data-testid="navigation-runtime-mode"
-                >
-                  {navigationRuntimeModeOptions.map((option) => (
-                    <button
-                      key={option.mode}
-                      type="button"
-                      data-testid={`navigation-runtime-mode-${option.mode}`}
-                      className={`option-card${
-                        navigationRuntimeMode === option.mode
-                          ? " option-card--selected"
-                          : ""
-                      }`}
-                      onClick={() => setNavigationRuntimeMode(option.mode)}
-                    >
-                      <span className="option-title">{option.label}</span>
-                      <span className="option-detail">{option.detail}</span>
-                    </button>
-                  ))}
-                </div>
-                <p
-                  className={`helper-copy ${
-                    navigationRuntimeMode === "battery_saver"
-                      ? "helper-copy--warning"
-                      : "helper-copy--active"
-                  }`}
-                  data-testid="navigation-runtime-mode-summary"
-                >
-                  {navigationRuntimeModeSummary}
-                </p>
-                <div className="section-heading">
-                  <h3>Map orientation</h3>
-                  <p>
-                    Keep the map north-up by default or request heading-up when
-                    the browser can provide a trustworthy live heading.
-                  </p>
-                </div>
-                <div
-                  className="option-grid"
-                  data-testid="navigation-orientation-mode"
-                >
-                  {navigationOrientationModeOptions.map((option) => (
-                    <button
-                      key={option.mode}
-                      type="button"
-                      data-testid={`navigation-orientation-mode-${option.mode}`}
-                      className={`option-card${
-                        navigationOrientationMode === option.mode
-                          ? " option-card--selected"
-                          : ""
-                      }`}
-                      onClick={() => setNavigationOrientationMode(option.mode)}
-                    >
-                      <span className="option-title">{option.label}</span>
-                      <span className="option-detail">{option.detail}</span>
-                    </button>
-                  ))}
-                </div>
-                <p
-                  className={`helper-copy ${
-                    navigationOrientationMode === "heading_up" &&
-                    !navigationOrientationState.isHeadingUpActive
-                      ? "helper-copy--warning"
-                      : "helper-copy--active"
-                  }`}
-                  data-testid="navigation-orientation-summary"
-                >
-                  {navigationOrientationState.helperCopy}
-                </p>
-                <div className="section-heading">
-                  <h3>Browser runtime caveats</h3>
-                  <p>{getNavigationRuntimeCaveatSummary()}</p>
-                </div>
-                <ul className="warning-list">
-                  {getNavigationRuntimeCaveats().map((caveat) => (
-                    <li key={caveat.id}>
-                      <strong>{caveat.title}</strong>
-                      <span>{caveat.body}</span>
-                    </li>
-                  ))}
-                </ul>
+                </span>
               </div>
-            </details>
-            {isNavigationActive && navigationSession ? (
-              <>
-                <div className="navigation-session__body">
-                  <p
-                    className="helper-copy helper-copy--warning"
-                    data-testid="navigation-gps-guardrail-summary"
-                  >
-                    {getNavigationGpsGuardrailPreviewCopy()}
-                  </p>
-                  <p className="panel-copy">
-                    {getNavigationTrackingPanelCopy({
-                      browserGeolocation,
-                      hasFreshPosition: navigationHasFreshPosition,
-                      hasLowConfidencePosition:
-                        navigationHasLowConfidencePosition,
-                      hasTrackedPosition: navigationHasTrackedPosition,
-                      lowConfidenceCopy:
-                        navigationGpsConfidence.lowConfidenceCopy,
-                    })}
-                  </p>
-                  <div className="status-row">
-                    <span
-                      className={`status-pill${
-                        navigationTrackingStatusPillClassName
-                          ? ` ${navigationTrackingStatusPillClassName}`
-                          : ""
-                      }`}
-                    >
-                      {navigationTrackingStatusLabel}
-                    </span>
-                    <span
-                      className={`status-pill ${navigationFollowStatusPillClassName}`}
-                    >
-                      {navigationFollowStatusLabel}
-                    </span>
-                    <span
-                      className={`status-pill ${navigationOrientationState.statusPillClassName}`}
-                    >
-                      {navigationOrientationState.statusLabel}
-                    </span>
-                    <span
-                      className={`status-pill ${
-                        navigationRuntimeMode === "battery_saver"
-                          ? "status-pill--warning"
-                          : "status-pill--active"
-                      }`}
-                    >
-                      {navigationRuntimeModeLabel}
-                    </span>
-                    <span className="status-pill">
-                      {navigationSession.routeStatus === "partial"
-                        ? "Partial preview route"
-                        : "Full preview route"}
-                    </span>
-                    {navigationTrackedPosition?.accuracyMeters !== null &&
-                    navigationTrackedPosition?.accuracyMeters !== undefined ? (
-                      <span className="status-pill">
-                        Accuracy{" "}
-                        {formatWholeMeters(
-                          navigationTrackedPosition.accuracyMeters,
-                        )}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div
-                    className={`response-banner${navigationTrackingBannerClassName}`}
-                  >
-                    <strong>{navigationTrackingBannerTitle}</strong>
-                    <span>{navigationTrackingBannerCopy}</span>
-                  </div>
-                  {navigationSnapshot ? (
-                    <>
-                      {navigationHasLowConfidencePosition ? (
-                        <div className="response-banner response-banner--pending">
-                          <strong>Approximate route state</strong>
-                          <span>
-                            {navigationGpsConfidence.lowConfidenceCopy} Current
-                            route deviation is about{" "}
-                            {formatWholeMeters(
-                              navigationSnapshot.offRouteDistanceMeters,
-                            )}
-                            , so Pathbadger is not escalating a hard off-route
-                            warning until a tighter browser fix arrives.
-                          </span>
-                        </div>
-                      ) : navigationSnapshot.isOffRoute ? (
-                        <div className="response-banner response-banner--error">
-                          <strong>Off-route warning</strong>
-                          <span>
-                            Current position is about{" "}
-                            {formatWholeMeters(
-                              navigationSnapshot.offRouteDistanceMeters,
-                            )}{" "}
-                            from the route line, which exceeds the{" "}
-                            {formatWholeMeters(
-                              navigationSnapshot.offRouteWarningThresholdMeters,
-                            )}{" "}
-                            warning threshold. MVP navigation does not reroute
-                            yet.
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="response-banner response-banner--pending">
-                          <strong>On-route state</strong>
-                          <span>
-                            Current position is staying within the{" "}
-                            {formatWholeMeters(
-                              navigationSnapshot.offRouteWarningThresholdMeters,
-                            )}{" "}
-                            off-route threshold.
-                          </span>
-                        </div>
-                      )}
-                      {navigationSnapshot.nextInstruction ? (
-                        <div className="response-banner">
-                          <strong>
-                            Next instruction:{" "}
-                            {
-                              navigationSnapshot.nextInstruction.instruction
-                                .text
-                            }
-                          </strong>
-                          <span>
-                            In{" "}
-                            {formatNavigationDistance(
-                              navigationSnapshot.nextInstruction.distanceMeters,
-                            )}
-                            {navigationSnapshot.nextInstruction.instruction
-                              .streetName
-                              ? ` on ${navigationSnapshot.nextInstruction.instruction.streetName}.`
-                              : "."}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="helper-copy">
-                          This routed preview does not include turn instructions
-                          yet, so navigation can currently show route progress
-                          only.
-                        </p>
-                      )}
-                      <div className="preview-grid preview-grid--navigation">
-                        <div className="preview-stat">
-                          <span>Current position</span>
-                          <strong>
-                            {formatCoordinate(
-                              navigationSnapshot.currentPosition,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Position source</span>
-                          <strong>
-                            {navigationHasLowConfidencePosition
-                              ? "Low-confidence live GPS"
-                              : navigationHasFreshPosition
-                                ? "Live browser GPS"
-                                : "Last known GPS fix"}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Map follow</span>
-                          <strong>{navigationFollowStatusLabel}</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Orientation</span>
-                          <strong>
-                            {navigationOrientationState.indicatorLabel}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Runtime mode</span>
-                          <strong>{navigationRuntimeModeLabel}</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Completed</span>
-                          <strong>
-                            {formatDistanceKilometers(
-                              navigationSnapshot.completedDistanceMeters,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Remaining</span>
-                          <strong>
-                            {formatDistanceKilometers(
-                              navigationSnapshot.remainingDistanceMeters,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Est. remaining time</span>
-                          <strong data-testid="navigation-eta-value">
-                            {navigationEtaState.estimateLabel}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Total</span>
-                          <strong>
-                            {formatDistanceKilometers(
-                              navigationSnapshot.totalDistanceMeters,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>
-                            {navigationHasLowConfidencePosition
-                              ? "Approx. progress"
-                              : "Progress"}
-                          </span>
-                          <strong>{navigationSnapshot.progressPercent}%</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Route id</span>
-                          <strong>{navigationSession.routeId}</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>
-                            {navigationHasLowConfidencePosition
-                              ? "Approx. route deviation"
-                              : "Route deviation"}
-                          </span>
-                          <strong>
-                            {formatWholeMeters(
-                              navigationSnapshot.offRouteDistanceMeters,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Current speed</span>
-                          <strong>
-                            {formatNavigationSpeedKmh(
-                              navigationSpeedMetrics?.currentSpeedKmh ?? null,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Average speed</span>
-                          <strong>
-                            {formatNavigationSpeedKmh(
-                              navigationSpeedMetrics?.averageSpeedKmh ?? null,
-                            )}
-                          </strong>
-                        </div>
-                        {navigationTrackedPosition ? (
-                          <div className="preview-stat">
-                            <span>GPS timestamp</span>
-                            <strong>
-                              {formatTimeOfDay(
-                                navigationTrackedPosition.timestampMs,
-                              )}
-                            </strong>
-                          </div>
-                        ) : null}
-                      </div>
-                      {navigationSpeedHelperCopy ? (
-                        <p className="helper-copy">
-                          {navigationSpeedHelperCopy}
-                        </p>
-                      ) : null}
-                      <p
-                        className={`helper-copy ${
-                          navigationEtaState.isAvailable
-                            ? "helper-copy--active"
-                            : "helper-copy--warning"
-                        }`}
-                        data-testid="navigation-eta-copy"
-                      >
-                        {navigationEtaState.helperCopy}
-                      </p>
-                      {navigationGpsConfidence.lowConfidenceCopy ? (
-                        <p
-                          className="helper-copy helper-copy--warning"
-                          data-testid="navigation-gps-confidence-copy"
-                        >
-                          {navigationGpsConfidence.lowConfidenceCopy}
-                        </p>
-                      ) : null}
-                      <p
-                        className={`helper-copy ${
-                          isNavigationFollowingPosition
-                            ? "helper-copy--active"
-                            : "helper-copy--warning"
-                        }`}
-                      >
-                        {navigationFollowHelperCopy}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="preview-grid preview-grid--navigation">
-                        <div className="preview-stat">
-                          <span>Route id</span>
-                          <strong>{navigationSession.routeId}</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Route status</span>
-                          <strong>
-                            {navigationSession.routeStatus === "partial"
-                              ? "Partial preview route"
-                              : "Full preview route"}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Route line</span>
-                          <strong>
-                            {navigationSession.routeGeometry.coordinates.length}{" "}
-                            points
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Instructions</span>
-                          <strong>
-                            {navigationSession.instructions.length}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Map follow</span>
-                          <strong>{navigationFollowStatusLabel}</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Orientation</span>
-                          <strong>
-                            {navigationOrientationState.indicatorLabel}
-                          </strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Runtime mode</span>
-                          <strong>{navigationRuntimeModeLabel}</strong>
-                        </div>
-                        <div className="preview-stat">
-                          <span>Est. remaining time</span>
-                          <strong data-testid="navigation-eta-value">
-                            {navigationEtaState.estimateLabel}
-                          </strong>
-                        </div>
-                      </div>
-                      <ul className="handoff-list">
-                        <li>
-                          Browser geolocation must produce a usable current
-                          position before progress, remaining distance, and
-                          off-route metrics can render.
-                        </li>
-                        <li>
-                          Navigation no longer invents a synthetic fallback
-                          marker when GPS is missing or denied.
-                        </li>
-                        <li>
-                          Restore browser location access or stop navigation if
-                          this state persists.
-                        </li>
-                      </ul>
-                      <p
-                        className={`helper-copy ${
-                          isNavigationFollowingPosition
-                            ? "helper-copy--active"
-                            : "helper-copy--warning"
-                        }`}
-                      >
-                        {navigationFollowHelperCopy}
-                      </p>
-                      <p
-                        className={`helper-copy ${
-                          navigationOrientationMode === "heading_up" &&
-                          !navigationOrientationState.isHeadingUpActive
-                            ? "helper-copy--warning"
-                            : "helper-copy--active"
-                        }`}
-                      >
-                        {navigationOrientationState.helperCopy}
-                      </p>
-                      <p
-                        className="helper-copy helper-copy--warning"
-                        data-testid="navigation-eta-copy"
-                      >
-                        {navigationEtaState.helperCopy}
-                      </p>
-                    </>
-                  )}
-                  {navigationSnapshot ? (
-                    <p className="helper-copy helper-copy--active">
-                      {navigationHasFreshPosition
-                        ? "Live browser geolocation is driving the marker now."
-                        : "The current marker reflects the last known browser GPS fix while Pathbadger waits for a fresh update."}
+              <p className="navigation-session__summary">
+                {navigationSessionSummary}
+              </p>
+              {navigationSettingsDisclosure}
+              {canStartNavigation && navigableRoutePreview ? (
+                <>
+                  <div className="navigation-session__body">
+                    <p className="panel-copy">
+                      The route is ready. Start navigation when you want the map
+                      to switch into live guidance mode.
                     </p>
-                  ) : null}
-                </div>
-                <div className="button-row navigation-session__controls">
-                  {navigationFollowActionLabel ? (
+                    <p className="helper-copy helper-copy--active">
+                      {navigableRoutePreview.summary
+                        ? `${navigableRoutePreview.summary.totalDistanceKm.toFixed(
+                            2,
+                          )} km routed preview on the map.`
+                        : "A routed preview line is visible on the map."}
+                    </p>
+                    <p className="helper-copy">
+                      {browserGeolocation.status === "ready"
+                        ? "Browser geolocation is already available, so starting navigation will follow the live GPS marker immediately."
+                        : "Starting navigation now will request browser geolocation for live position updates. If the browser cannot provide a usable fix, the session will pause with an explicit GPS error instead of inventing a fallback marker."}
+                    </p>
+                    <p className="helper-copy helper-copy--warning">
+                      {getNavigationGpsGuardrailPreviewCopy()}
+                    </p>
+                  </div>
+                  <div className="navigation-session__controls">
                     <button
                       type="button"
                       className="button button--primary"
-                      onClick={recenterNavigationMap}
+                      onClick={startNavigation}
                     >
-                      {navigationFollowActionLabel}
+                      Start navigation
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="button button--secondary"
-                    onClick={stopNavigation}
-                  >
-                    Stop navigation
-                  </button>
-                </div>
-              </>
-            ) : canStartNavigation && navigableRoutePreview ? (
-              <>
-                <div className="navigation-session__body">
-                  <p className="panel-copy">
-                    The route is ready. Start navigation when you want the map
-                    to switch into live guidance mode.
-                  </p>
-                  <p className="helper-copy helper-copy--active">
-                    {navigableRoutePreview.summary
-                      ? `${navigableRoutePreview.summary.totalDistanceKm.toFixed(
-                          2,
-                        )} km routed preview on the map.`
-                      : "A routed preview line is visible on the map."}
-                  </p>
-                  <p className="helper-copy">
-                    {browserGeolocation.status === "ready"
-                      ? "Browser geolocation is already available, so starting navigation will follow the live GPS marker immediately."
-                      : "Starting navigation now will request browser geolocation for live position updates. If the browser cannot provide a usable fix, the session will pause with an explicit GPS error instead of inventing a fallback marker."}
-                  </p>
-                  <p className="helper-copy helper-copy--warning">
-                    {getNavigationGpsGuardrailPreviewCopy()}
-                  </p>
-                </div>
-                <div className="navigation-session__controls">
-                  <button
-                    type="button"
-                    className="button button--primary"
-                    onClick={startNavigation}
-                  >
-                    Start navigation
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="navigation-session__body">
-                  <p className="panel-copy">
-                    Navigation is locked until you generate a route that renders
-                    on the map.
-                  </p>
-                  <p className="helper-copy">
-                    {isRoutePreviewStale
-                      ? "The latest routed preview is stale. Generate again to refresh the route before starting navigation."
-                      : "No navigable routed preview is available yet."}
-                  </p>
-                  <p className="helper-copy helper-copy--warning">
-                    {getNavigationGpsGuardrailPreviewCopy()}
-                  </p>
-                </div>
-                <div className="navigation-session__controls">
-                  <button
-                    type="button"
-                    className="button button--ghost"
-                    disabled
-                  >
-                    Start navigation
-                  </button>
-                </div>
-              </>
-            )}
-          </article>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="navigation-session__body">
+                    <p className="panel-copy">
+                      Navigation is locked until you generate a route that
+                      renders on the map.
+                    </p>
+                    <p className="helper-copy">
+                      {isRoutePreviewStale
+                        ? "The latest routed preview is stale. Generate again to refresh the route before starting navigation."
+                        : "No navigable routed preview is available yet."}
+                    </p>
+                    <p className="helper-copy helper-copy--warning">
+                      {getNavigationGpsGuardrailPreviewCopy()}
+                    </p>
+                  </div>
+                  <div className="navigation-session__controls">
+                    <button
+                      type="button"
+                      className="button button--ghost"
+                      disabled
+                    >
+                      Start navigation
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          )}
         </section>
       </section>
     </main>
@@ -2529,14 +2142,6 @@ function formatNavigationDistance(distanceMeters: number) {
 
 function formatWholeMeters(distanceMeters: number) {
   return `${Math.round(distanceMeters)} m`;
-}
-
-function formatTimeOfDay(timestampMs: number) {
-  return new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(timestampMs);
 }
 
 function getErrorMessage(error: unknown) {

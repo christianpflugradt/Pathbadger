@@ -21,6 +21,15 @@ body {
   padding: 3rem 1.25rem 4.5rem;
 }
 
+.planner-shell--navigation-active {
+  max-width: 100%;
+  padding-top: 1.25rem;
+}
+
+.planner-shell--navigation-active .planner-header {
+  display: none;
+}
+
 .planner-header {
   display: grid;
   gap: 0.85rem 1.25rem;
@@ -428,6 +437,10 @@ body {
   min-width: 0;
 }
 
+.preview-column--navigation-active {
+  gap: 0.85rem;
+}
+
 .navigation-session {
   order: 2;
 }
@@ -460,6 +473,22 @@ body {
   position: relative;
   display: grid;
   gap: 0.75rem;
+}
+
+.preview-card--navigation-active {
+  gap: 0.75rem;
+}
+
+.preview-card--navigation-active .planner-map-stage {
+  gap: 0;
+}
+
+.preview-card--navigation-active .planning-map {
+  min-height: 620px;
+}
+
+.preview-card--navigation-active .planning-map__canvas {
+  min-height: 620px;
 }
 
 .planner-map-toolbar__utility-row,
@@ -953,6 +982,10 @@ code {
     padding-top: 0.7rem;
   }
 
+  .preview-card--navigation-active {
+    padding-top: 0;
+  }
+
   .preview-card > .panel-heading {
     display: none;
   }
@@ -1012,6 +1045,14 @@ code {
     min-height: 84svh;
   }
 
+  .preview-card--navigation-active .planning-map {
+    min-height: 90svh;
+  }
+
+  .preview-card--navigation-active .planning-map__canvas {
+    min-height: 90svh;
+  }
+
   .planning-map__status {
     top: 0.75rem;
     left: 0.75rem;
@@ -1062,6 +1103,10 @@ code {
 
   .navigation-session {
     gap: 0.85rem;
+  }
+
+  .navigation-session--active {
+    display: none;
   }
 
   .navigation-session--planner {
@@ -1123,6 +1168,14 @@ code {
 
   .planning-map__canvas {
     min-height: 86svh;
+  }
+
+  .preview-card--navigation-active .planning-map {
+    min-height: 91svh;
+  }
+
+  .preview-card--navigation-active .planning-map__canvas {
+    min-height: 91svh;
   }
 
   .planning-map__status {
