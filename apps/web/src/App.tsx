@@ -102,8 +102,14 @@ type MapInteractionMode = "idle" | "add_pass_through";
 type NavigationSession = {
   instructions: RouteInstruction[];
   routeGeometry: RouteGeometry;
+  routeDistanceKm: number | null;
   routeId: string;
   routeStatus: "partial" | "success";
+};
+type NavigationResetState = {
+  reason: "completed" | "stopped";
+  routeDistanceKm: number | null;
+  routeStatus: "partial" | "success" | null;
 };
 type NavigableRoutePreview = RouteGenerateResponse & {
   geometry: RouteGeometry;
@@ -166,6 +172,7 @@ const ACTIVITY_STORAGE_KEY = "pathbadger.activityPreference";
 const SAVED_DEFAULT_START_STORAGE_KEY = "pathbadger.savedDefaultStart";
 const LAST_USED_START_STORAGE_KEY = "pathbadger.lastUsedStart";
 const SURFACE_PREFERENCE_STORAGE_KEY = "pathbadger.surfacePreference";
+const NAVIGATION_COMPLETE_THRESHOLD_METERS = 40;
 const ignoreMapSelection: (coordinate: Coordinate) => void = () => {};
 
 export function App() {
@@ -230,6 +237,8 @@ export function App() {
     useState<RouteGenerateResponse | null>(null);
   const [navigationSession, setNavigationSession] =
     useState<NavigationSession | null>(null);
+  const [navigationResetState, setNavigationResetState] =
+    useState<NavigationResetState | null>(null);
   const [navigationRuntimeMode, setNavigationRuntimeMode] =
     useState<NavigationRuntimeMode>("normal");
   const [navigationOrientationMode, setNavigationOrientationMode] =
@@ -525,6 +534,7 @@ export function App() {
     isNavigationActive,
     isRequestingRoutePreview,
     isRoutePreviewStale,
+    navigationResetState,
     routePreviewRequestError,
   });
   const plannerJourneyCopy = getPlannerJourneyCopy({
@@ -536,6 +546,7 @@ export function App() {
     isNavigationActive,
     isRequestingRoutePreview,
     isRoutePreviewStale,
+    navigationResetState,
     previewCandidateIndex,
     routePreview,
     routePreviewRequestError,
@@ -667,6 +678,17 @@ export function App() {
           : []),
       ]
     : [];
+  const navigationResetHandoffTitle = navigationResetState
+    ? navigationResetState.reason === "completed"
+      ? "Route complete. Plan the next one."
+      : "Navigation stopped. Plan the next route."
+    : null;
+  const navigationResetHandoffCopy = navigationResetState
+    ? getNavigationResetHandoffCopy({
+        reason: navigationResetState.reason,
+        routeDistanceKm: navigationResetState.routeDistanceKm,
+      })
+    : null;
   const mapFooterOverlay = isNavigationActive ? (
     <div
       className="map-hud map-hud--navigation"
@@ -699,6 +721,33 @@ export function App() {
             <strong>{stat.value}</strong>
           </div>
         ))}
+      </div>
+    </div>
+  ) : navigationResetState ? (
+    <div
+      className="map-hud map-hud--handoff"
+      data-testid="navigation-reset-handoff"
+    >
+      <div className="map-hud__chips">
+        {navigationResetState.routeStatus === "partial" ? (
+          <span className="status-pill status-pill--warning">
+            Partial route
+          </span>
+        ) : null}
+        <span className="status-pill status-pill--active">
+          {navigationResetState.reason === "completed"
+            ? "Route complete"
+            : "Route cleared"}
+        </span>
+        {navigationResetState.routeDistanceKm !== null ? (
+          <span className="status-pill">
+            {navigationResetState.routeDistanceKm.toFixed(2)} km
+          </span>
+        ) : null}
+      </div>
+      <div className="map-hud__headline">
+        <strong>{navigationResetHandoffTitle}</strong>
+        <span>{navigationResetHandoffCopy}</span>
       </div>
     </div>
   ) : routePreview?.summary ? (
@@ -739,11 +788,15 @@ export function App() {
           navigationSnapshot.nextInstruction.distanceMeters,
         )} to the next instruction.`
       : "Navigation is live. The map HUD shows remaining distance, progress, and ETA while this route runs."
-    : canStartNavigation
-      ? "A routed preview is ready. Start navigation when you want the map to switch into live guidance."
-      : isRoutePreviewStale
-        ? "The last route preview is stale. Regenerate it from the map before starting navigation."
-        : "Navigation stays locked until you generate a routed preview with geometry from the map.";
+    : navigationResetState
+      ? navigationResetState.reason === "completed"
+        ? "The last route is complete. Generate the next route or adjust the plan from the same map-first screen."
+        : "Navigation ended cleanly. Generate the next route or adjust the plan without stale guidance chrome in the way."
+      : canStartNavigation
+        ? "A routed preview is ready. Start navigation when you want the map to switch into live guidance."
+        : isRoutePreviewStale
+          ? "The last route preview is stale. Regenerate it from the map before starting navigation."
+          : "Navigation stays locked until you generate a routed preview with geometry from the map.";
   const routeDetailsSummaryLabel = routePreview
     ? getRouteDetailsSummaryLabel(routePreview)
     : null;
@@ -867,6 +920,21 @@ export function App() {
     navigationTrackedPosition,
     navigationSnapshot,
   ]);
+
+  useEffect(() => {
+    if (
+      !navigationSession ||
+      !navigationSnapshot ||
+      !navigationHasFreshPosition ||
+      navigationSnapshot.isOffRoute ||
+      navigationSnapshot.remainingDistanceMeters >
+        NAVIGATION_COMPLETE_THRESHOLD_METERS
+    ) {
+      return;
+    }
+
+    endNavigationSession("completed");
+  }, [navigationHasFreshPosition, navigationSession, navigationSnapshot]);
 
   useEffect(() => {
     if (startPointMode === "saved_default" && savedDefaultStart === null) {
@@ -1132,6 +1200,7 @@ export function App() {
   }
 
   function requestRoute() {
+    setNavigationResetState(null);
     setIsPlannerDrawerOpen(false);
     void submitRoutePreviewRequest({
       candidateIndex: 1,
@@ -1142,6 +1211,7 @@ export function App() {
   function requestVariation() {
     const nextCandidateIndex = hasRoutePreview ? previewCandidateIndex + 1 : 1;
 
+    setNavigationResetState(null);
     setIsPlannerDrawerOpen(false);
     void submitRoutePreviewRequest({
       candidateIndex: nextCandidateIndex,
@@ -1154,21 +1224,44 @@ export function App() {
       return;
     }
 
+    setNavigationResetState(null);
     setIsPlannerDrawerOpen(false);
     setNavigationFollowMode("follow_position");
     setNavigationManualCenter(null);
     setNavigationSession({
       instructions: navigableRoutePreview.instructions ?? [],
       routeGeometry: navigableRoutePreview.geometry,
+      routeDistanceKm: navigableRoutePreview.summary?.totalDistanceKm ?? null,
       routeId: navigableRoutePreview.routeId,
       routeStatus: navigableRoutePreview.status,
     });
   }
 
-  function stopNavigation() {
+  function endNavigationSession(reason: NavigationResetState["reason"]) {
+    if (!navigationSession) {
+      return;
+    }
+
+    setIsPlannerDrawerOpen(false);
     setNavigationFollowMode("follow_position");
     setNavigationManualCenter(null);
+    setNavigationSpeedBaseline(null);
     setNavigationSession(null);
+    setRoutePreview(null);
+    setRoutePreviewRequestError(null);
+    setIsRequestingRoutePreview(false);
+    setLastSubmittedRequest(null);
+    setLastSubmittedSeed(null);
+    setPreviewCandidateIndex(1);
+    setNavigationResetState({
+      reason,
+      routeDistanceKm: navigationSession.routeDistanceKm,
+      routeStatus: navigationSession.routeStatus,
+    });
+  }
+
+  function stopNavigation() {
+    endNavigationSession("stopped");
   }
 
   function handlePlannerPrimaryAction() {
@@ -1307,6 +1400,20 @@ export function App() {
                 {navigationHudSupportCopy}
               </p>
               {navigationSettingsDisclosure}
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  data-testid="finish-navigation-route"
+                  onClick={() => endNavigationSession("completed")}
+                >
+                  Finish route
+                </button>
+              </div>
+              <p className="helper-copy">
+                Use Finish route once you have reached the end and want to clear
+                guidance chrome before planning the next loop.
+              </p>
             </>
           ) : (
             <>
@@ -2220,6 +2327,22 @@ function formatWholeMeters(distanceMeters: number) {
   return `${Math.round(distanceMeters)} m`;
 }
 
+function getNavigationResetHandoffCopy(options: {
+  reason: NavigationResetState["reason"];
+  routeDistanceKm: number | null;
+}) {
+  const routeDistanceCopy =
+    options.routeDistanceKm === null
+      ? "The last route"
+      : `The last ${options.routeDistanceKm.toFixed(2)} km route`;
+
+  if (options.reason === "completed") {
+    return `${routeDistanceCopy} is cleared from the map. Generate the next route or adjust the plan before you head out again.`;
+  }
+
+  return `${routeDistanceCopy} is cleared from the map so you can plan the next route immediately without stale guidance chrome in the way.`;
+}
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -2298,10 +2421,19 @@ function getPlannerJourneyTitle(options: {
   isNavigationActive: boolean;
   isRequestingRoutePreview: boolean;
   isRoutePreviewStale: boolean;
+  navigationResetState: NavigationResetState | null;
   routePreviewRequestError: string | null;
 }) {
   if (options.isNavigationActive) {
     return "Navigation is live";
+  }
+
+  if (options.navigationResetState?.reason === "completed") {
+    return "Route complete. Plan the next one";
+  }
+
+  if (options.navigationResetState?.reason === "stopped") {
+    return "Navigation stopped. Ready for the next route";
   }
 
   if (options.canStartNavigation) {
@@ -2344,12 +2476,20 @@ function getPlannerJourneyCopy(options: {
   isNavigationActive: boolean;
   isRequestingRoutePreview: boolean;
   isRoutePreviewStale: boolean;
+  navigationResetState: NavigationResetState | null;
   previewCandidateIndex: number;
   routePreview: RouteGenerateResponse | null;
   routePreviewRequestError: string | null;
 }) {
   if (options.isNavigationActive) {
     return "Keep the map in view while you follow the live route. The map now stays central, and the secondary controls can stay out of the way.";
+  }
+
+  if (options.navigationResetState) {
+    return getNavigationResetHandoffCopy({
+      reason: options.navigationResetState.reason,
+      routeDistanceKm: options.navigationResetState.routeDistanceKm,
+    });
   }
 
   if (options.canStartNavigation && options.routePreview?.summary) {

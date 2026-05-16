@@ -1,7 +1,7 @@
 id: ITEM-0048
 type: feature
 priority: P1
-status: todo
+status: done
 scope: web
 origin: refine
 parent_epic: EPIC-0020
@@ -19,5 +19,9 @@ verification:
 implementation_notes:
   - "2026-05-15 refine: user feedback clarified that ending navigation is part of the core journey because the product should make starting the next route feel immediate rather than awkward."
   - "2026-05-15 refine: the reset flow should remove stale guidance chrome instead of simply revealing the old planner beneath overlapping navigation surfaces."
+  - "2026-05-16 implement: stopping navigation and finishing a route now run through the same reset path, which clears the old route geometry and preview state, returns the map toolbar to `Generate route`, and keeps the planning inputs ready for the next loop."
+  - "2026-05-16 implement: active guidance now exposes a manual `Finish route` action inside the navigation settings drawer, while high-confidence arrival within the route-end threshold auto-completes into the same planning handoff."
+  - "2026-05-16 implement: verified on a rebuilt app with a phone-sized in-app browser walkthrough that both `Stop navigation` and `Finish route` return to a clean `Generate route` state with concise handoff copy and no lingering guidance controls."
 created_at: 2026-05-15T12:24:00+02:00
-updated_at: 2026-05-15T12:24:00+02:00
+updated_at: 2026-05-16T10:09:13+02:00
+closed_at: 2026-05-16T10:09:13+02:00
