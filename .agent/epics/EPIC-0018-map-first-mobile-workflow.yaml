@@ -1,5 +1,5 @@
 id: EPIC-0018
-status: queued
+status: done
 phase: post-mvp-map-first-ux
 title: Finish the map-first planner workflow
 objective: encode and finish the intended planning journey where the map stays central while selecting starts and optional pass-through points, route settings stay collapsible, and generate, regenerate, and start-navigation actions remain obvious near the route preview
@@ -10,4 +10,4 @@ success_criteria:
 items:
   - ITEM-0043
 created_at: 2026-05-15T10:56:34+02:00
-updated_at: 2026-05-15T12:24:00+02:00
+updated_at: 2026-05-16T09:24:12+02:00

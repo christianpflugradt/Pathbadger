@@ -355,7 +355,8 @@ export function App() {
   };
   const hasRoutePreview = routePreview !== null;
   const hasVisibleRoutePreview =
-    routePreview?.geometry !== null || routePreview?.summary !== null;
+    hasRoutePreview &&
+    (routePreview.geometry !== null || routePreview.summary !== null);
   const hasFailedRoutePreview = routePreview?.status === "failed";
   const submittedRequestSignature = lastSubmittedRequest
     ? serializeComparablePlanningRequest(lastSubmittedRequest)
@@ -1586,11 +1587,11 @@ export function App() {
         </form>
 
         <section className="preview-column">
-          <article className="card planner-journey">
-            <div className="panel-heading panel-heading--compact">
+          <article className="card preview-card">
+            <div className="panel-heading">
               <div>
-                <p className="section-label">Next step</p>
-                <h2>{plannerJourneyTitle}</h2>
+                <p className="section-label">Map first</p>
+                <h2>Plan on the map</h2>
               </div>
               <div className="status-row">
                 {plannerStagePills.map((pill) => (
@@ -1603,64 +1604,9 @@ export function App() {
                 ))}
               </div>
             </div>
-            <p className="panel-copy">{plannerJourneyCopy}</p>
-            <div className="button-row planner-journey__actions">
-              <button
-                type="button"
-                className="button button--ghost planner-drawer-toggle"
-                onClick={togglePlannerDrawer}
-              >
-                {isPlannerDrawerOpen
-                  ? "Close route settings"
-                  : "Open route settings"}
-              </button>
-              <button
-                type="button"
-                className="button button--primary"
-                disabled={plannerPrimaryActionDisabled}
-                onClick={handlePlannerPrimaryAction}
-              >
-                {plannerPrimaryActionLabel}
-              </button>
-              {plannerSecondaryActionLabel ? (
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  disabled={isRequestingRoutePreview}
-                  onClick={handlePlannerSecondaryAction}
-                >
-                  {plannerSecondaryActionLabel}
-                </button>
-              ) : null}
-            </div>
-          </article>
-
-          <article className="card preview-card">
-            <div className="panel-heading">
-              <div>
-                <p className="section-label">Map first</p>
-                <h2>Plan on the map</h2>
-              </div>
-              <div className="status-row">
-                <span className="status-pill status-pill--active">
-                  Candidate {previewCandidateIndex}
-                </span>
-                {routePreview ? (
-                  <span
-                    className={`status-pill ${getRouteStatusClass(
-                      routePreview.status,
-                    )}`}
-                  >
-                    {routeStatusLabels[routePreview.status]}
-                  </span>
-                ) : null}
-                {isRoutePreviewStale ? (
-                  <span className="status-pill status-pill--warning">
-                    Request changed
-                  </span>
-                ) : null}
-              </div>
-            </div>
+            <p className="panel-copy">
+              <strong>{plannerJourneyTitle}</strong> {plannerJourneyCopy}
+            </p>
 
             <div className="planner-map-stage">
               <div className="planner-map-toolbar">
@@ -2889,18 +2835,6 @@ function getPlannerStagePills(options: {
             : "",
     },
   ];
-}
-
-function getRouteStatusClass(status: RouteGenerateResponse["status"]) {
-  if (status === "success") {
-    return "status-pill--active";
-  }
-
-  if (status === "partial") {
-    return "status-pill--warning";
-  }
-
-  return "status-pill--error";
 }
 
 function getRouteDetailsSummaryLabel(routePreview: RouteGenerateResponse) {
