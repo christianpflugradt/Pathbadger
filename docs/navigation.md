@@ -13,6 +13,7 @@ Navigation is the second major product state after route planning.
 - show completed km, remaining km, total km, current speed, average speed, estimated remaining time when feasible, and progress percent
 - keep one persistent HUD compact and focused on essential turn and progress metrics instead of large planning, preview, or diagnostics panels
 - keep persistent guidance copy terse and route-relevant, with no generic GPS-confidence prose inside the top maneuver banner or persistent HUD
+- place explanatory or recovery detail in on-demand navigation settings or secondary surfaces rather than in persistent map overlays
 - warn when the user is off route
 - offer a clear return to planning when navigation ends or is stopped
 

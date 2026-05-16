@@ -48,6 +48,26 @@ Implications:
 - If exact 20.0 km route fitting conflicts with reliable legal routing in early versions, legal routing wins and the route must show a clear distance warning.
 - If heading-up map mode causes battery or stability risk, defer it.
 
+### 0.2.1 Usability and relevance filter
+
+Before adding any user-visible behavior, text, overlay, banner, chip, card, or interaction, the agent must apply this filter:
+
+1. Is it usable in the moment?
+2. Is it relevant to the user's next decision, action, or recovery step?
+3. If removed, would the core journey become meaningfully harder or less honest?
+4. Could the same information live in an on-demand surface instead of persistently sitting on the map?
+5. Is this the smallest honest way to express the state?
+
+If the answer to the first two questions is no, the agent should not add the element.
+
+Practical implications:
+
+- Persistent map overlays must earn their place.
+- Explanatory prose is not automatically helpful just because it is technically true.
+- Diagnostics and reassurance copy belong in secondary or on-demand surfaces unless the user is actively blocked.
+- During active guidance, terse route-relevant information wins over completeness.
+- The agent may remove existing UI if it fails this filter.
+
 ### 0.3 Forbidden autonomous behavior
 
 The agent must not do any of the following unless the user explicitly overrides the rule in a later instruction:
@@ -133,6 +153,27 @@ ambiguity_defaults:
   default_persistence: none
   default_route_candidates_per_request: conservative_small_number_configurable
 ```
+
+### 0.7 Product constraints versus implementation freedom
+
+The agent must distinguish between durable product constraints and implementation freedom.
+
+Durable product constraints are obligatory:
+
+- the product remains map-first during planning and navigation
+- primary actions stay obvious without requiring long explanatory copy
+- persistent guidance UI stays terse, route-relevant, and visually subordinate to the map
+- persistent nonessential popups or verbose prose must not cover the core route view
+- unsupported, approximate, or unavailable states must be communicated honestly
+
+Implementation freedom exists only inside those constraints:
+
+- exact spacing, typography, visual styling, chip layout, and motion may change
+- helper text in drawers, settings, or secondary surfaces may change
+- abstractions, helper modules, and local implementation structure may change
+- previously added UI may be simplified or removed when it is not clearly useful and relevant
+
+The agent must not treat a technically possible addition as justified by default. The burden is to prove that it improves the user’s real task without violating the durable constraints above.
 
 ---
 

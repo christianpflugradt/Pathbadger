@@ -44,6 +44,22 @@ product:
     - the generated route should remain mostly visible while the user adjusts parameters, inspects the preview, or follows navigation cues
     - active navigation should feel like a dedicated guidance mode, not a planner or debug page layered on top of the map
     - active guidance should use one compact essential HUD cluster rather than multiple competing panels
+    - every new user-visible element must earn its place by being both usable in the moment and relevant to the user’s next decision or action
+  agent_design_guardrails:
+    required_thinking_pattern:
+      - before adding UI, text, or behavior, ask whether it helps the user decide, act, or recover in the current moment
+      - if the same information can live in an on-demand drawer, settings sheet, or secondary view, prefer that over a persistent overlay on the map
+      - prefer the smallest honest surface that keeps the core journey understandable
+      - explanatory or diagnostic copy is allowed only when it is necessary for recovery from a blocked state, not as persistent reassurance
+    obligations:
+      - map-first usability is a product constraint, not a stylistic preference
+      - persistent guidance surfaces must stay terse, route-relevant, and visually subordinate to the map
+      - primary actions must remain obvious without reading explanatory prose
+      - unsupported, approximate, or unavailable states must be communicated honestly
+    freedom:
+      - exact visual styling, typography, spacing, chip arrangement, and animation may change as long as the hard product constraints still hold
+      - implementation details, helper text in non-primary surfaces, and internal abstractions may evolve when they improve clarity or maintainability without violating the core journey
+      - agents may simplify or remove previously added UI if it is not clearly useful and relevant
   non_goals:
     - user_accounts
     - authentication
