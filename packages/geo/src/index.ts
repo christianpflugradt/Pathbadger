@@ -193,10 +193,26 @@ function selectBestProjectionCandidate(
   let bestCandidate = firstCandidate;
 
   for (const candidate of remainingCandidates) {
+    const candidateScore = getProjectionCandidateScore(
+      candidate,
+      preferredDistanceFromStartMeters,
+    );
+    const bestCandidateScore = getProjectionCandidateScore(
+      bestCandidate,
+      preferredDistanceFromStartMeters,
+    );
+
+    if (candidateScore < bestCandidateScore - PROJECTION_SCORE_TIE_TOLERANCE) {
+      bestCandidate = candidate;
+      continue;
+    }
+
     if (
+      Math.abs(candidateScore - bestCandidateScore) <=
+        PROJECTION_SCORE_TIE_TOLERANCE &&
       candidate.offRouteDistanceMeters <
-      bestCandidate.offRouteDistanceMeters -
-        PROJECTION_DISTANCE_TIE_TOLERANCE_METERS
+        bestCandidate.offRouteDistanceMeters -
+          PROJECTION_DISTANCE_TIE_TOLERANCE_METERS
     ) {
       bestCandidate = candidate;
       continue;
@@ -226,6 +242,20 @@ function selectBestProjectionCandidate(
   }
 
   return bestCandidate;
+}
+
+function getProjectionCandidateScore(
+  candidate: ProjectionCandidate,
+  preferredDistanceFromStartMeters: number | null,
+) {
+  const progressHintPenalty =
+    preferredDistanceFromStartMeters === null
+      ? 0
+      : Math.abs(
+          candidate.distanceFromStartMeters - preferredDistanceFromStartMeters,
+        ) * PROGRESS_HINT_DISTANCE_WEIGHT;
+
+  return candidate.offRouteDistanceMeters + progressHintPenalty;
 }
 
 function lineStringCoordinateToCoordinate(
@@ -271,3 +301,5 @@ function clamp(value: number, min: number, max: number) {
 
 const PROJECTION_DISTANCE_TIE_TOLERANCE_METERS = 0.01;
 const PROGRESS_HINT_TIE_TOLERANCE_METERS = 0.01;
+const PROJECTION_SCORE_TIE_TOLERANCE = 0.01;
+const PROGRESS_HINT_DISTANCE_WEIGHT = 0.01;

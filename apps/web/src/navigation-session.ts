@@ -38,6 +38,7 @@ export function createNavigationSnapshot(
     instructions?: ReadonlyArray<RouteInstruction> | null;
     lateralOffsetMeters?: number;
     offRouteWarningThresholdMeters?: number;
+    preferredDistanceFromStartMeters?: number;
     requestedProgressFraction: number;
   },
 ): NavigationSnapshot {
@@ -56,7 +57,7 @@ export function createNavigationSnapshot(
         )
       : targetRoutePosition.coordinate;
   const preferredDistanceFromStartMeters = options.currentPosition
-    ? undefined
+    ? options.preferredDistanceFromStartMeters
     : getTotalRouteDistanceMeters(routeGeometry) *
       clamp(options.requestedProgressFraction, 0, 1);
   const progressOptions =

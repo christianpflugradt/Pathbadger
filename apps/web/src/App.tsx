@@ -252,6 +252,8 @@ export function App() {
     completedDistanceMeters: number;
     timestampMs: number;
   } | null>(null);
+  const [navigationProgressHintMeters, setNavigationProgressHintMeters] =
+    useState<number | null>(null);
   const [lastSubmittedRequest, setLastSubmittedRequest] =
     useState<RouteGenerateRequest | null>(null);
   const [lastSubmittedSeed, setLastSubmittedSeed] = useState<string | null>(
@@ -390,6 +392,7 @@ export function App() {
       ? createNavigationSnapshot(navigationSession.routeGeometry, {
           currentPosition: navigationTrackedPosition.coordinate,
           instructions: navigationSession.instructions,
+          preferredDistanceFromStartMeters: navigationProgressHintMeters ?? 0,
           requestedProgressFraction: 0,
         })
       : null;
@@ -618,12 +621,10 @@ export function App() {
           navigationSnapshot.offRouteDistanceMeters,
         )} from the route line. Pathbadger does not reroute yet.`
       : navigationHasLowConfidencePosition
-        ? `${navigationGpsConfidence.lowConfidenceCopy} ETA stays hidden until the fix improves.`
+        ? getCompactNavigationGpsConfidenceCopy(navigationGpsConfidence)
         : navigationEtaState.isAvailable
-          ? navigationEtaState.source === "average_speed"
-            ? "ETA is using timestamped average route progress to stay steadier across pace swings."
-            : "ETA is using the latest fresh browser speed sample and may swing as your pace changes."
-          : "Progress and remaining distance are live. ETA stays hidden until speed evidence is trustworthy enough.";
+          ? null
+          : null;
   const navigationHudStats = isNavigationActive
     ? [
         {
@@ -637,12 +638,6 @@ export function App() {
               : "Waiting",
         },
         {
-          label: "Speed",
-          value: formatNavigationSpeedKmh(
-            navigationSpeedMetrics?.currentSpeedKmh ?? null,
-          ),
-        },
-        {
           label: "Done",
           value: navigationSnapshot
             ? formatDistanceKilometers(
@@ -651,19 +646,13 @@ export function App() {
             : "Waiting",
         },
         {
-          label: "Progress",
-          value: navigationSnapshot
-            ? `${navigationSnapshot.progressPercent}%`
-            : "Waiting",
+          label: navigationEtaState.isAvailable ? "ETA" : "Speed",
+          value: navigationEtaState.isAvailable
+            ? navigationEtaState.estimateLabel
+            : formatNavigationSpeedKmh(
+                navigationSpeedMetrics?.currentSpeedKmh ?? null,
+              ),
         },
-        ...(navigationEtaState.isAvailable
-          ? [
-              {
-                label: "ETA",
-                value: navigationEtaState.estimateLabel,
-              },
-            ]
-          : []),
       ]
     : [];
   const navigationManeuverTitle = navigationSnapshot?.isOffRoute
@@ -683,10 +672,10 @@ export function App() {
           )} ahead`
         : "On route";
   const navigationManeuverCopy = navigationSnapshot?.isOffRoute
-    ? "Pathbadger widens the map slightly so the route line and nearest rejoin stay visible."
-    : navigationSnapshot?.nextInstruction?.instruction.streetName
-      ? `Toward ${navigationSnapshot.nextInstruction.instruction.streetName}.`
-      : navigationHudSupportCopy;
+    ? "Keep the highlighted route in view."
+    : navigationHasLowConfidencePosition
+      ? getCompactNavigationGpsConfidenceCopy(navigationGpsConfidence)
+      : null;
   const navigationMapHeaderOverlay = isNavigationActive ? (
     <div
       className={`map-maneuver-banner${
@@ -706,7 +695,7 @@ export function App() {
           {navigationManeuverDistanceLabel}
         </span>
         <strong>{navigationManeuverTitle}</strong>
-        <span>{navigationManeuverCopy}</span>
+        {navigationManeuverCopy ? <span>{navigationManeuverCopy}</span> : null}
       </div>
     </div>
   ) : null;
@@ -735,10 +724,15 @@ export function App() {
         <span className={`status-pill ${navigationHudGpsStatusPill.className}`}>
           {navigationHudGpsStatusPill.label}
         </span>
+        {navigationSnapshot ? (
+          <span className="status-pill">
+            {navigationSnapshot.progressPercent}% done
+          </span>
+        ) : null}
       </div>
-      <div className="map-hud__headline map-hud__headline--support">
-        <span>{navigationHudSupportCopy}</span>
-      </div>
+      {navigationHudSupportCopy ? (
+        <p className="map-hud__microcopy">{navigationHudSupportCopy}</p>
+      ) : null}
       <div className="map-hud__stats map-hud__stats--navigation">
         {navigationHudStats.map((stat) => (
           <div key={stat.label} className="preview-stat">
@@ -922,6 +916,7 @@ export function App() {
   useEffect(() => {
     if (!navigationSession) {
       setNavigationSpeedBaseline(null);
+      setNavigationProgressHintMeters(null);
       return;
     }
 
@@ -945,6 +940,24 @@ export function App() {
     navigationTrackedPosition,
     navigationSnapshot,
   ]);
+
+  useEffect(() => {
+    if (!navigationSession || !navigationSnapshot) {
+      return;
+    }
+
+    setNavigationProgressHintMeters((current) => {
+      const nextHintMeters = navigationSnapshot.isOffRoute
+        ? (current ?? 0)
+        : Math.max(current ?? 0, navigationSnapshot.completedDistanceMeters);
+
+      if (current !== null && Math.abs(nextHintMeters - current) < 1) {
+        return current;
+      }
+
+      return nextHintMeters;
+    });
+  }, [navigationSession, navigationSnapshot]);
 
   useEffect(() => {
     if (
@@ -1255,6 +1268,7 @@ export function App() {
 
     setNavigationResetState(null);
     setIsPlannerDrawerOpen(false);
+    setNavigationProgressHintMeters(0);
     setNavigationFollowMode("follow_position");
     setNavigationManualCenter(null);
     setNavigationSession({
@@ -1280,6 +1294,7 @@ export function App() {
     setIsPlannerDrawerOpen(false);
     setNavigationFollowMode("follow_position");
     setNavigationManualCenter(null);
+    setNavigationProgressHintMeters(null);
     setNavigationSpeedBaseline(null);
     setNavigationSession(null);
     setRoutePreview(null);
@@ -3036,6 +3051,35 @@ function getNavigationGpsRequestActionCopy(
     default:
       return "Use this to request browser GPS again.";
   }
+}
+
+function getCompactNavigationGpsConfidenceCopy(options: {
+  accuracyMeters: number | null;
+  ageMs: number | null;
+  isAccuracyBroad: boolean;
+  isStale: boolean;
+}) {
+  const parts = [];
+
+  if (options.isAccuracyBroad) {
+    parts.push(
+      options.accuracyMeters === null
+        ? "Approx GPS"
+        : `GPS ${formatWholeMeters(options.accuracyMeters)}`,
+    );
+  }
+
+  if (options.isStale && options.ageMs !== null) {
+    parts.push(
+      `last fix ${Math.max(Math.round(options.ageMs / 1_000), 1)} s ago`,
+    );
+  }
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return `${parts.join(" · ")}. Progress stays conservative until the fix tightens.`;
 }
 
 function getNavigationMapMarkerLabel(options: {

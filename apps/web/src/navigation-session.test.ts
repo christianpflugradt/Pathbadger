@@ -193,6 +193,32 @@ describe("createNavigationSnapshot", () => {
     expect(snapshot.offRouteDistanceMeters).toBeCloseTo(0, 6);
   });
 
+  it("uses a preferred live progress hint to stay near the route start on repeated geometry", () => {
+    const repeatedRoute = {
+      type: "LineString" as const,
+      coordinates: [
+        [10.0, 54.0],
+        [10.01, 54.0],
+        [10.01, 54.01],
+        [10.0, 54.01],
+        [10.0, 54.0],
+        [10.01, 54.0],
+      ],
+    } satisfies RouteGeometry;
+
+    const snapshot = createNavigationSnapshot(repeatedRoute, {
+      currentPosition: {
+        lat: 54.0,
+        lon: 10.0,
+      },
+      preferredDistanceFromStartMeters: 0,
+      requestedProgressFraction: 0,
+    });
+
+    expect(snapshot.completedDistanceMeters).toBeLessThan(10);
+    expect(snapshot.progressFraction).toBeLessThan(0.05);
+  });
+
   it("warns when the current position exceeds the conservative off-route threshold", () => {
     const snapshot = createNavigationSnapshot(straightRoute, {
       lateralOffsetMeters: DEFAULT_OFF_ROUTE_WARNING_THRESHOLD_METERS + 15,

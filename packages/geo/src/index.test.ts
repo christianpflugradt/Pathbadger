@@ -50,6 +50,14 @@ describe("calculateRouteProgress", () => {
     [10.0, 54.0],
     [10.01, 54.0],
   ] as const;
+  const nearbyRepeatedRoute = [
+    [10.0, 54.0],
+    [10.01, 54.0],
+    [10.01, 54.01],
+    [10.0, 54.01],
+    [10.0, 54.00009],
+    [10.01, 54.00009],
+  ] as const;
 
   it("reports zero completed distance at the route start", () => {
     const totalDistanceMeters = haversineDistanceMeters(
@@ -194,6 +202,38 @@ describe("calculateRouteProgress", () => {
       0,
     );
     expect(progress.progressFraction).toBeGreaterThan(0.8);
+  });
+
+  it("lets the preferred route distance outrank a modestly closer nearby branch", () => {
+    const progress = calculateRouteProgress(
+      nearbyRepeatedRoute,
+      {
+        lat: 54.00002,
+        lon: 10.005,
+      },
+      {
+        preferredDistanceFromStartMeters: 4_800,
+      },
+    );
+
+    expect(progress.nearestSegmentIndex).toBe(4);
+    expect(progress.progressFraction).toBeGreaterThan(0.75);
+  });
+
+  it("keeps a repeated route near the preferred start instead of snapping to a later parallel branch", () => {
+    const progress = calculateRouteProgress(
+      nearbyRepeatedRoute,
+      {
+        lat: 54.00007,
+        lon: 10.005,
+      },
+      {
+        preferredDistanceFromStartMeters: 0,
+      },
+    );
+
+    expect(progress.nearestSegmentIndex).toBe(0);
+    expect(progress.progressFraction).toBeLessThan(0.2);
   });
 
   it("rejects route polylines with fewer than two coordinates", () => {
