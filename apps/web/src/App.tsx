@@ -242,7 +242,7 @@ export function App() {
   const [navigationRuntimeMode, setNavigationRuntimeMode] =
     useState<NavigationRuntimeMode>("normal");
   const [navigationOrientationMode, setNavigationOrientationMode] =
-    useState<NavigationOrientationMode>("north_up");
+    useState<NavigationOrientationMode>("heading_up");
   const [navigationFollowMode, setNavigationFollowMode] =
     useState<NavigationFollowMode>("follow_position");
   const [navigationManualCenter, setNavigationManualCenter] =
@@ -629,24 +629,6 @@ export function App() {
   const navigationHudStats = isNavigationActive
     ? [
         {
-          label: "Next turn",
-          value: navigationSnapshot?.nextInstruction
-            ? formatNavigationDistance(
-                navigationSnapshot.nextInstruction.distanceMeters,
-              )
-            : navigationTrackedPosition
-              ? "On route"
-              : "Waiting",
-        },
-        {
-          label: "Done",
-          value: navigationSnapshot
-            ? formatDistanceKilometers(
-                navigationSnapshot.completedDistanceMeters,
-              )
-            : "Waiting",
-        },
-        {
           label: "Left",
           value: navigationSnapshot
             ? formatDistanceKilometers(
@@ -657,16 +639,24 @@ export function App() {
               : "Waiting",
         },
         {
-          label: "Progress",
-          value: navigationSnapshot
-            ? `${navigationSnapshot.progressPercent}%`
-            : "Waiting",
-        },
-        {
           label: "Speed",
           value: formatNavigationSpeedKmh(
             navigationSpeedMetrics?.currentSpeedKmh ?? null,
           ),
+        },
+        {
+          label: "Done",
+          value: navigationSnapshot
+            ? formatDistanceKilometers(
+                navigationSnapshot.completedDistanceMeters,
+              )
+            : "Waiting",
+        },
+        {
+          label: "Progress",
+          value: navigationSnapshot
+            ? `${navigationSnapshot.progressPercent}%`
+            : "Waiting",
         },
         ...(navigationEtaState.isAvailable
           ? [
@@ -678,6 +668,50 @@ export function App() {
           : []),
       ]
     : [];
+  const navigationManeuverTitle = navigationSnapshot?.isOffRoute
+    ? "Rejoin the highlighted route"
+    : navigationSnapshot?.nextInstruction
+      ? navigationSnapshot.nextInstruction.instruction.text
+      : navigationTrackedPosition
+        ? "Continue on route"
+        : "Waiting for browser GPS";
+  const navigationManeuverDistanceLabel = !navigationTrackedPosition
+    ? "Waiting for GPS"
+    : navigationSnapshot?.isOffRoute
+      ? `${formatWholeMeters(navigationSnapshot.offRouteDistanceMeters)} off route`
+      : navigationSnapshot?.nextInstruction
+        ? `${formatNavigationDistance(
+            navigationSnapshot.nextInstruction.distanceMeters,
+          )} ahead`
+        : "On route";
+  const navigationManeuverCopy = navigationSnapshot?.isOffRoute
+    ? "Pathbadger widens the map slightly so the route line and nearest rejoin stay visible."
+    : navigationSnapshot?.nextInstruction?.instruction.streetName
+      ? `Toward ${navigationSnapshot.nextInstruction.instruction.streetName}.`
+      : navigationHudSupportCopy;
+  const navigationMapHeaderOverlay = isNavigationActive ? (
+    <div
+      className={`map-maneuver-banner${
+        navigationSnapshot?.isOffRoute ? " map-maneuver-banner--warning" : ""
+      }`}
+      data-testid="navigation-maneuver-banner"
+    >
+      <div className="map-maneuver-banner__icon" aria-hidden="true">
+        {navigationSnapshot?.isOffRoute
+          ? "!"
+          : getNavigationInstructionSymbol(
+              navigationSnapshot?.nextInstruction?.instruction ?? null,
+            )}
+      </div>
+      <div className="map-maneuver-banner__body">
+        <span className="map-maneuver-banner__distance">
+          {navigationManeuverDistanceLabel}
+        </span>
+        <strong>{navigationManeuverTitle}</strong>
+        <span>{navigationManeuverCopy}</span>
+      </div>
+    </div>
+  ) : null;
   const navigationResetHandoffTitle = navigationResetState
     ? navigationResetState.reason === "completed"
       ? "Route complete. Plan the next one."
@@ -704,14 +738,7 @@ export function App() {
           {navigationHudGpsStatusPill.label}
         </span>
       </div>
-      <div className="map-hud__headline">
-        <strong>
-          {navigationSnapshot?.nextInstruction
-            ? navigationSnapshot.nextInstruction.instruction.text
-            : navigationTrackedPosition
-              ? "Continue on route"
-              : "Waiting for browser GPS"}
-        </strong>
+      <div className="map-hud__headline map-hud__headline--support">
         <span>{navigationHudSupportCopy}</span>
       </div>
       <div className="map-hud__stats map-hud__stats--navigation">
@@ -845,8 +872,8 @@ export function App() {
         <div className="section-heading">
           <h3>Map orientation</h3>
           <p>
-            Keep the map north-up by default or request heading-up when the
-            browser can provide a trustworthy live heading.
+            Heading-up is the default guidance camera. Switch to north-up if you
+            want a static map instead of a forward-looking navigation view.
           </p>
         </div>
         <div className="option-grid" data-testid="navigation-orientation-mode">
@@ -1987,6 +2014,7 @@ export function App() {
                       })
                     : null
                 }
+                headerOverlay={navigationMapHeaderOverlay}
                 isMapStartActive={
                   !isNavigationActive && startPointMode === "map_point"
                 }
@@ -2002,10 +2030,21 @@ export function App() {
                     ? navigationOrientationState.appliedBearingDegrees
                     : 0
                 }
+                navigationHasFreshPosition={navigationHasFreshPosition}
+                navigationIsHeadingUpActive={
+                  navigationOrientationState.isHeadingUpActive
+                }
+                navigationIsOffRoute={navigationSnapshot?.isOffRoute ?? false}
                 navigationOrientationLabel={
                   isNavigationActive
                     ? navigationOrientationState.indicatorLabel
                     : "North up"
+                }
+                navigationProgressFraction={
+                  navigationSnapshot?.progressFraction ?? null
+                }
+                navigationSpeedKmh={
+                  navigationSpeedMetrics?.currentSpeedKmh ?? null
                 }
                 onNavigationManualPan={handleNavigationManualPan}
                 onMapSelect={
@@ -2855,6 +2894,31 @@ function getNavigationMapMarkerLabel(options: {
   }
 
   return `${prefix} ${options.navigationSnapshot.progressPercent}%`;
+}
+
+function getNavigationInstructionSymbol(instruction: RouteInstruction | null) {
+  switch (instruction?.type) {
+    case "turn_left":
+    case "turn_sharp_left":
+      return "\u2190";
+    case "turn_right":
+    case "turn_sharp_right":
+      return "\u2192";
+    case "turn_slight_left":
+      return "\u2196";
+    case "turn_slight_right":
+      return "\u2197";
+    case "u_turn_left":
+    case "u_turn_right":
+      return "\u21b6";
+    case "arrive":
+      return "\u25a0";
+    case "depart":
+    case "continue":
+    case "via":
+    default:
+      return "\u2191";
+  }
 }
 
 function getPlanningPreferenceHelperClassName(options: {

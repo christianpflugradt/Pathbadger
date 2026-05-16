@@ -491,6 +491,10 @@ body {
   min-height: 620px;
 }
 
+.preview-card--navigation-active .maplibregl-ctrl-top-right {
+  display: none;
+}
+
 .planner-map-toolbar__utility-row,
 .planner-map-toolbar__primary-actions {
   display: flex;
@@ -589,6 +593,15 @@ body {
   font-weight: 700;
 }
 
+.planning-map__header-overlay {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  left: 0.85rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
 .planning-map__footer-overlay {
   display: none;
 }
@@ -620,6 +633,72 @@ body {
   border-color: rgba(20, 33, 61, 0.42);
   background: linear-gradient(135deg, #eac435 0%, #f28f3b 100%);
   color: #14213d;
+}
+
+.map-maneuver-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  border: 1px solid rgba(247, 244, 234, 0.16);
+  border-radius: 1.25rem;
+  padding: 0.9rem 1rem;
+  background:
+    linear-gradient(135deg, rgba(20, 33, 61, 0.92), rgba(28, 44, 83, 0.88)),
+    radial-gradient(
+      circle at top left,
+      rgba(234, 196, 53, 0.2),
+      transparent 45%
+    );
+  box-shadow: 0 20px 38px rgba(20, 33, 61, 0.26);
+  backdrop-filter: blur(16px);
+  color: #f7f4ea;
+}
+
+.map-maneuver-banner--warning {
+  background:
+    linear-gradient(135deg, rgba(120, 57, 20, 0.94), rgba(163, 86, 28, 0.9)),
+    radial-gradient(
+      circle at top left,
+      rgba(247, 244, 234, 0.14),
+      transparent 45%
+    );
+}
+
+.map-maneuver-banner__icon {
+  display: grid;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 1rem;
+  background: rgba(247, 244, 234, 0.12);
+  color: #f7f4ea;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.map-maneuver-banner__body {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.map-maneuver-banner__distance {
+  color: rgba(247, 244, 234, 0.76);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.map-maneuver-banner__body strong {
+  font-size: 1.06rem;
+  line-height: 1.2;
+}
+
+.map-maneuver-banner__body span:last-child {
+  color: rgba(247, 244, 234, 0.82);
+  line-height: 1.35;
 }
 
 .planning-map--loading .planning-map__status {
@@ -743,6 +822,10 @@ body {
   line-height: 1.45;
 }
 
+.map-hud__headline--support strong {
+  display: none;
+}
+
 .map-hud__stats {
   display: grid;
   gap: 0.8rem;
@@ -750,15 +833,30 @@ body {
 }
 
 .map-hud__stats--navigation {
-  gap: 0.6rem;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(5.3rem, 1fr));
+}
+
+.map-hud--navigation {
+  gap: 0.55rem;
+  border-color: rgba(20, 33, 61, 0.12);
+  border-radius: 1.15rem;
+  padding: 0.85rem 0.95rem;
+  background: rgba(247, 244, 234, 0.9);
+  box-shadow: 0 16px 32px rgba(20, 33, 61, 0.22);
+  backdrop-filter: blur(12px);
 }
 
 .map-hud--navigation .preview-stat {
-  padding: 0.72rem 0.78rem;
+  padding: 0.64rem 0.72rem;
+  border-color: rgba(20, 33, 61, 0.09);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .map-hud--navigation .preview-stat span {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .response-banner {
@@ -1024,6 +1122,10 @@ code {
     pointer-events: none;
   }
 
+  .preview-card--navigation-active .planner-map-toolbar {
+    bottom: 0.75rem;
+  }
+
   .planner-map-toolbar__utility-row {
     display: flex;
     gap: 0.45rem;
@@ -1092,6 +1194,32 @@ code {
     padding: 0.24rem 0.58rem;
   }
 
+  .planning-map__header-overlay {
+    top: 0.75rem;
+    right: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .map-maneuver-banner {
+    gap: 0.7rem;
+    padding: 0.78rem 0.82rem;
+  }
+
+  .map-maneuver-banner__icon {
+    width: 2.45rem;
+    height: 2.45rem;
+    border-radius: 0.9rem;
+    font-size: 1.2rem;
+  }
+
+  .map-maneuver-banner__body strong {
+    font-size: 0.96rem;
+  }
+
+  .map-maneuver-banner__body span:last-child {
+    font-size: 0.86rem;
+  }
+
   .planning-map__footer-overlay {
     position: absolute;
     right: 0.75rem;
@@ -1100,6 +1228,10 @@ code {
     z-index: 1;
     display: block;
     pointer-events: none;
+  }
+
+  .preview-card--navigation-active .planning-map__footer-overlay {
+    bottom: 8.85rem;
   }
 
   .planning-map__footer-overlay .map-hud {
@@ -1117,6 +1249,7 @@ code {
 
   .planning-map__footer-overlay .map-hud--navigation {
     gap: 0.55rem;
+    padding: 0.72rem 0.78rem;
   }
 
   .planning-map__footer-overlay .map-hud__stats--navigation {
@@ -1226,6 +1359,30 @@ code {
     font-size: 0.88rem;
   }
 
+  .map-maneuver-banner {
+    gap: 0.62rem;
+    padding: 0.72rem 0.78rem;
+  }
+
+  .map-maneuver-banner__icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.85rem;
+    font-size: 1.1rem;
+  }
+
+  .map-maneuver-banner__distance {
+    font-size: 0.68rem;
+  }
+
+  .map-maneuver-banner__body strong {
+    font-size: 0.9rem;
+  }
+
+  .map-maneuver-banner__body span:last-child {
+    font-size: 0.8rem;
+  }
+
   .option-card,
   .segment,
   .button {
@@ -1247,9 +1404,22 @@ code {
     left: 0.65rem;
   }
 
+  .preview-card--navigation-active .planner-map-toolbar {
+    bottom: 0.65rem;
+  }
+
   .planning-map__footer-overlay {
     right: 0.65rem;
     bottom: 0.65rem;
+    left: 0.65rem;
+  }
+
+  .preview-card--navigation-active .planning-map__footer-overlay {
+    bottom: 8.35rem;
+  }
+
+  .planning-map__header-overlay {
+    right: 0.65rem;
     left: 0.65rem;
   }
 
@@ -1260,7 +1430,7 @@ code {
 
   .planning-map__footer-overlay .map-hud--navigation {
     gap: 0.5rem;
-    padding: 0.72rem;
+    padding: 0.68rem 0.72rem;
   }
 
   .planning-map__footer-overlay .map-hud--navigation .preview-stat {

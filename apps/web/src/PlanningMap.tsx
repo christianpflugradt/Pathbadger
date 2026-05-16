@@ -6,6 +6,7 @@ import type {
 } from "@pathbadger/shared";
 import maplibregl from "maplibre-gl";
 
+import { getNavigationMapCameraState } from "./navigation-map-camera";
 import type { NavigationFollowMode } from "./navigation-follow-state";
 import {
   getMapErrorMessage,
@@ -20,12 +21,18 @@ type PlanningMapProps = {
   centerLabel: string;
   currentPosition: Coordinate | null;
   currentPositionLabel: string | null;
+  headerOverlay?: ReactNode;
   isMapStartActive: boolean;
   isNavigationActive: boolean;
   interactionMode: "idle" | "add_pass_through";
   navigationBearingDegrees: number;
   navigationFollowMode: NavigationFollowMode | null;
+  navigationHasFreshPosition: boolean;
+  navigationIsHeadingUpActive: boolean;
+  navigationIsOffRoute: boolean;
   navigationOrientationLabel: string;
+  navigationProgressFraction: number | null;
+  navigationSpeedKmh: number | null;
   onNavigationManualPan: (center: Coordinate) => void;
   onMapSelect: (coordinate: Coordinate) => void;
   onNavigationViewportChange: (center: Coordinate) => void;
@@ -43,18 +50,27 @@ const DEFAULT_ZOOM = 11.5;
 const ROUTE_PREVIEW_SOURCE_ID = "route-preview";
 const ROUTE_PREVIEW_CASING_LAYER_ID = "route-preview-casing";
 const ROUTE_PREVIEW_LINE_LAYER_ID = "route-preview-line";
+const ROUTE_PREVIEW_COMPLETED_COLOR = "rgba(247, 244, 234, 0.3)";
+const ROUTE_PREVIEW_SUCCESS_COLOR = "#6b7a34";
+const ROUTE_PREVIEW_PARTIAL_COLOR = "#c98a2d";
 
 export function PlanningMap({
   center,
   centerLabel,
   currentPosition,
   currentPositionLabel,
+  headerOverlay,
   isMapStartActive,
   isNavigationActive,
   interactionMode,
   navigationBearingDegrees,
   navigationFollowMode,
+  navigationHasFreshPosition,
+  navigationIsHeadingUpActive,
+  navigationIsOffRoute,
   navigationOrientationLabel,
+  navigationProgressFraction,
+  navigationSpeedKmh,
   onNavigationManualPan,
   onMapSelect,
   onNavigationViewportChange,
@@ -147,10 +163,34 @@ export function PlanningMap({
       return;
     }
 
+    if (isNavigationActive) {
+      const cameraState = getNavigationMapCameraState({
+        currentSpeedKmh: navigationSpeedKmh,
+        hasFreshPosition: navigationHasFreshPosition,
+        isHeadingUpActive: navigationIsHeadingUpActive,
+        isOffRoute: navigationIsOffRoute,
+        viewportHeight: map.getContainer().clientHeight,
+        viewportWidth: map.getContainer().clientWidth,
+      });
+
+      map.easeTo({
+        bearing: navigationBearingDegrees,
+        center: [center.lon, center.lat],
+        duration: cameraState.transitionDurationMs,
+        padding: cameraState.padding,
+        pitch: cameraState.pitchDegrees,
+        zoom: cameraState.zoomLevel,
+      });
+
+      return;
+    }
+
     map.easeTo({
-      bearing: isNavigationActive ? navigationBearingDegrees : 0,
+      bearing: 0,
       center: [center.lon, center.lat],
       duration: 0,
+      padding: zeroPadding(),
+      pitch: 0,
       zoom: map.getZoom() || DEFAULT_ZOOM,
     });
   }, [
@@ -159,6 +199,10 @@ export function PlanningMap({
     isNavigationActive,
     navigationBearingDegrees,
     navigationFollowMode,
+    navigationHasFreshPosition,
+    navigationIsHeadingUpActive,
+    navigationIsOffRoute,
+    navigationSpeedKmh,
   ]);
 
   useEffect(() => {
@@ -297,12 +341,22 @@ export function PlanningMap({
     }
 
     ensureRoutePreviewLayers(map);
-    syncRoutePreview(map, routeGeometry, routeStatus);
+    syncRoutePreview(map, routeGeometry, routeStatus, {
+      isNavigationActive,
+      navigationProgressFraction,
+    });
 
-    if (routeGeometry?.coordinates.length) {
+    if (!isNavigationActive && routeGeometry?.coordinates.length) {
       fitMapToRoutePreview(map, routeGeometry);
     }
-  }, [loadState, routeGeometry, routeStatus, styleUrl]);
+  }, [
+    isNavigationActive,
+    loadState,
+    navigationProgressFraction,
+    routeGeometry,
+    routeStatus,
+    styleUrl,
+  ]);
 
   const isAwaitingPassThroughPoint = interactionMode === "add_pass_through";
   const interactionLabel = isAwaitingPassThroughPoint
@@ -397,6 +451,13 @@ export function PlanningMap({
       data-navigation-orientation={
         isNavigationActive ? navigationOrientationLabel : "inactive"
       }
+      data-navigation-camera-mode={
+        isNavigationActive
+          ? navigationFollowMode === "manual_pan"
+            ? "manual_pan"
+            : "forward_follow"
+          : "planning"
+      }
       data-map-style-url={getStyleLabel(styleUrl)}
       data-testid="planning-map"
     >
@@ -414,6 +475,9 @@ export function PlanningMap({
             ))}
           </div>
         </div>
+      ) : null}
+      {headerOverlay ? (
+        <div className="planning-map__header-overlay">{headerOverlay}</div>
       ) : null}
       {footerOverlay ? (
         <div className="planning-map__footer-overlay">{footerOverlay}</div>
@@ -453,6 +517,7 @@ function ensureRoutePreviewLayers(map: maplibregl.Map) {
     map.addSource(ROUTE_PREVIEW_SOURCE_ID, {
       type: "geojson",
       data: emptyRoutePreviewCollection(),
+      lineMetrics: true,
     });
   }
 
@@ -463,8 +528,8 @@ function ensureRoutePreviewLayers(map: maplibregl.Map) {
       source: ROUTE_PREVIEW_SOURCE_ID,
       paint: {
         "line-color": "rgba(20, 33, 61, 0.92)",
-        "line-opacity": 0.42,
-        "line-width": 8,
+        "line-opacity": 0.52,
+        "line-width": 9,
       },
       layout: {
         "line-cap": "round",
@@ -479,8 +544,10 @@ function ensureRoutePreviewLayers(map: maplibregl.Map) {
       type: "line",
       source: ROUTE_PREVIEW_SOURCE_ID,
       paint: {
-        "line-color": "#6b7a34",
-        "line-width": 4.8,
+        "line-gradient": buildUniformRouteGradient(
+          ROUTE_PREVIEW_SUCCESS_COLOR,
+        ) as never,
+        "line-width": 5.4,
       },
       layout: {
         "line-cap": "round",
@@ -494,6 +561,10 @@ function syncRoutePreview(
   map: maplibregl.Map,
   routeGeometry: RouteGeometry | null,
   routeStatus: RouteStatus | null,
+  options: {
+    isNavigationActive: boolean;
+    navigationProgressFraction: number | null;
+  },
 ) {
   const source = map.getSource(ROUTE_PREVIEW_SOURCE_ID) as
     | maplibregl.GeoJSONSource
@@ -518,10 +589,20 @@ function syncRoutePreview(
       : emptyRoutePreviewCollection(),
   );
 
+  const activeRouteColor =
+    routeStatus === "partial"
+      ? ROUTE_PREVIEW_PARTIAL_COLOR
+      : ROUTE_PREVIEW_SUCCESS_COLOR;
+
   map.setPaintProperty(
     ROUTE_PREVIEW_LINE_LAYER_ID,
-    "line-color",
-    routeStatus === "partial" ? "#c98a2d" : "#6b7a34",
+    "line-gradient",
+    options.isNavigationActive
+      ? buildNavigationRouteGradient({
+          activeRouteColor,
+          progressFraction: options.navigationProgressFraction,
+        })
+      : (buildUniformRouteGradient(activeRouteColor) as never),
   );
 }
 
@@ -552,6 +633,66 @@ function emptyRoutePreviewCollection() {
     type: "FeatureCollection" as const,
     features: [],
   };
+}
+
+function zeroPadding() {
+  return {
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+  };
+}
+
+function buildUniformRouteGradient(color: string) {
+  return [
+    "interpolate",
+    ["linear"],
+    ["line-progress"],
+    0,
+    color,
+    1,
+    color,
+  ] as const;
+}
+
+function buildNavigationRouteGradient(options: {
+  activeRouteColor: string;
+  progressFraction: number | null;
+}) {
+  const progressFraction =
+    options.progressFraction === null
+      ? null
+      : clamp(options.progressFraction, 0, 1);
+
+  if (progressFraction === null || progressFraction <= 0.002) {
+    return buildUniformRouteGradient(options.activeRouteColor);
+  }
+
+  if (progressFraction >= 0.998) {
+    return buildUniformRouteGradient(ROUTE_PREVIEW_COMPLETED_COLOR);
+  }
+
+  const gradientEdgeStart = Math.max(progressFraction - 0.0015, 0);
+  const gradientEdgeEnd = Math.min(progressFraction + 0.0015, 1);
+
+  return [
+    "interpolate",
+    ["linear"],
+    ["line-progress"],
+    0,
+    ROUTE_PREVIEW_COMPLETED_COLOR,
+    gradientEdgeStart,
+    ROUTE_PREVIEW_COMPLETED_COLOR,
+    gradientEdgeEnd,
+    options.activeRouteColor,
+    1,
+    options.activeRouteColor,
+  ] as const;
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
 }
 
 function trimStyleUrl(styleUrl: string) {
