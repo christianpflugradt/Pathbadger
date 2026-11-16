@@ -1,5 +1,12 @@
 # Pathbadger
 
+> [!NOTE]
+> **This project is archived.** I stopped working on Pathbadger early, after only a few days, because
+> I lost the motivation for it. I also came to believe that a web app is the wrong foundation for it:
+> a sustainable solution for map-based route planning and navigation would need a native app, as a web
+> app has to stream a lot of map data. It remains an unfinished prototype and is available for
+> reference. Please don't confuse it with my active projects.
+
 Pathbadger is a self-hosted trail-first route planning and navigation project for spontaneous running and cycling routes in Schleswig-Holstein.
 
 This repository is initialized for an agent-driven workflow with four recurring repo task commands:
